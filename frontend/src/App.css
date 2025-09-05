@@ -1,0 +1,17 @@
+.offcanvas-bottom.auto-height {
+  height: auto !important;
+  max-height: 90vh;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+  overflow-y: auto;
+  transition: transform 0.3s ease-in-out;
+  background-color: #fff;
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1050;
+}
+.offcanvas.show {
+  transform: translateY(0%) !important;
+}
+.offcanvas.offcanvas-bottom {
+  transform: translateY(100%);
+}

@@ -1,0 +1,57 @@
+/* Sidebar base */
+.sidebar {
+  width: 250px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  overflow: visible;
+  transition: width 0.3s ease;
+  flex-shrink: 0;
+  border-right: 1px solid #e5e7eb;
+}
+.sidebar.collapsed { width: 80px; }
+
+.user { margin-bottom: 24px; font-size: 1.05rem; color: #0b0f19; white-space: nowrap; overflow: hidden; }
+.badge { background: #1a73e8; padding: 2px 8px; border-radius: 12px; margin-left: 6px; font-size: 0.75rem; color: #fff; }
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; overflow-y: auto; overflow-x: visible; -webkit-overflow-scrolling: touch; }
+.navlink {
+  display: flex; align-items: center; padding: 10px 12px; border-radius: 8px;
+  text-decoration: none; color: #111827; transition: background .15s, color .15s;
+  gap: 12px; position: relative;
+}
+.navlink:hover { background: #f3f6fb; color: #111827; }
+.navlink.active { background: #e8f0fe; color: #1a73e8; font-weight: 600; }
+.navlink svg { flex-shrink: 0; }
+
+.sidebar-footer { margin-top: auto; }
+.logout-btn {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px;
+  border: none; border-radius: 8px; background: #ef4444; color: white; cursor: pointer;
+  font-weight: 600; transition: background .15s;
+}
+.logout-btn:hover { background: #dc2626; }
+
+.app-shell { display: flex; align-items: flex-start; min-height: 100vh; background: #fff; }
+.content { flex: 1; padding: 0; overflow-y: auto; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { position: fixed; left: 0; top: 0; height: 100vh; z-index: 100; box-shadow: 2px 0 10px rgba(0,0,0,0.08); }
+  .sidebar { width: 70px; }
+  .sidebar:not(.collapsed) { width: 240px; }
+  .content { margin-left: 70px; }
+  .sidebar:not(.collapsed) + .content { margin-left: 240px; }
+}
+
+.avatar_button_sidebar { margin: 0px 0px 25px 0px; }
+.avatar-btn { background: transparent; border: 0; padding: 0; cursor: pointer; }
+.avatar {
+  height: 28px; width: 28px; border-radius: 999px; display: grid; place-items: center;
+  background: #e2e8f0; color: #0f172a; font-weight: 700; font-size: 0.85rem;
+}
