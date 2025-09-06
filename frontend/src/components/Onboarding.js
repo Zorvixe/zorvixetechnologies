@@ -7,7 +7,7 @@ import {
 } from "lucide-react"
 import "./Onboarding.css"
 
-const API_BASE_URL = process.env.API_BACKEND_URL || "http://localhost:5000"
+const API_BASE_URL = process.env.API_BACKEND_URL || "http://localhost:5001"
 
 function normalizeCandidate(raw) {
   if (!raw) return null

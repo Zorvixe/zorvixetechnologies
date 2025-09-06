@@ -732,7 +732,7 @@ function CreateLinkModal({
                   min="0"
                   value={form.amount}
                   onChange={(e) => onChange("amount", e.target.value)}
-                  placeholder="e.g. 5000"
+                  placeholder="e.g. 5001"
                 />
               </div>
 

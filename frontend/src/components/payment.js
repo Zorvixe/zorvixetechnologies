@@ -12,7 +12,7 @@ import "./payment.css"
 const API_BASE =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) ||
   process.env.REACT_APP_API_BASE ||
-  "http://localhost:5000"
+  "http://localhost:5001"
 
 // Normalize server response to a single shape
 function normalizeDetails(data) {
