@@ -175,3 +175,215 @@
     max-height: 80%;
   }
 }
+
+.notification-new-badge {
+  background: #ff4757;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.notification-item {
+  cursor: pointer;
+  transition: background-color 0.2s;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.notification-item:hover {
+  background-color: #f8f9fa;
+}
+
+.notification-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.notification-message {
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.notification-time {
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.notification-content {
+  position: relative;
+}
+
+.notification-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-title {
+  font-weight: 600;
+  color: #333;
+  flex: 1; /* title takes remaining space */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notification-assigned {
+  font-size: 12px;
+  color: #6c757d;
+  font-style: italic;
+  white-space: nowrap;
+  margin-top: -14px;
+}
+
+/* Add these styles to your existing Notifications.css */
+
+.notification-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.notification-title-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notification-calendar-icon {
+  font-size: 24px;
+}
+
+.date-filter-section {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.date-filter-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.date-filter-input label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.date-filter-input input[type="date"] {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.clear-date-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-date-btn:hover {
+  background: #5a6268;
+}
+
+.date-filter-info {
+  font-size: 12px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.notification-icon {
+  font-size: 20px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.notification-content {
+  display: flex;
+  align-items: flex-start;
+}
+
+.notification-details {
+  flex: 1;
+}
+
+.notification-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.notification-date {
+  font-size: 11px;
+  color: #888;
+}
+
+.notification-footer-info {
+  padding: 15px;
+  border-top: 1px solid #eee;
+  background: #f8f9fa;
+  text-align: center;
+}
+
+.notification-count {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .date-filter-input {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .date-filter-input label {
+    justify-content: center;
+  }
+  
+  .notification-header-top {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Animation for date filter */
+.date-filter-section {
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

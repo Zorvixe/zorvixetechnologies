@@ -1,39 +1,56 @@
-// Notification.js
 import React, { useEffect, useState, useRef } from 'react';
-import { apiGetNotifications, apiMarkNotificationRead, apiMarkAllNotificationsRead, apiDeleteNotification } from '../api';
+import { apiStatsNotifications } from '../api';
 import { useAuth } from '../auth';
 import './Notifications.css';
 
-export default function Notification({ isOpen, onClose }) {
+/** ---- Local date helpers (avoid UTC shift from toISOString) ---- */
+const localYMD = (d = new Date()) => {
+  // en-CA yields YYYY-MM-DD in the *local* timezone
+  return d.toLocaleDateString('en-CA');
+};
+
+const parseLocalYMD = (ymd) => {
+  // ymd: "YYYY-MM-DD" -> Date at local midnight
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d, 0, 0, 0, 0);
+};
+
+const startOfLocalDay = (ymd) => parseLocalYMD(ymd);
+const endOfLocalDay = (ymd) => {
+  const start = parseLocalYMD(ymd);
+  return new Date(start.getTime() + 24 * 60 * 60 * 1000);
+};
+
+export default function Notification({ isOpen, onClose, lastChecked, onNewActivities }) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [activeTab, setActiveTab] = useState('all');
+
+  // Default to *today in local time*, not UTC
+  const [selectedDate, setSelectedDate] = useState(localYMD());
+
   const modalRef = useRef(null);
 
+  // Toast (bottom-right)
+  const toastTimer = useRef(null);
+  const [toast, setToast] = useState({ open: false, type: 'success', message: '' });
 
-  // --- Toast (bottom-right) ---
-    const toastTimer = useRef(null)
-    const [toast, setToast] = useState({ open: false, type: 'success', message: '' })
-  
-    const showToast = (message, type = 'success') => {
-      setToast({ open: true, type, message })
-      if (toastTimer.current) clearTimeout(toastTimer.current)
-      toastTimer.current = setTimeout(() => {
-        setToast(t => ({ ...t, open: false }))
-      }, 3000)
-    }
-  
-    const hideToast = () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current)
-      setToast(t => ({ ...t, open: false }))
-    }
-  
-    useEffect(() => () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current)
-    }, [])
-  
+  const showToast = (message, type = 'success') => {
+    setToast({ open: true, type, message });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => {
+      setToast(t => ({ ...t, open: false }));
+    }, 3000);
+  };
+
+  const hideToast = () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(t => ({ ...t, open: false }));
+  };
+
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -43,7 +60,8 @@ export default function Notification({ isOpen, onClose }) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, activeTab]);
+    // re-run when selectedDate changes so the list refilters
+  }, [isOpen, selectedDate]);
 
   const handleClickOutside = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) {
@@ -51,92 +69,182 @@ export default function Notification({ isOpen, onClose }) {
     }
   };
 
-  // Fix the fetchNotifications function
-const fetchNotifications = async () => {
-  try {
-    setLoading(true);
-    const params = { limit: 50 };
-    if (activeTab === 'unread') params.unread = 'true';
-    
-    const data = await apiGetNotifications(params);
-    setNotifications(data.notifications || []);
-    setUnreadCount(data.unread_count || 0);
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    showToast('Failed to load notifications', 'error');
-  } finally {
-    setLoading(false);
-  }
-};
-
-  const handleMarkAsRead = async (id) => {
+  const fetchNotifications = async () => {
     try {
-      const data = await apiMarkNotificationRead(id);
-      setNotifications(prev => prev.map(n => 
-        n.id === id ? { ...n, is_read: true } : n
-      ));
-      setUnreadCount(data.unread_count || 0);
+      setLoading(true);
+      const data = await apiStatsNotifications();
+      const feed = Array.isArray(data?.activityFeed) ? data.activityFeed : [];
+
+      let filtered = feed;
+
+      // Filter by selected date using local day window [start, end)
+      if (selectedDate) {
+        const start = startOfLocalDay(selectedDate);
+        const end = endOfLocalDay(selectedDate);
+        filtered = feed.filter((activity) => {
+          const t = activity?.at ? new Date(activity.at) : null;
+          return t && t >= start && t < end;
+        });
+      }
+
+      const notificationData = filtered.map((activity, index) => ({
+        id: index + 1,
+        title: getNotificationTitle(activity.type),
+        message: activity.text,
+        assigned_to: getAssignedTo(activity),
+        related_type: activity.type,
+        related_id: getRelatedId(activity),
+        related_data: activity.data,
+        created_at: activity.at,
+        is_new: lastChecked ? new Date(activity.at) > new Date(lastChecked) : false
+      }));
+
+      setNotifications(notificationData);
+
+      // Report new activities count (if parent cares)
+      const newActivitiesCount = notificationData.filter(n => n.is_new).length;
+      if (onNewActivities) onNewActivities(newActivitiesCount);
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('Error fetching notifications:', error);
+      showToast('Failed to load notifications', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleMarkAllAsRead = async () => {
-    try {
-      await apiMarkAllNotificationsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      setUnreadCount(0);
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+  // Helper function to get notification title based on type
+  const getNotificationTitle = (type) => {
+    switch (type) {
+      case 'project':
+        return 'New Project';
+      case 'ticket':
+        return 'New Ticket';
+      case 'project_comment':
+        return 'Project Comment';
+      case 'ticket_comment':
+        return 'Ticket Comment';
+      case 'user_login':
+        return 'User Login';
+      case 'user_logout':
+        return 'User Logout';
+      default:
+        return 'System Notification';
     }
   };
 
-  const handleDelete = async (id, e) => {
-    e.stopPropagation();
-    try {
-      const data = await apiDeleteNotification(id);
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      setUnreadCount(data.unread_count || 0);
-    } catch (error) {
-      console.error('Error deleting notification:', error);
+  // Helper function to extract assigned to information
+  const getAssignedTo = (activity) => {
+    switch (activity.type) {
+      case 'ticket':
+        return activity.data?.assigned_to_name || activity.data?.assigned_to || null;
+      case 'project':
+        return activity.data?.updated_by_name || activity.data?.updated_by || null;
+      case 'project_comment':
+        return activity.data?.user_name || activity.data?.user_email || 'Someone';
+      case 'ticket_comment':
+        return activity.data?.user_name || activity.data?.user_email || 'Someone';
+      case 'user_login':
+      case 'user_logout':
+        return activity.data?.name || activity.data?.email || 'User';
+      default:
+        return null;
+    }
+  };
+
+  // Helper function to extract related ID from activity data
+  const getRelatedId = (activity) => {
+    switch (activity.type) {
+      case 'project':
+        return activity.data?.id || null;
+      case 'ticket':
+        return activity.data?.id || null;
+      case 'project_comment':
+        return activity.data?.project_id || null;
+      case 'ticket_comment':
+        return activity.data?.ticket_id || null;
+      default:
+        return null;
     }
   };
 
   const handleNotificationClick = async (notification) => {
-    if (!notification.is_read) {
-      await handleMarkAsRead(notification.id);
-    }
-    
-    // Handle navigation based on notification type
+    let path = '';
+
     switch (notification.related_type) {
-      case 'ticket':
-        window.location.href = `/tickets?view=${notification.related_id}`;
+      case 'ticket': {
+        const ticketId = notification.related_data?.id;
+        path = ticketId ? `/tickets?view=${ticketId}` : '/tickets';
         break;
-      case 'payment':
-        window.location.href = `/payments`;
+      }
+      case 'project': {
+        const projectId = notification.related_data?.id;
+        path = projectId ? `/clients?project=${projectId}` : '/clients';
         break;
-      case 'contact':
-        window.location.href = `/contacts`;
+      }
+      case 'project_comment': {
+        const commentProjectId = notification.related_data?.project_id;
+        path = commentProjectId ? `/clients?project=${commentProjectId}` : '/clients';
         break;
-      case 'candidate':
-        window.location.href = `/candidates`;
+      }
+      case 'ticket_comment': {
+        const commentTicketId = notification.related_data?.ticket_id;
+        path = commentTicketId ? `/tickets?view=${commentTicketId}` : '/tickets';
         break;
-      case 'project':
-        window.location.href = `/clients`;
-        break;
+      }
       default:
         break;
     }
-    
+
+    if (path) {
+      // SPA-friendly push without reload (works with your custom router listener)
+      window.history.pushState(null, '', path);
+      window.dispatchEvent(new CustomEvent('routechange', { detail: { path } }));
+    }
+
     onClose();
   };
 
-  const formatTime = (secondsAgo) => {
-    if (secondsAgo < 60) return 'Just now';
-    if (secondsAgo < 3600) return `${Math.floor(secondsAgo / 60)}m ago`;
-    if (secondsAgo < 86400) return `${Math.floor(secondsAgo / 3600)}h ago`;
-    return `${Math.floor(secondsAgo / 86400)}d ago`;
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+
+    // After 24 hours, show exact time instead of "x days ago"
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+  const formatAssignedText = (assignedTo, type) => {
+    if (!assignedTo) return null;
+
+    switch (type) {
+      case 'ticket':
+        return `Assigned to: ${assignedTo}`;
+      case 'project':
+        return `Updated by: ${assignedTo}`;
+      case 'project_comment':
+      case 'ticket_comment':
+        return `By: ${assignedTo}`;
+      case 'user_login':
+      case 'user_logout':
+        return `User: ${assignedTo}`;
+      default:
+        return `By: ${assignedTo}`;
+    }
+  };
+
+  const handleDateChange = (e) => {
+    setSelectedDate(e.target.value);
+  };
+
+  const clearDateFilter = () => {
+    setSelectedDate('');
+  };
+
+
 
   if (!isOpen) return null;
 
@@ -144,86 +252,103 @@ const fetchNotifications = async () => {
     <div className="notification-overlay">
       <div ref={modalRef} className="notification-modal">
         <div className="notification-header">
-          <h3>Notifications</h3>
-          <div className="notification-actions">
-            {unreadCount > 0 && (
-              <button 
-                className="btn-link" 
-                onClick={handleMarkAllAsRead}
-                title="Mark all as read"
-              >
-                Mark all read
+          <div className="notification-header-top">
+            <div className="notification-title-section">
+              <h3>ZOR - Notify</h3>
+            </div>
+          </div>
+
+          <div className="date-filter-input">
+            <input
+              id="date-filter"
+              type="date"
+              value={selectedDate}
+              onChange={handleDateChange}
+              // Use local date for max as well
+              max={localYMD()}
+            />
+            {selectedDate && (
+              <button className="clear-date-btn" onClick={clearDateFilter} title="Clear filter">
+                ×
               </button>
             )}
-            <button className="btn-close" onClick={onClose}>×</button>
           </div>
-        </div>
-
-        <div className="notification-tabs">
-          <button 
-            className={activeTab === 'all' ? 'active' : ''}
-            onClick={() => setActiveTab('all')}
-          >
-            All
-          </button>
-          <button 
-            className={activeTab === 'unread' ? 'active' : ''}
-            onClick={() => setActiveTab('unread')}
-          >
-            Unread {unreadCount > 0 && `(${unreadCount})`}
-          </button>
         </div>
 
         <div className="notification-list">
           {loading ? (
-            <div className="notification-loading">
-              <div className="loader-spinner"></div>
-              <p>Loading notifications...</p>
+            <div className="loader_container">
+              <p className="loader_spinner"></p>
             </div>
           ) : notifications.length === 0 ? (
             <div className="notification-empty">
-              <p>No notifications found</p>
+              <p>
+                {selectedDate
+                  ? `No activities found for ${new Date(selectedDate).toLocaleDateString()}`
+                  : 'No recent activities found'}
+              </p>
             </div>
           ) : (
-            notifications.map(notification => (
+            notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`notification-item ${notification.is_read ? 'read' : 'unread'}`}
+                className="notification-item"
                 onClick={() => handleNotificationClick(notification)}
               >
                 <div className="notification-content">
-                  <div className="notification-title">{notification.title}</div>
-                  <div className="notification-message">{notification.message}</div>
-                  <div className="notification-time">
-                    {formatTime(notification.seconds_ago)}
+
+                  <div className="notification-details">
+                    <div className="notification-header-row">
+                      <div className="notification-title">{notification.title}</div>
+                      {notification.assigned_to && (
+                        <div className="notification-assigned">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            fill="currentColor"
+                            viewBox="0 0 16 16"
+                          >
+                            <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                            <path
+                              fillRule="evenodd"
+                              d="M8 9a5 5 0 0 0-5 5v1h10v-1a5 5 0 0 0-5-5z"
+                            />
+                          </svg>
+                          {formatAssignedText(notification.assigned_to, notification.related_type)}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="notification-message">{notification.message}</div>
+
+                    <div className="notification-footer">
+                      <div className="notification-time">{formatTime(notification.created_at)}</div>
+                      <div className="notification-date">
+                        {new Date(notification.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="notification-actions">
-                  {!notification.is_read && (
-                    <button
-                      className="btn-mark-read"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMarkAsRead(notification.id);
-                      }}
-                      title="Mark as read"
-                    >
-                      ✓
-                    </button>
-                  )}
-                  <button
-                    className="btn-delete"
-                    onClick={(e) => handleDelete(notification.id, e)}
-                    title="Delete"
-                  >
-                    ×
-                  </button>
                 </div>
               </div>
             ))
           )}
         </div>
+
+        <div className="notification-footer-info">
+          <div className="notification-count">
+            {notifications.length} activit{notifications.length === 1 ? 'y' : 'ies'}
+            {selectedDate && ` for ${new Date(selectedDate).toLocaleDateString()}`}
+          </div>
+        </div>
       </div>
+
+      {toast.open && (
+        <div className={`toast toast-${toast.type}`}>
+          <span>{toast.message}</span>
+          <button onClick={hideToast}>×</button>
+        </div>
+      )}
     </div>
   );
 }

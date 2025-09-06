@@ -70,14 +70,10 @@ export default function Stats() {
               <KPI icon="users" label="Clients" value={num(data.totals.clients)} />
               <KPI icon="brief" label="Projects" value={num(data.totals.projects)} />
               <KPI icon="inbox" label="Contacts" value={num(data.totals.contacts)} />
-              {isAdmin && (
-                <KPI icon="link" label="Payment Links" value={num(data.totals.payment_links)} />
+              <KPI icon="link" label="Payment Links" value={num(data.totals.payment_links)} />
 
-              )}
-              {isAdmin && (
-                <KPI icon="rupee" label="Payments" value={num(data.totals.payments)} />
+              <KPI icon="rupee" label="Payments" value={num(data.totals.payments)} />
 
-              )}
               <KPI icon="id" label="Candidates" value={num(data.totals.candidates)} />
             </div>
           </section>
@@ -174,30 +170,32 @@ export default function Stats() {
               </ul>
             )}
           </section>
-
-          {/* Activity timeline */}
-          <section className="card recent_activity" aria-labelledby="activity-heading">
-            <h3 id="activity-heading">Recent Activity</h3>
-            {data.activityFeed
-              .filter((a) => {
-                // hide payment activities if not admin
-                if (!isAdmin && a.type === "payment") return false;
-                return true;
-              })
-              .map((a, i) => (
-                <li className="timeline-item" key={`${a.type}-${i}`}>
-                  <span className="tl-dot" data-type={a.type} />
-                  <div className="tl-body">
-                    <div className="tl-text">
-                      <span className={`tag ${`tag-${a.type}`}`}>{a.type}</span>
-                      <span>{a.text}</span>
+          {isAdmin && (
+            <section className="card recent_activity" aria-labelledby="activity-heading">
+              <h3 id="activity-heading">Recent Activity</h3>
+              {data.activityFeed
+                .filter((a) => {
+                  // hide payment activities if not admin
+                  if (!isAdmin && a.type === "payment") return false;
+                  return true;
+                })
+                .map((a, i) => (
+                  <li className="timeline-item" key={`${a.type}-${i}`}>
+                    <span className="tl-dot" data-type={a.type} />
+                    <div className="tl-body">
+                      <div className="tl-text">
+                        <span className={`tag ${`tag-${a.type}`}`}>{a.type}</span>
+                        <span>{a.text}</span>
+                      </div>
+                      <div className="tl-time">{fmtDateTime(a.at)}</div>
                     </div>
-                    <div className="tl-time">{fmtDateTime(a.at)}</div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                ))}
 
-          </section>
+            </section>
+          )}
+          {/* Activity timeline */}
+
         </div>
       ) : null}
     </div>

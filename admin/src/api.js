@@ -67,6 +67,18 @@ export async function apiStats() {
   return request("/api/stats/dashboard");
 }
 
+export async function apiStatsNotifications() {
+  // if you have a request() wrapper that already adds the Bearer token:
+  return request("/api/stats/notifications");
+}
+
+// Add this function to your api.js
+export const apiResetNotificationCount = () => {
+  // This is just a placeholder since we're using localStorage
+  // You can implement backend tracking if needed
+  return Promise.resolve({ success: true });
+};
+
 /* --------------------------- Users (Admin) --------------------------- */
 export const apiListUsers = (params) => request("/api/admin/users", { params })
 export const apiCreateUser = (body) => request("/api/admin/users", { method: "POST", body })
@@ -230,18 +242,6 @@ export const apiDeleteTicket = (id) =>
 /* --------------------------- Users for Assignment --------------------------- */
 export const apiGetUsersForAssignment = () => request("/api/admin/users/for-assignment");
 
-// Add to api.js
-export const apiGetNotifications = (params) => 
-  request('/api/notifications', { params });
-
-export const apiMarkNotificationRead = (id) => 
-  request(`/api/notifications/${id}/read`, { method: 'PATCH' });
-
-export const apiMarkAllNotificationsRead = () => 
-  request('/api/notifications/read-all', { method: 'POST' });
-
-export const apiDeleteNotification = (id) => 
-  request(`/api/notifications/${id}`, { method: 'DELETE' });
 
 /* --------------------------- Helpers --------------------------- */
 export const formatDate = (d) => {

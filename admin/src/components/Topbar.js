@@ -2,54 +2,77 @@ import { useEffect, useRef, useState } from "react"
 import { useAuth } from "../auth"
 import ZorvixeLogo from "../assets/zorvixe_logo.png"
 import ZorvixeFavicon from "../assets/zorvixe_favicon.png"
-
-import { apiGetNotifications } from '../api';
+import { apiStatsNotifications, apiResetNotificationCount } from '../api';
 import Notification from '../pages/Notification';
-
 import "./Topbar.css"
 
-/**
- * variant:
- *  - "global": AdSense-like header (menu + logo + title + right icons)
- *  - "page"  : simple page bar (title + children on the right)
- */
 export default function Topbar({
   title,
   children,
   variant = "page",
-  onToggleSidebar = () => {},
+  onToggleSidebar = () => { },
   sidebarCollapsed = false,
 }) {
   const { user, logout } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const btnRef = useRef(null)
   const menuRef = useRef(null)
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [lastChecked, setLastChecked] = useState(null);
 
-
-  // Add this state to the Topbar component
-const [notificationCount, setNotificationCount] = useState(0);
-const [showNotifications, setShowNotifications] = useState(false);
-
-
-
-// Add this useEffect to fetch notification count
-useEffect(() => {
+  // Fetch notification count based on last checked time
   const fetchNotificationCount = async () => {
     try {
-      const data = await apiGetNotifications({ limit: 1, unread: true });
-      setNotificationCount(data.unread_count || 0);
+      const data = await apiStatsNotifications();
+      
+      // Filter activities that occurred after the user last checked
+      const newActivities = lastChecked 
+        ? data.activityFeed.filter(activity => new Date(activity.at) > new Date(lastChecked))
+        : data.activityFeed;
+      
+      setNotificationCount(newActivities.length);
     } catch (error) {
       console.error('Error fetching notification count:', error);
+      setNotificationCount(0);
     }
   };
 
-  if (user) {
-    fetchNotificationCount();
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchNotificationCount, 30000);
-    return () => clearInterval(interval);
-  }
-}, [user]);
+  // Reset notification count when user clicks the bell
+  const handleNotificationClick = async () => {
+    try {
+      // Reset the count and set last checked time to now
+      setNotificationCount(0);
+      const now = new Date().toISOString();
+      setLastChecked(now);
+      
+      // Store last checked time in localStorage for persistence
+      localStorage.setItem(`lastChecked_${user.id}`, now);
+      
+      // Show notifications modal
+      setShowNotifications(true);
+      
+      // Optional: Send to backend to track if needed
+      await apiResetNotificationCount();
+    } catch (error) {
+      console.error('Error resetting notification count:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      // Load last checked time from localStorage
+      const savedLastChecked = localStorage.getItem(`lastChecked_${user.id}`);
+      if (savedLastChecked) {
+        setLastChecked(savedLastChecked);
+      }
+      
+      fetchNotificationCount();
+      // Poll for new notifications every 30 seconds
+      const interval = setInterval(fetchNotificationCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user, lastChecked]);
 
   const initials =
     (user?.name || user?.email || "U")
@@ -85,7 +108,6 @@ useEffect(() => {
             aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
             onClick={onToggleSidebar}
           >
-            {/* menu icon */}
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
               viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -120,21 +142,21 @@ useEffect(() => {
             </svg>
           </button>
 
-<button 
-  className="icon-btn" 
-  aria-label="Notifications"
-  onClick={() => setShowNotifications(true)}
->
-  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
-    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8" />
-    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-  </svg>
-  {notificationCount > 0 && (
-    <span className="notification-badge">{notificationCount}</span>
-  )}
-</button>
+          <button
+            className="icon-btn"
+            aria-label="Notifications"
+            onClick={handleNotificationClick}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            {notificationCount > 0 && (
+              <span className="notification-badge">{notificationCount}</span>
+            )}
+          </button>
 
           {/* Avatar + profile dropdown */}
           <div className="profile-anchor">
@@ -183,14 +205,15 @@ useEffect(() => {
             )}
           </div>
         </div>
-        
-{showNotifications && (
-  <Notification 
-    isOpen={showNotifications} 
-    onClose={() => setShowNotifications(false)} 
-  />
-)}
 
+        {showNotifications && (
+          <Notification
+            isOpen={showNotifications}
+            onClose={() => setShowNotifications(false)}
+            lastChecked={lastChecked}
+            onNewActivities={(count) => setNotificationCount(count)}
+          />
+        )}
       </header>
     )
   }

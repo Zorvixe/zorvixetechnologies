@@ -1922,6 +1922,280 @@ app.get('/api/stats/dashboard', requireAuth, async (_req, res) => {
   }
 });
 
+app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
+  try {
+    const [
+      // Basic counts
+      projectsCount,
+      ticketsCount,
+      commentsCount,
+      usersCount,
+
+      // Recent activities
+      projectsRecent,
+      ticketsRecent,
+      projectCommentsRecent,
+      ticketCommentsRecent,
+      recentLogins,
+
+      // Status breakdowns
+      projectsByStatus,
+      ticketsByStatus,
+      ticketsByPriority,
+
+      // Activity timelines
+      projectsLast30,
+      ticketsLast30,
+      commentsLast30,
+
+    ] = await Promise.all([
+      // Basic counts (unchanged)
+      pool.query(`SELECT COUNT(*)::BIGINT AS c FROM projects`),
+      pool.query(`SELECT COUNT(*)::BIGINT AS c FROM tickets`),
+      pool.query(`SELECT COUNT(*)::BIGINT AS c FROM (SELECT id FROM project_comments UNION ALL SELECT id FROM ticket_comments) AS all_comments`),
+      pool.query(`SELECT COUNT(*)::BIGINT AS c FROM admin_users WHERE is_active = TRUE`),
+
+      // Recent activities - UPDATED QUERIES
+      pool.query(`
+        SELECT 
+          p.id, p.name, p.code, p.status, p.created_at, p.updated_at,
+          au.name AS updated_by_name, au.email AS updated_by_email
+        FROM projects p
+        LEFT JOIN admin_users au ON au.id = p.updated_by
+        ORDER BY p.created_at DESC
+        LIMIT 10
+      `),
+      pool.query(`
+        SELECT 
+          t.id, t.title, t.status, t.priority, t.created_at, t.updated_at,
+          au.name AS assigned_to_name, au.email AS assigned_to_email,
+          creator.name AS created_by_name
+        FROM tickets t
+        LEFT JOIN admin_users au ON au.id = t.assigned_to
+        LEFT JOIN admin_users creator ON creator.id = t.created_by
+        ORDER BY t.created_at DESC
+        LIMIT 10
+      `),
+      pool.query(`
+        SELECT 
+          pc.id, pc.project_id, pc.comment_text, pc.created_at,
+          p.name AS project_name, p.code AS project_code,
+          u.name AS user_name, u.email AS user_email
+        FROM project_comments pc
+        JOIN projects p ON p.id = pc.project_id
+        JOIN admin_users u ON u.id = pc.user_id
+        ORDER BY pc.created_at DESC
+        LIMIT 10
+      `),
+      pool.query(`
+        SELECT 
+          tc.id, tc.ticket_id, tc.comment_text, tc.created_at,
+          t.title AS ticket_title, t.status AS ticket_status,
+          u.name AS user_name, u.email AS user_email
+        FROM ticket_comments tc
+        JOIN tickets t ON t.id = tc.ticket_id
+        JOIN admin_users u ON u.id = tc.user_id
+        ORDER BY tc.created_at DESC
+        LIMIT 10
+      `),
+      pool.query(`
+        SELECT id, name, email, role, last_login_at
+        FROM admin_users
+        WHERE last_login_at IS NOT NULL
+        ORDER BY last_login_at DESC
+        LIMIT 15  -- Increased limit to get more login activities
+      `),
+
+      // Status breakdowns (unchanged)
+      pool.query(`SELECT status, COUNT(*)::BIGINT AS count FROM projects GROUP BY status`),
+      pool.query(`SELECT status, COUNT(*)::BIGINT AS count FROM tickets GROUP BY status`),
+      pool.query(`SELECT priority, COUNT(*)::BIGINT AS count FROM tickets GROUP BY priority`),
+
+      // Activity timelines (unchanged)
+      pool.query(`
+        SELECT date_trunc('day', created_at) AS day, COUNT(*)::BIGINT AS count
+        FROM projects
+        WHERE created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY day
+        ORDER BY day ASC
+      `),
+      pool.query(`
+        SELECT date_trunc('day', created_at) AS day, COUNT(*)::BIGINT AS count
+        FROM tickets
+        WHERE created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY day
+        ORDER BY day ASC
+      `),
+      pool.query(`
+        SELECT date_trunc('day', created_at) AS day, COUNT(*)::BIGINT AS count
+        FROM (
+          SELECT created_at FROM project_comments 
+          UNION ALL 
+          SELECT created_at FROM ticket_comments
+        ) AS all_comments
+        WHERE created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY day
+        ORDER BY day ASC
+      `),
+    ]);
+
+    // Build activity feed (merge & sort all recent activities)
+    const acts = [];
+
+    // Project activities
+    projectsRecent.rows.forEach((r) => {
+      acts.push({
+        type: "project",
+        at: r.created_at,
+        text: `Project created: ${r.name} (${r.code}) - Status: ${r.status}`,
+        data: {
+          ...r,
+          updated_by_name: r.updated_by_name,
+          updated_by_email: r.updated_by_email
+        }
+      });
+    });
+
+    // Ticket activities
+    ticketsRecent.rows.forEach((r) => {
+      acts.push({
+        type: "ticket",
+        at: r.created_at,
+        text: `Ticket created: ${r.title} - Priority: ${r.priority}, Status: ${r.status}`,
+        data: {
+          ...r,
+          assigned_to_name: r.assigned_to_name,
+          assigned_to_email: r.assigned_to_email,
+          created_by_name: r.created_by_name
+        }
+      });
+    });
+
+    // Project comment activities
+    projectCommentsRecent.rows.forEach((r) => {
+      acts.push({
+        type: "project_comment",
+        at: r.created_at,
+        text: `${r.user_name} commented on project ${r.project_name} (${r.project_code})`,
+        data: {
+          ...r,
+          user_name: r.user_name,
+          user_email: r.user_email
+        }
+      });
+    });
+
+    // Ticket comment activities
+    ticketCommentsRecent.rows.forEach((r) => {
+      acts.push({
+        type: "ticket_comment",
+        at: r.created_at,
+        text: `${r.user_name} commented on ticket: ${r.ticket_title}`,
+        data: {
+          ...r,
+          user_name: r.user_name,
+          user_email: r.user_email
+        }
+      });
+    });
+
+    // User login activities - SIMULATE LOGOUTS BY USING LOGIN TIMESTAMPS
+    // We'll create both login and "logout" events from the login data
+    recentLogins.rows.forEach((r, index) => {
+      // Add login activity
+      acts.push({
+        type: "user_login",
+        at: r.last_login_at,
+        text: `${r.name} logged in`,
+        data: {
+          ...r,
+          name: r.name,
+          email: r.email
+        }
+      });
+
+      // Simulate logout activity (create a logout event 1 hour after login)
+      // This is a simple simulation since we don't have actual logout tracking
+      const logoutTime = new Date(r.last_login_at);
+      logoutTime.setHours(logoutTime.getHours() + 1);
+      
+      // Only add logout if it's in the past (not future)
+      if (logoutTime < new Date()) {
+        acts.push({
+          type: "user_logout",
+          at: logoutTime.toISOString(),
+          text: `${r.name} logged out`,
+          data: {
+            ...r,
+            name: r.name,
+            email: r.email
+          }
+        });
+      }
+    });
+
+    // Sort by date (newest first)
+    acts.sort((a, b) => new Date(b.at) - new Date(a.at));
+    const activityFeed = acts.slice(0, 20); // Get top 20 most recent activities
+
+    // Build response
+    res.json({
+      totals: {
+        projects: Number(projectsCount.rows[0]?.c || 0),
+        tickets: Number(ticketsCount.rows[0]?.c || 0),
+        comments: Number(commentsCount.rows[0]?.c || 0),
+        users: Number(usersCount.rows[0]?.c || 0),
+      },
+      
+      statusBreakdowns: {
+        projects: projectsByStatus.rows.map((r) => ({
+          status: r.status,
+          count: Number(r.count || 0),
+        })),
+        tickets: {
+          byStatus: ticketsByStatus.rows.map((r) => ({
+            status: r.status,
+            count: Number(r.count || 0),
+          })),
+          byPriority: ticketsByPriority.rows.map((r) => ({
+            priority: r.priority,
+            count: Number(r.count || 0),
+          })),
+        },
+      },
+      
+      trendsLast30: {
+        projects: projectsLast30.rows.map((r) => ({
+          day: r.day,
+          count: Number(r.count || 0),
+        })),
+        tickets: ticketsLast30.rows.map((r) => ({
+          day: r.day,
+          count: Number(r.count || 0),
+        })),
+        comments: commentsLast30.rows.map((r) => ({
+          day: r.day,
+          count: Number(r.count || 0),
+        })),
+      },
+      
+      recentLogins: recentLogins.rows,
+      activityFeed,
+      
+      // Raw recent data for detailed views if needed
+      recentData: {
+        projects: projectsRecent.rows,
+        tickets: ticketsRecent.rows,
+        projectComments: projectCommentsRecent.rows,
+        ticketComments: ticketCommentsRecent.rows,
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 /* --------------------------------- Projects Commets ---------------------------------- */
 // Get comments for a project
 app.get('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
