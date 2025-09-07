@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { AuthProvider, useAuth } from './auth'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
@@ -9,24 +9,54 @@ import Users from './pages/Users'
 import Stats from './pages/Stats'
 import Candidates from './pages/Candidates'
 import Clients from './pages/Clients'
-import Payments from './pages/Payments'   // <-- NEW
-import Tickets from './pages/Tickets';
+import Payments from './pages/Payments'
+import Tickets from './pages/Tickets'
 
 import './App.css'
 
+const VALID_VIEWS = new Set([
+  'stats','contacts','users','candidates','clients','payments','tickets'
+]);
+
+function getInitialViewFromHash() {
+  const raw = (window.location.hash || '').replace(/^#\/?/, '').trim();
+  return VALID_VIEWS.has(raw) ? raw : 'stats'; // default to Stats
+}
+
 function Shell() {
   const { user, loading } = useAuth()
-  const [view, setView] = useState('contacts') // + 'payments'
+  const [view, setView] = useState(getInitialViewFromHash())
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  if (loading) return <div className="center">Loading…</div>
-  if (!user) return <Login onSuccess={() => setView('contacts')} />
+  // Keep state in sync with hash (so back/forward and refresh work)
+  useEffect(() => {
+    const onHash = () => {
+      const v = getInitialViewFromHash();
+      setView(v);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
 
-  // Non-admin users cannot open "users" or "candidates"
-  const restricted = ['users', 'candidates']
-  const safeView = (user.role === 'admin') ? view : (restricted.includes(view) ? 'contacts' : view)
+  // ---- compute safeView UNCONDITIONALLY (no hooks) ----
+  const restricted = ['users', 'candidates', 'payments'];
+  const role = user?.role ?? 'guest';
+  const safeView = role === 'admin' ? view : (restricted.includes(view) ? 'stats' : view);
 
-  // Add to the view mapping
+  if (loading) return <div className="center">Loading…</div>;
+
+  // After successful login, send to Stats and set hash
+  if (!user) {
+    return (
+      <Login
+        onSuccess={() => {
+          window.location.hash = 'stats';
+          setView('stats');
+        }}
+      />
+    );
+  }
+
   const titleMap = {
     contacts: 'Contacts',
     stats: 'Stats',
@@ -34,17 +64,19 @@ function Shell() {
     candidates: 'Onboarding',
     clients: 'Clients',
     payments: 'Payments',
-    tickets: 'Tickets', // NEW
-  }
-  const currentTitle = titleMap[safeView] || 'Dashboard'
+    tickets: 'Tickets',
+  };
+  const currentTitle = titleMap[safeView] || 'Dashboard';
 
   return (
     <div className="app-shell">
       <Sidebar
         current={safeView}
-        onNavigate={setView}
+        onNavigate={(v) => {
+          window.location.hash = v;
+          setView(v);
+        }}
         collapsed={sidebarCollapsed}
-        onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
       />
       <main className="content">
         <Topbar
@@ -56,15 +88,16 @@ function Shell() {
 
         {safeView === 'contacts' && <Contacts />}
         {safeView === 'stats' && <Stats />}
-        {safeView === 'users' && user.role === 'admin' && <Users />}
-        {safeView === 'candidates' && user.role === 'admin' && <Candidates />}
+        {safeView === 'users' && role === 'admin' && <Users />}
+        {safeView === 'candidates' && role === 'admin' && <Candidates />}
         {safeView === 'clients' && <Clients />}
-        {safeView === 'payments' && <Payments />}   {/* <-- NEW */}
+        {safeView === 'payments' && role === 'admin' && <Payments />}
         {safeView === 'tickets' && <Tickets />}
       </main>
     </div>
-  )
+  );
 }
+
 
 export default function App() {
   return (

@@ -43,5 +43,5 @@
 .content > *:not(.topbar--global) {
   display: block;
   padding: 16px;
-  margin: 20px;
+  margin: 50px 0px 0px 0px;
 }

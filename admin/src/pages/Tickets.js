@@ -8,13 +8,12 @@ import {
   apiUpdateTicketComment,
   apiDeleteTicketComment,
   apiGetUsersForAssignment,
-  apiDeleteTicket, // <-- ensure this exists in ../api
+  apiDeleteTicket,
 } from "../api";
 import { useAuth } from "../auth";
 import "./Tickets.css";
 
 /* ------------------------- Bootstrap Modal Wrapper ------------------------- */
-/* Pure Bootstrap classes (no jQuery). */
 function BootstrapModal({
   open,
   title,
@@ -37,7 +36,6 @@ function BootstrapModal({
     if (open) {
       document.addEventListener("keydown", onKeyDown);
       document.body.classList.add("modal-open");
-      // create backdrop
       const bd = document.createElement("div");
       bd.className = "modal-backdrop fade show";
       document.body.appendChild(bd);
@@ -140,7 +138,8 @@ const UserAvatar = ({ name = "U", size = 40 }) => {
 /* -------------------------------- Tickets --------------------------------- */
 export default function Tickets() {
   const { user } = useAuth();
-  const [tickets, setTickets] = useState([]);
+  const [allTickets, setAllTickets] = useState([]);
+  const [filteredTickets, setFilteredTickets] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [filters, setFilters] = useState({
@@ -150,18 +149,18 @@ export default function Tickets() {
   });
 
   // toast
-    const toastTimer = useRef(null)
-    const [toast, setToast] = useState({ open: false, type: 'success', message: '' })
-    const showToast = (message, type = 'success') => {
-      setToast({ open: true, type, message })
-      if (toastTimer.current) clearTimeout(toastTimer.current)
-      toastTimer.current = setTimeout(() => setToast(t => ({ ...t, open: false })), 3000)
-    }
-    const hideToast = () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current)
-      setToast(t => ({ ...t, open: false }))
-    }
-    useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
+  const toastTimer = useRef(null)
+  const [toast, setToast] = useState({ open: false, type: 'success', message: '' })
+  const showToast = (message, type = 'success') => {
+    setToast({ open: true, type, message })
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(t => ({ ...t, open: false })), 3000)
+  }
+  const hideToast = () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast(t => ({ ...t, open: false }))
+  }
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
 
   // For assignment dropdowns
   const [users, setUsers] = useState([]);
@@ -199,13 +198,48 @@ export default function Tickets() {
     fetchTickets();
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, []);
+
+  // Apply filters whenever filters or allTickets change
+  useEffect(() => {
+    applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, allTickets]);
+
+  const applyFilters = () => {
+    let results = [...allTickets];
+    
+    // Apply status filter
+    if (filters.status !== "all") {
+      results = results.filter(ticket => ticket.status === filters.status);
+    }
+    
+    // Apply priority filter
+    if (filters.priority !== "all") {
+      results = results.filter(ticket => ticket.priority === filters.priority);
+    }
+    
+    // Apply search filter
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      results = results.filter(ticket => 
+        ticket.title.toLowerCase().includes(searchTerm) ||
+        ticket.description.toLowerCase().includes(searchTerm) ||
+        (ticket.creator_name && ticket.creator_name.toLowerCase().includes(searchTerm)) ||
+        (ticket.assignee_name && ticket.assignee_name.toLowerCase().includes(searchTerm)) ||
+        ticket.status.toLowerCase().includes(searchTerm) ||
+        ticket.priority.toLowerCase().includes(searchTerm)
+      );
+    }
+    
+    setFilteredTickets(results);
+  };
 
   const fetchUsers = async () => {
     try {
       const data = await apiGetUsersForAssignment();
       if (data?.success) setUsers(data.users || []);
-      
+
     } catch (e) {
       console.error("fetchUsers error", e);
     }
@@ -214,12 +248,8 @@ export default function Tickets() {
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const params = {};
-      if (filters.status !== "all") params.status = filters.status;
-      if (filters.priority !== "all") params.priority = filters.priority;
-      if (filters.search) params.search = filters.search;
-      const data = await apiListTickets(params);
-      setTickets(data.tickets || []);
+      const data = await apiListTickets();
+      setAllTickets(data.tickets || []);
     } catch (e) {
       console.error("fetchTickets error", e);
     } finally {
@@ -231,7 +261,6 @@ export default function Tickets() {
     try {
       const data = await apiGetTicket(id);
       if (data?.success) {
-        // Flatten: put comments on the ticket object so the modal can read ticket.comments
         setSelectedTicket({ ...data.ticket, comments: data.comments || [] });
         setShowView(true);
       }
@@ -240,14 +269,12 @@ export default function Tickets() {
     }
   };
 
-
   const openEditFromCard = async (id, e) => {
     e?.stopPropagation();
     try {
       const data = await apiGetTicket(id);
       if (data?.success) {
-        const t = data.ticket; // <-- pull the ticket object
-        // keep selectedTicket consistent with the view shape if you want
+        const t = data.ticket;
         setSelectedTicket({ ...t, comments: data.comments || [] });
 
         setEditData({
@@ -263,7 +290,6 @@ export default function Tickets() {
       console.error("openEditFromCard error", e);
     }
   };
-
 
   const deleteTicket = async (id, e) => {
     e?.stopPropagation();
@@ -322,7 +348,7 @@ export default function Tickets() {
       if (res?.success) {
         setShowEdit(false);
         await fetchTickets();
-        await openViewModal(selectedTicket.id); // reopen fresh view
+        await openViewModal(selectedTicket.id);
       }
       showToast("Ticket Updated", "success")
     } catch (e) {
@@ -330,7 +356,6 @@ export default function Tickets() {
       showToast("Ticket Updated Failed", "error")
     }
   };
-
 
   return (
     <div className="tickets-container">
@@ -371,7 +396,7 @@ export default function Tickets() {
 
         <input
           type="text"
-          placeholder="Search tickets..."
+          placeholder="Search tickets (title, description, creator, assignee, status, priority)..."
           value={filters.search}
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           className="comment-input"
@@ -380,19 +405,18 @@ export default function Tickets() {
 
       {/* List */}
       {loading ? (
-
         <div className="loader_container">
           <p className="loader_spinner"></p>
           <p>Loading Tickets…</p>
         </div>
       ) : (
         <div className="tickets-list">
-          {tickets.length === 0 ? (
+          {filteredTickets.length === 0 ? (
             <div className="no-comments">
-              <p>No tickets found. Create the first one!</p>
+              <p>No tickets found. {filters.search ? "Try a different search." : "Create the first one!"}</p>
             </div>
           ) : (
-            tickets.map((ticket) => {
+            filteredTickets.map((ticket) => {
               const manageable = canManageTicket(ticket);
               return (
                 <div
@@ -585,7 +609,6 @@ export default function Tickets() {
         onDelete={() => deleteTicket(selectedTicket?.id)}
       />
 
-
       {/* ---------------------------- Edit Ticket Modal --------------------------- */}
       <BootstrapModal
         open={showEdit}
@@ -666,21 +689,20 @@ export default function Tickets() {
         </form>
       </BootstrapModal>
 
-
-       <div className={`toastx ${toast.type} ${toast.open ? 'show' : ''}`} role="status" aria-live="polite">
-          <div className="toastx-icon">
-            {toast.type === 'success' ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12" /></svg>
-            )}
-          </div>
-          <div className="toastx-body">
-            <div className="toastx-title">{toast.type === 'success' ? 'Success' : 'Error'}</div>
-            <div className="toastx-msg">{toast.message}</div>
-          </div>
-          <button className="toastx-close" onClick={hideToast} aria-label="Close">×</button>
+      <div className={`toastx ${toast.type} ${toast.open ? 'show' : ''}`} role="status" aria-live="polite">
+        <div className="toastx-icon">
+          {toast.type === 'success' ? (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          )}
         </div>
+        <div className="toastx-body">
+          <div className="toastx-title">{toast.type === 'success' ? 'Success' : 'Error'}</div>
+          <div className="toastx-msg">{toast.message}</div>
+        </div>
+        <button className="toastx-close" onClick={hideToast} aria-label="Close">×</button>
+      </div>
     </div>
   );
 }
@@ -697,22 +719,20 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
   }, [ticket]);
 
   // toast
-    const toastTimer = useRef(null)
-    const [toast, setToast] = useState({ open: false, type: 'success', message: '' })
-    const showToast = (message, type = 'success') => {
-      setToast({ open: true, type, message })
-      if (toastTimer.current) clearTimeout(toastTimer.current)
-      toastTimer.current = setTimeout(() => setToast(t => ({ ...t, open: false })), 3000)
-    }
-    const hideToast = () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current)
-      setToast(t => ({ ...t, open: false }))
-    }
-    useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
+  const toastTimer = useRef(null)
+  const [toast, setToast] = useState({ open: false, type: 'success', message: '' })
+  const showToast = (message, type = 'success') => {
+    setToast({ open: true, type, message })
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(t => ({ ...t, open: false })), 3000)
+  }
+  const hideToast = () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast(t => ({ ...t, open: false }))
+  }
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
 
   if (!ticket) return null;
-
-  
 
   const addComment = async (e) => {
     e.preventDefault();
@@ -764,7 +784,7 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
       title="Ticket Details"
       centered
       scrollable
-      dialogClassName="modal-xl" // add "modal-xl" to widen
+      dialogClassName="modal-xl"
     >
       <div className="ticket-info hover-frame">
         {/* Hover action buttons for ticket in modal too (top-right) */}
@@ -849,20 +869,20 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
           )}
         </div>
       </div>
-        <div className={`toastx ${toast.type} ${toast.open ? 'show' : ''}`} role="status" aria-live="polite">
-          <div className="toastx-icon">
-            {toast.type === 'success' ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12" /></svg>
-            )}
-          </div>
-          <div className="toastx-body">
-            <div className="toastx-title">{toast.type === 'success' ? 'Success' : 'Error'}</div>
-            <div className="toastx-msg">{toast.message}</div>
-          </div>
-          <button className="toastx-close" onClick={hideToast} aria-label="Close">×</button>
+      <div className={`toastx ${toast.type} ${toast.open ? 'show' : ''}`} role="status" aria-live="polite">
+        <div className="toastx-icon">
+          {toast.type === 'success' ? (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          )}
         </div>
+        <div className="toastx-body">
+          <div className="toastx-title">{toast.type === 'success' ? 'Success' : 'Error'}</div>
+          <div className="toastx-msg">{toast.message}</div>
+        </div>
+        <button className="toastx-close" onClick={hideToast} aria-label="Close">×</button>
+      </div>
     </BootstrapModal>
   );
 }
@@ -954,7 +974,7 @@ function CommentItem({ comment, isManageable, onDelete, onUpdate }) {
           <p className="comment_text">{comment.comment_text}</p>
         )}
       </div>
-      
+
     </div>
   );
 }

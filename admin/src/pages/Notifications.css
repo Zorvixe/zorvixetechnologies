@@ -19,7 +19,8 @@
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   width: 400px;
-  max-height: 500px;
+  height: auto;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
 }
@@ -346,6 +347,8 @@
   border-top: 1px solid #eee;
   background: #f8f9fa;
   text-align: center;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
 .notification-count {
@@ -386,4 +389,27 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Blue dot for new/unseen notifications */
+.notif-dot {
+  display: inline-block;
+  margin-left: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1e90ff; /* blue */
+  vertical-align: middle;
+}
+
+/* Optional: give unseen items a subtle background */
+.notification-item.notification-unseen {
+  background: rgba(30, 144, 255, 0.08);
+}
+
+/* Keep the dot aligned inside the title row on small screens */
+.notification-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }

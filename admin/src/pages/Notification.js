@@ -4,13 +4,9 @@ import { useAuth } from '../auth';
 import './Notifications.css';
 
 /** ---- Local date helpers (avoid UTC shift from toISOString) ---- */
-const localYMD = (d = new Date()) => {
-  // en-CA yields YYYY-MM-DD in the *local* timezone
-  return d.toLocaleDateString('en-CA');
-};
+const localYMD = (d = new Date()) => d.toLocaleDateString('en-CA');
 
 const parseLocalYMD = (ymd) => {
-  // ymd: "YYYY-MM-DD" -> Date at local midnight
   const [y, m, d] = ymd.split('-').map(Number);
   return new Date(y, m - 1, d, 0, 0, 0, 0);
 };
@@ -21,8 +17,45 @@ const endOfLocalDay = (ymd) => {
   return new Date(start.getTime() + 24 * 60 * 60 * 1000);
 };
 
+/** ---- Per-user "seen" storage helpers ---- */
+const storageKey = (userId) => `zorvixe.notify.seen.${userId || 'anon'}`;
+
+const loadSeenSet = (userId) => {
+  try {
+    const raw = localStorage.getItem(storageKey(userId));
+    const arr = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+};
+
+const saveSeenSet = (userId, set) => {
+  try {
+    localStorage.setItem(storageKey(userId), JSON.stringify(Array.from(set)));
+  } catch {
+    // ignore quota/JSON errors
+  }
+};
+
+/** Build a stable key per notification item */
+const buildNotifKey = (activity) => {
+  const type = activity?.type || '';
+  const at = activity?.at || '';
+  const relatedId =
+    (activity?.data?.id) ??
+    (activity?.data?.project_id) ??
+    (activity?.data?.ticket_id) ??
+    '';
+  const text = activity?.text || '';
+  // Keep it readable & stable
+  return encodeURIComponent(`${type}|${at}|${relatedId}|${text}`);
+};
+
 export default function Notification({ isOpen, onClose, lastChecked, onNewActivities }) {
   const { user } = useAuth();
+  const userId = user?.id || user?._id || user?.email || 'anon';
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,18 +72,38 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
     setToast({ open: true, type, message });
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => {
-      setToast(t => ({ ...t, open: false }));
+      setToast((t) => ({ ...t, open: false }));
     }, 3000);
   };
 
   const hideToast = () => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast(t => ({ ...t, open: false }));
+    setToast((t) => ({ ...t, open: false }));
   };
 
   useEffect(() => () => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
   }, []);
+
+  /** Keep multiple tabs in sync for the same user */
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === storageKey(userId)) {
+        // Recompute is_new flags without refetching server data
+        setNotifications((prev) => {
+          const seen = loadSeenSet(userId);
+          const next = prev.map((n) => ({ ...n, is_new: !seen.has(n.key) }));
+          if (onNewActivities) {
+            const count = next.filter((n) => n.is_new).length;
+            onNewActivities(count);
+          }
+          return next;
+        });
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [userId, onNewActivities]);
 
   useEffect(() => {
     if (isOpen) {
@@ -87,22 +140,30 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
         });
       }
 
-      const notificationData = filtered.map((activity, index) => ({
-        id: index + 1,
-        title: getNotificationTitle(activity.type),
-        message: activity.text,
-        assigned_to: getAssignedTo(activity),
-        related_type: activity.type,
-        related_id: getRelatedId(activity),
-        related_data: activity.data,
-        created_at: activity.at,
-        is_new: lastChecked ? new Date(activity.at) > new Date(lastChecked) : false
-      }));
+      const seen = loadSeenSet(userId);
+
+      const notificationData = filtered.map((activity, index) => {
+        const key = buildNotifKey(activity);
+
+        return {
+          id: index + 1, // local list key (not used for "seen")
+          key,           // stable per-activity key for seen/unseen
+          title: getNotificationTitle(activity.type),
+          message: activity.text,
+          assigned_to: getAssignedTo(activity),
+          related_type: activity.type,
+          related_id: getRelatedId(activity),
+          related_data: activity.data,
+          created_at: activity.at,
+          // If you also want to keep supporting lastChecked, OR it with seen
+          is_new: !seen.has(key)
+        };
+      });
 
       setNotifications(notificationData);
 
       // Report new activities count (if parent cares)
-      const newActivitiesCount = notificationData.filter(n => n.is_new).length;
+      const newActivitiesCount = notificationData.filter((n) => n.is_new).length;
       if (onNewActivities) onNewActivities(newActivitiesCount);
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -168,8 +229,27 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
   };
 
   const handleNotificationClick = async (notification) => {
-    let path = '';
+    // Mark as seen for THIS user immediately
+    const seen = loadSeenSet(userId);
+    if (!seen.has(notification.key)) {
+      seen.add(notification.key);
+      saveSeenSet(userId, seen);
+    }
 
+    // Update local UI (blue dot disappears)
+    setNotifications((prev) => {
+      const next = prev.map((n) =>
+        n.key === notification.key ? { ...n, is_new: false } : n
+      );
+      if (onNewActivities) {
+        const count = next.filter((n) => n.is_new).length;
+        onNewActivities(count);
+      }
+      return next;
+    });
+
+    // Route handling (unchanged)
+    let path = '';
     switch (notification.related_type) {
       case 'ticket': {
         const ticketId = notification.related_data?.id;
@@ -196,7 +276,6 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
     }
 
     if (path) {
-      // SPA-friendly push without reload (works with your custom router listener)
       window.history.pushState(null, '', path);
       window.dispatchEvent(new CustomEvent('routechange', { detail: { path } }));
     }
@@ -213,7 +292,6 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
 
-    // After 24 hours, show exact time instead of "x days ago"
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -236,15 +314,8 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
     }
   };
 
-  const handleDateChange = (e) => {
-    setSelectedDate(e.target.value);
-  };
-
-  const clearDateFilter = () => {
-    setSelectedDate('');
-  };
-
-
+  const handleDateChange = (e) => setSelectedDate(e.target.value);
+  const clearDateFilter = () => setSelectedDate('');
 
   if (!isOpen) return null;
 
@@ -264,7 +335,6 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
               type="date"
               value={selectedDate}
               onChange={handleDateChange}
-              // Use local date for max as well
               max={localYMD()}
             />
             {selectedDate && (
@@ -291,15 +361,19 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
           ) : (
             notifications.map((notification) => (
               <div
-                key={notification.id}
-                className="notification-item"
+                key={notification.key}
+                className={`notification-item ${notification.is_new ? 'notification-unseen' : ''}`}
                 onClick={() => handleNotificationClick(notification)}
               >
                 <div className="notification-content">
-
                   <div className="notification-details">
                     <div className="notification-header-row">
-                      <div className="notification-title">{notification.title}</div>
+                      <div className="notification-title">
+                        {notification.title}
+                        {/* Blue dot for NEW */}
+                        {notification.is_new && <span className="notif-dot" aria-label="new" />}
+                      </div>
+
                       {notification.assigned_to && (
                         <div className="notification-assigned">
                           <svg

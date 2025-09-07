@@ -70,10 +70,14 @@ export default function Stats() {
               <KPI icon="users" label="Clients" value={num(data.totals.clients)} />
               <KPI icon="brief" label="Projects" value={num(data.totals.projects)} />
               <KPI icon="inbox" label="Contacts" value={num(data.totals.contacts)} />
-              <KPI icon="link" label="Payment Links" value={num(data.totals.payment_links)} />
+              {isAdmin && (
+                <KPI icon="link" label="Payment Links" value={num(data.totals.payment_links)} />
 
-              <KPI icon="rupee" label="Payments" value={num(data.totals.payments)} />
+              )}
+              {isAdmin && (
+                <KPI icon="rupee" label="Payments" value={num(data.totals.payments)} />
 
+              )}
               <KPI icon="id" label="Candidates" value={num(data.totals.candidates)} />
             </div>
           </section>
