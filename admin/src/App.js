@@ -1,61 +1,50 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { AuthProvider, useAuth } from './auth'
-import Sidebar from './components/Sidebar'
-import Topbar from './components/Topbar'
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './auth';
 
-import Login from './pages/Login'
-import Contacts from './pages/Contacts'
-import Users from './pages/Users'
-import Stats from './pages/Stats'
-import Candidates from './pages/Candidates'
-import Clients from './pages/Clients'
-import Payments from './pages/Payments'
-import Tickets from './pages/Tickets'
+import Sidebar from './components/Sidebar';
+import Topbar from './components/Topbar';
 
-import './App.css'
+import Login from './pages/Login';
+import Contacts from './pages/Contacts';
+import Users from './pages/Users';
+import Stats from './pages/Stats';
+import Candidates from './pages/Candidates';
+import Clients from './pages/Clients';
+import Payments from './pages/Payments';
+import Tickets from './pages/Tickets';
 
-const VALID_VIEWS = new Set([
-  'stats','contacts','users','candidates','clients','payments','tickets'
-]);
+import './App.css';
 
-function getInitialViewFromHash() {
-  const raw = (window.location.hash || '').replace(/^#\/?/, '').trim();
-  return VALID_VIEWS.has(raw) ? raw : 'stats'; // default to Stats
-}
+const restricted = ['users', 'candidates', 'payments'];
 
 function Shell() {
-  const { user, loading } = useAuth()
-  const [view, setView] = useState(getInitialViewFromHash())
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const { user, loading } = useAuth();
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Keep state in sync with hash (so back/forward and refresh work)
-  useEffect(() => {
-    const onHash = () => {
-      const v = getInitialViewFromHash();
-      setView(v);
-    };
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
-  }, []);
+  if (loading) {
+    return (
+      <div id="preloader">
+        <img src="/assets/img/Zorvixe_preloader.png" alt="Zorvixe Logo" id="preloader-logo" />
+      </div>
+    );
+  }
 
-  // ---- compute safeView UNCONDITIONALLY (no hooks) ----
-  const restricted = ['users', 'candidates', 'payments'];
-  const role = user?.role ?? 'guest';
-  const safeView = role === 'admin' ? view : (restricted.includes(view) ? 'stats' : view);
-
-  if (loading) return <div className="center">Loading…</div>;
-
-  // After successful login, send to Stats and set hash
   if (!user) {
     return (
       <Login
         onSuccess={() => {
-          window.location.hash = 'stats';
-          setView('stats');
+          navigate('/stats', { replace: true });
         }}
       />
     );
   }
+
+  const role = user?.role ?? 'guest';
+  const path = location.pathname.replace(/^\//, '') || 'stats';
+  const safePath = role === 'admin' ? path : (restricted.includes(path) ? 'stats' : path);
 
   const titleMap = {
     contacts: 'Contacts',
@@ -66,16 +55,13 @@ function Shell() {
     payments: 'Payments',
     tickets: 'Tickets',
   };
-  const currentTitle = titleMap[safeView] || 'Dashboard';
+  const currentTitle = titleMap[safePath] || 'Dashboard';
 
   return (
     <div className="app-shell">
       <Sidebar
-        current={safeView}
-        onNavigate={(v) => {
-          window.location.hash = v;
-          setView(v);
-        }}
+        current={safePath}
+        onNavigate={(v) => navigate(`/${v}`)}
         collapsed={sidebarCollapsed}
       />
       <main className="content">
@@ -86,23 +72,27 @@ function Shell() {
           onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
         />
 
-        {safeView === 'contacts' && <Contacts />}
-        {safeView === 'stats' && <Stats />}
-        {safeView === 'users' && role === 'admin' && <Users />}
-        {safeView === 'candidates' && role === 'admin' && <Candidates />}
-        {safeView === 'clients' && <Clients />}
-        {safeView === 'payments' && role === 'admin' && <Payments />}
-        {safeView === 'tickets' && <Tickets />}
+        <Routes>
+          <Route path="/contacts" element={<Contacts />} />
+          <Route path="/stats" element={<Stats />} />
+          <Route path="/users" element={role === 'admin' ? <Users /> : <Navigate to="/stats" />} />
+          <Route path="/candidates" element={role === 'admin' ? <Candidates /> : <Navigate to="/stats" />} />
+          <Route path="/clients" element={<Clients />} />
+          <Route path="/payments" element={role === 'admin' ? <Payments /> : <Navigate to="/stats" />} />
+          <Route path="/tickets" element={<Tickets />} />
+          <Route path="*" element={<Navigate to="/stats" />} />
+        </Routes>
       </main>
     </div>
   );
 }
 
-
 export default function App() {
   return (
     <AuthProvider>
-      <Shell />
+      <BrowserRouter>
+        <Shell />
+      </BrowserRouter>
     </AuthProvider>
-  )
+  );
 }

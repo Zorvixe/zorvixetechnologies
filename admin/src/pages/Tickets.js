@@ -208,21 +208,21 @@ export default function Tickets() {
 
   const applyFilters = () => {
     let results = [...allTickets];
-    
+
     // Apply status filter
     if (filters.status !== "all") {
       results = results.filter(ticket => ticket.status === filters.status);
     }
-    
+
     // Apply priority filter
     if (filters.priority !== "all") {
       results = results.filter(ticket => ticket.priority === filters.priority);
     }
-    
+
     // Apply search filter
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
-      results = results.filter(ticket => 
+      results = results.filter(ticket =>
         ticket.title.toLowerCase().includes(searchTerm) ||
         ticket.description.toLowerCase().includes(searchTerm) ||
         (ticket.creator_name && ticket.creator_name.toLowerCase().includes(searchTerm)) ||
@@ -231,7 +231,7 @@ export default function Tickets() {
         ticket.priority.toLowerCase().includes(searchTerm)
       );
     }
-    
+
     setFilteredTickets(results);
   };
 
@@ -360,7 +360,7 @@ export default function Tickets() {
   return (
     <div className="tickets-container">
       <div className="tickets-header">
-        <h2>Tickets</h2>
+        <h5>Tickets</h5>
         <button
           className="btn btn-primary"
           onClick={() => setShowCreate(true)}
@@ -616,6 +616,8 @@ export default function Tickets() {
         title="Edit Ticket"
         centered
         scrollable={false}
+        dialogClassName="modal-lg"
+
       >
         <form onSubmit={handleEditSubmit} className="ticket-form">
           <div className="form-group">
@@ -712,72 +714,90 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
   const { user } = useAuth();
   const [comments, setComments] = useState(ticket?.comments || []);
   const [newComment, setNewComment] = useState("");
+  const [viewLoading, setViewLoading] = useState(false);
 
   useEffect(() => {
+    setViewLoading(true);
     setComments(ticket?.comments || []);
     setNewComment("");
+    setViewLoading(false);
   }, [ticket]);
 
   // toast
-  const toastTimer = useRef(null)
-  const [toast, setToast] = useState({ open: false, type: 'success', message: '' })
-  const showToast = (message, type = 'success') => {
-    setToast({ open: true, type, message })
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToast(t => ({ ...t, open: false })), 3000)
-  }
+  const toastTimer = useRef(null);
+  const [toast, setToast] = useState({ open: false, type: "success", message: "" });
+  const showToast = (message, type = "success") => {
+    setToast({ open: true, type, message });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, open: false })), 3000);
+  };
   const hideToast = () => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    setToast(t => ({ ...t, open: false }))
-  }
-  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast((t) => ({ ...t, open: false }));
+  };
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, []);
 
   if (!ticket) return null;
 
   const addComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
+    setViewLoading(true);
     try {
       const res = await apiCreateTicketComment(ticket.id, { comment_text: newComment });
       if (res?.success) {
         setComments([...comments, res.comment]);
         setNewComment("");
+        showToast("Comment added", "success");
       }
-      showToast("Ticket Updated", "success")
     } catch (e) {
       console.error("addComment error", e);
-      showToast("Ticket Update Failed", "error")
+      showToast("Failed to add comment", "error");
+    } finally {
+      setViewLoading(false);
     }
   };
 
   const deleteComment = async (id) => {
+    if (!window.confirm("Delete this comment?")) return;
+    setViewLoading(true);
     try {
       await apiDeleteTicketComment(id);
       setComments(comments.filter((c) => c.id !== id));
-      showToast("Ticket Deleted", "success")
+      showToast("Comment deleted", "success");
     } catch (e) {
       console.error("deleteComment error", e);
-      showToast("Ticket Delete Failed", "error")
+      showToast("Failed to delete comment", "error");
+    } finally {
+      setViewLoading(false);
     }
   };
 
   const updateComment = async (id, text) => {
+    setViewLoading(true);
     try {
       await apiUpdateTicketComment(id, { comment_text: text });
-      setComments(
-        comments.map((c) => (c.id === id ? { ...c, comment_text: text, updated_at: new Date() } : c))
-      );
-      showToast("Ticket Updated", "success")
+      setComments(comments.map((c) =>
+        c.id === id ? { ...c, comment_text: text, updated_at: new Date() } : c
+      ));
+      showToast("Comment updated", "success");
     } catch (e) {
       console.error("updateComment error", e);
-      showToast("Ticket Update Failed", "error")
+      showToast("Failed to update comment", "error");
+    } finally {
+      setViewLoading(false);
     }
   };
 
   const isCommentManageable = (c) =>
     !!user && (c.user_id === user.id || user.role === "admin");
 
-  return (
+  return viewLoading ? (
+    <div className="loader_container">
+      <p className="loader_spinner"></p>
+      <p>Loading…</p>
+    </div>
+  ) : (
     <BootstrapModal
       open={open}
       onClose={onClose}

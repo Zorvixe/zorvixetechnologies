@@ -99,7 +99,7 @@ export default function Stats() {
               </div>
             )}
             <div className="divider" />
-            <h4 className="subtle">Last 30 Days — Contacts</h4>
+            <h6 className="subtle">Last 30 Days — Contacts</h6>
             {(!data.contactsLast30 || !data.contactsLast30.length) ? (
               <Empty message="No contacts in the last 30 days" />
             ) : (
