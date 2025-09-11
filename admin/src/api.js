@@ -72,6 +72,10 @@ export async function apiStatsNotifications() {
   return request("/api/stats/notifications");
 }
 
+export async function apiStatsTickets () {
+  return request("/api/stats/tickets");
+}
+
 // Add this function to your api.js
 export const apiResetNotificationCount = () => {
   // This is just a placeholder since we're using localStorage

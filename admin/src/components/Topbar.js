@@ -1,36 +1,56 @@
-import { useEffect, useRef, useState } from "react"
-import { useAuth } from "../auth"
-import ZorvixeLogo from "../assets/zorvixe_logo.png"
-import ZorvixeFavicon from "../assets/zorvixe_favicon.png"
-import { apiStatsNotifications, apiResetNotificationCount } from '../api';
-import Notification from '../pages/Notification';
-import "./Topbar.css"
+// src/components/Topbar.js
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../auth";
+import ZorvixeLogo from "../assets/zorvixe_logo.png";
+import ZorvixeFavicon from "../assets/zorvixe_favicon.png";
+import {
+  apiStatsNotifications,
+  apiResetNotificationCount,
+  apiStatsTickets,
+} from "../api";
+import Notification from "../pages/Notification";
+import UserTicket from "../pages/UserTicket"; // add this
+
+import "./Topbar.css";
 
 export default function Topbar({
   title,
   children,
   variant = "page",
-  onToggleSidebar = () => { },
+  onToggleSidebar = () => {},
   sidebarCollapsed = false,
 }) {
-  const { user, logout } = useAuth()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const btnRef = useRef(null)
-  const menuRef = useRef(null)
+  const { user, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+
+  // notifications
   const [notificationCount, setNotificationCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [lastChecked, setLastChecked] = useState(null);
+  const [lastCheckedNotif, setLastCheckedNotif] = useState(null);
 
-  // Fetch notification count based on last checked time
+  // tickets
+  const [ticketCount, setTicketCount] = useState(0);
+  const [showUserTickets, setShowUserTickets] = useState(false);
+  const [lastCheckedTickets, setLastCheckedTickets] = useState(null);
+
+  // helpers to build localStorage keys
+  const notifStorageKey = (uid) => `lastChecked_notif_${uid || "anon"}`;
+  const ticketStorageKey = (uid) => `lastChecked_ticket_${uid || "anon"}`;
+
+  /* ---------------------- Notifications ---------------------- */
   const fetchNotificationCount = async () => {
+    if (!user) return;
     try {
       const data = await apiStatsNotifications();
-      const newActivities = lastChecked
-        ? (data.activityFeed || []).filter(a => new Date(a.at) > new Date(lastChecked))
-        : (data.activityFeed || []);
+      const feed = Array.isArray(data?.activityFeed) ? data.activityFeed : [];
+      const newActivities = lastCheckedNotif
+        ? feed.filter((a) => new Date(a.at) > new Date(lastCheckedNotif))
+        : feed;
       setNotificationCount(newActivities.length);
     } catch (error) {
-      console.error('Error fetching notification count:', error);
+      console.error("Error fetching notification count:", error);
       setNotificationCount(0);
     }
   };
@@ -39,50 +59,105 @@ export default function Topbar({
     try {
       setNotificationCount(0);
       const now = new Date().toISOString();
-      setLastChecked(now);
-      localStorage.setItem(`lastChecked_${user?.id || user?.email || 'anon'}`, now);
+      setLastCheckedNotif(now);
+      localStorage.setItem(notifStorageKey(user?.id || user?.email || "anon"), now);
       setShowNotifications(true);
+      // call server-side reset if available (keeps parity with existing flow)
       await apiResetNotificationCount();
     } catch (error) {
-      console.error('Error resetting notification count:', error);
+      console.error("Error resetting notification count:", error);
     }
   };
 
+  /* ---------------------- Tickets ---------------------- */
+  const fetchTicketCount = async () => {
+    if (!user) return;
+    try {
+      const data = await apiStatsTickets();
+      const feed = Array.isArray(data?.activityFeed) ? data.activityFeed : [];
+      const newActivities = lastCheckedTickets
+        ? feed.filter((a) => new Date(a.at) > new Date(lastCheckedTickets))
+        : feed;
+      setTicketCount(newActivities.length);
+    } catch (error) {
+      console.error("Error fetching ticket count:", error);
+      setTicketCount(0);
+    }
+  };
+
+  const handleTicketClick = () => {
+    // mark tickets as checked locally and open panel
+    const now = new Date().toISOString();
+    setLastCheckedTickets(now);
+    localStorage.setItem(ticketStorageKey(user?.id || user?.email || "anon"), now);
+    // Clear the local badge immediately; UserTicket will also report back onNewActivities
+    setTicketCount(0);
+    setShowUserTickets(true);
+  };
+
+  /* ---------------------- Init & Polling ---------------------- */
   useEffect(() => {
     if (!user) return;
-    const saved = localStorage.getItem(`lastChecked_${user?.id || user?.email || 'anon'}`);
-    if (saved) setLastChecked(saved);
+    // load saved timestamps
+    const savedNotif = localStorage.getItem(notifStorageKey(user?.id || user?.email || "anon"));
+    if (savedNotif) setLastCheckedNotif(savedNotif);
 
+    const savedTicket = localStorage.getItem(ticketStorageKey(user?.id || user?.email || "anon"));
+    if (savedTicket) setLastCheckedTickets(savedTicket);
+
+    // initial fetch
     fetchNotificationCount();
-    const interval = setInterval(fetchNotificationCount, 30000);
-    return () => clearInterval(interval);
-  }, [user, lastChecked]);
+    fetchTicketCount();
 
+    // poll both counts (30s)
+    const interval = setInterval(() => {
+      fetchNotificationCount();
+      fetchTicketCount();
+    }, 30_000);
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // If lastChecked changes (due to clicking), re-run fetch once to refresh counts
+  useEffect(() => {
+    if (!user) return;
+    fetchNotificationCount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastCheckedNotif]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchTicketCount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastCheckedTickets]);
+
+  /* ---------------------- Avatar menu (outside clicks + Esc) ---------------------- */
   const initials =
     (user?.name || user?.email || "U")
       .split(" ")
       .map((p) => p[0])
       .join("")
       .slice(0, 2)
-      .toUpperCase() || "U"
+      .toUpperCase() || "U";
 
-  // close on outside click / Esc
   useEffect(() => {
     const onDocClick = (e) => {
-      if (!menuOpen) return
-      const el = e.target
-      if (btnRef.current?.contains(el) || menuRef.current?.contains(el)) return
-      setMenuOpen(false)
-    }
-    const onEsc = (e) => e.key === "Escape" && setMenuOpen(false)
-    document.addEventListener("mousedown", onDocClick)
-    document.addEventListener("keydown", onEsc)
+      if (!menuOpen) return;
+      const el = e.target;
+      if (btnRef.current?.contains(el) || menuRef.current?.contains(el)) return;
+      setMenuOpen(false);
+    };
+    const onEsc = (e) => e.key === "Escape" && setMenuOpen(false);
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onEsc);
     return () => {
-      document.removeEventListener("mousedown", onDocClick)
-      document.removeEventListener("keydown", onEsc)
-    }
-  }, [menuOpen])
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [menuOpen]);
 
+  /* ---------------------- Render ---------------------- */
   if (variant === "global") {
     return (
       <>
@@ -107,7 +182,7 @@ export default function Topbar({
               src={ZorvixeLogo}
               alt="Zorvixe"
               className="tb-logo"
-              onError={(e) => { e.currentTarget.src = ZorvixeFavicon }}
+              onError={(e) => { e.currentTarget.src = ZorvixeFavicon; }}
             />
 
             <span className="tb-divider" aria-hidden="true" />
@@ -128,6 +203,7 @@ export default function Topbar({
               </svg>
             </button>
 
+            {/* Notifications */}
             <button
               className="icon-btn notif-btn"
               aria-label="Notifications"
@@ -143,6 +219,41 @@ export default function Topbar({
                 <span className="notification-badge">{notificationCount}</span>
               )}
             </button>
+
+            {/* Tickets */}
+            <button
+              className="icon-btn ticket-btn"
+              aria-label="My Tickets"
+              onClick={handleTicketClick}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              {ticketCount > 0 && (
+                <span className="notification-badge">{ticketCount}</span>
+              )}
+            </button>
+
+            {/* Render panels */}
+            {showNotifications && (
+              <Notification
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                lastChecked={lastCheckedNotif}
+                onNewActivities={(count) => setNotificationCount(count)}
+              />
+            )}
+
+            {showUserTickets && (
+              <UserTicket
+                isOpen={showUserTickets}
+                onClose={() => setShowUserTickets(false)}
+                lastChecked={lastCheckedTickets}
+                onNewActivities={(count) => setTicketCount(count)}
+              />
+            )}
 
             {/* Avatar + profile dropdown */}
             <div className="profile-anchor">
@@ -191,10 +302,9 @@ export default function Topbar({
               )}
             </div>
           </div>
-          {showNotifications && ( <Notification isOpen={showNotifications} onClose={() => setShowNotifications(false)} lastChecked={lastChecked} onNewActivities={(count) => setNotificationCount(count)} /> )}
         </header>
       </>
-    )
+    );
   }
 
   // "page" variant (unchanged)
@@ -203,5 +313,5 @@ export default function Topbar({
       <h3 className="page-title" title={title}>{title}</h3>
       <div className="page-controls">{children}</div>
     </div>
-  )
+  );
 }

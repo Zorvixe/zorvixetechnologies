@@ -2196,6 +2196,132 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
   }
 });
 
+
+app.get('/api/stats/tickets', requireAuth, async (_req, res) => {
+  try {
+    const [
+      // Basic ticket count
+      ticketsCount,
+
+      // Recent tickets and comments
+      ticketsRecent,
+      ticketCommentsRecent,
+
+      // Ticket breakdowns
+      ticketsByStatus,
+      ticketsByPriority,
+
+      // Ticket activity trends
+      ticketsLast30,
+      commentsLast30,
+    ] = await Promise.all([
+      pool.query(`SELECT COUNT(*)::BIGINT AS c FROM tickets`),
+
+      pool.query(`
+        SELECT 
+          t.id, t.title, t.status, t.priority, t.created_at, t.updated_at,
+          au.name AS assigned_to_name, au.email AS assigned_to_email,
+          creator.name AS created_by_name
+        FROM tickets t
+        LEFT JOIN admin_users au ON au.id = t.assigned_to
+        LEFT JOIN admin_users creator ON creator.id = t.created_by
+        ORDER BY t.created_at DESC
+        LIMIT 10
+      `),
+
+      pool.query(`
+        SELECT 
+          tc.id, tc.ticket_id, tc.comment_text, tc.created_at,
+          t.title AS ticket_title, t.status AS ticket_status,
+          u.name AS user_name, u.email AS user_email
+        FROM ticket_comments tc
+        JOIN tickets t ON t.id = tc.ticket_id
+        JOIN admin_users u ON u.id = tc.user_id
+        ORDER BY tc.created_at DESC
+        LIMIT 10
+      `),
+
+      pool.query(`SELECT status, COUNT(*)::BIGINT AS count FROM tickets GROUP BY status`),
+      pool.query(`SELECT priority, COUNT(*)::BIGINT AS count FROM tickets GROUP BY priority`),
+
+      pool.query(`
+        SELECT date_trunc('day', created_at) AS day, COUNT(*)::BIGINT AS count
+        FROM tickets
+        WHERE created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY day
+        ORDER BY day ASC
+      `),
+
+      pool.query(`
+        SELECT date_trunc('day', created_at) AS day, COUNT(*)::BIGINT AS count
+        FROM ticket_comments
+        WHERE created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY day
+        ORDER BY day ASC
+      `),
+    ]);
+
+    // Build activity feed (only tickets + ticket comments)
+    const acts = [];
+
+    ticketsRecent.rows.forEach((r) => {
+      acts.push({
+        type: "ticket",
+        at: r.created_at,
+        text: `Ticket created: ${r.title} - Priority: ${r.priority}, Status: ${r.status}`,
+        data: r,
+      });
+    });
+
+    ticketCommentsRecent.rows.forEach((r) => {
+      acts.push({
+        type: "ticket_comment",
+        at: r.created_at,
+        text: `${r.user_name} commented on ticket: ${r.ticket_title}`,
+        data: r,
+      });
+    });
+
+    acts.sort((a, b) => new Date(b.at) - new Date(a.at));
+    const activityFeed = acts.slice(0, 20);
+
+    res.json({
+      totals: {
+        tickets: Number(ticketsCount.rows[0]?.c || 0),
+      },
+      statusBreakdowns: {
+        byStatus: ticketsByStatus.rows.map((r) => ({
+          status: r.status,
+          count: Number(r.count || 0),
+        })),
+        byPriority: ticketsByPriority.rows.map((r) => ({
+          priority: r.priority,
+          count: Number(r.count || 0),
+        })),
+      },
+      trendsLast30: {
+        tickets: ticketsLast30.rows.map((r) => ({
+          day: r.day,
+          count: Number(r.count || 0),
+        })),
+        comments: commentsLast30.rows.map((r) => ({
+          day: r.day,
+          count: Number(r.count || 0),
+        })),
+      },
+      activityFeed,
+      recentData: {
+        tickets: ticketsRecent.rows,
+        ticketComments: ticketCommentsRecent.rows,
+      },
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 /* --------------------------------- Projects Commets ---------------------------------- */
 // Get comments for a project
 app.get('/api/projects/:projectId/comments', requireAuth, async (req, res) => {

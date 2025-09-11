@@ -461,7 +461,8 @@ export default function Tickets() {
                   <div className="ticket-header">
                     {/* LEFT */}
                     <div className="ticket-left">
-                      <UserAvatar name={ticket.creator_name} />
+                    <span style={{ marginLeft: 8, fontWeight: "bold", backgroundColor: "#1e90ff", color: "#fff", borderRadius: "8px", paddingLeft: "5px", paddingRight: "5px" }} > {ticket.id}</span>
+                     <UserAvatar name={ticket.creator_name} />
 
                       <h4 className="ticket-creator">{ticket.creator_name}</h4>
 
