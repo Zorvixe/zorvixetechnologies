@@ -1,0 +1,21 @@
+/* src/styles/deeplink.css */
+.deeplink-highlight {
+  animation: deeplinkFlash 2.2s ease-in-out;
+  outline: 1px solid rgba(0, 110, 255, 0.37);
+}
+@keyframes deeplinkFlash {
+  0% { background: rgba(0, 110, 255, 0.37) }
+  100% { background: transparent; }
+}
+
+/* basic comment styling */
+.comment-item, .comment-node {
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: var(--card-bg, #fff);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.03) inset;
+}
+.comment-children { margin-left: 18px; list-style: none; padding-left: 0; }
+.comment-head { display:flex; justify-content:space-between; gap:10px; font-size:0.9rem; color:#333; }
+.comment-body { margin-top:6px; white-space:pre-wrap; }

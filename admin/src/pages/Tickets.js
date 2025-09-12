@@ -1,3 +1,4 @@
+// src/pages/Tickets.js
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   apiListTickets,
@@ -12,6 +13,9 @@ import {
 } from "../api";
 import { useAuth } from "../auth";
 import "./Tickets.css";
+
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import useDeepLinkHandler from "../deeplink/useDeepLinkHandler";
 
 /* ------------------------- Bootstrap Modal Wrapper ------------------------- */
 function BootstrapModal({
@@ -138,6 +142,10 @@ const UserAvatar = ({ name = "U", size = 40 }) => {
 /* -------------------------------- Tickets --------------------------------- */
 export default function Tickets() {
   const { user } = useAuth();
+  const { id: routeTicketId } = useParams(); // will be present when URL is /tickets/:id
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [allTickets, setAllTickets] = useState([]);
   const [filteredTickets, setFilteredTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -149,18 +157,18 @@ export default function Tickets() {
   });
 
   // toast
-  const toastTimer = useRef(null)
-  const [toast, setToast] = useState({ open: false, type: 'success', message: '' })
-  const showToast = (message, type = 'success') => {
-    setToast({ open: true, type, message })
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToast(t => ({ ...t, open: false })), 3000)
-  }
+  const toastTimer = useRef(null);
+  const [toast, setToast] = useState({ open: false, type: "success", message: "" });
+  const showToast = (message, type = "success") => {
+    setToast({ open: true, type, message });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, open: false })), 3000);
+  };
   const hideToast = () => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    setToast(t => ({ ...t, open: false }))
-  }
-  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast((t) => ({ ...t, open: false }));
+  };
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, []);
 
   // For assignment dropdowns
   const [users, setUsers] = useState([]);
@@ -206,6 +214,18 @@ export default function Tickets() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, allTickets]);
 
+  // If URL contains /tickets/:id, open the view modal for that ticket
+  useEffect(() => {
+    if (routeTicketId) {
+      openViewModal(routeTicketId, { pushHistory: false });
+    } else {
+      // if no id in route and modal open, close it
+      setShowView(false);
+      setSelectedTicket(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeTicketId]);
+
   const applyFilters = () => {
     let results = [...allTickets];
 
@@ -223,12 +243,12 @@ export default function Tickets() {
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
       results = results.filter(ticket =>
-        ticket.title.toLowerCase().includes(searchTerm) ||
-        ticket.description.toLowerCase().includes(searchTerm) ||
-        (ticket.creator_name && ticket.creator_name.toLowerCase().includes(searchTerm)) ||
-        (ticket.assignee_name && ticket.assignee_name.toLowerCase().includes(searchTerm)) ||
-        ticket.status.toLowerCase().includes(searchTerm) ||
-        ticket.priority.toLowerCase().includes(searchTerm)
+        (ticket.title || "").toLowerCase().includes(searchTerm) ||
+        (ticket.description || "").toLowerCase().includes(searchTerm) ||
+        (ticket.creator_name || "").toLowerCase().includes(searchTerm) ||
+        (ticket.assignee_name || "").toLowerCase().includes(searchTerm) ||
+        (ticket.status || "").toLowerCase().includes(searchTerm) ||
+        (ticket.priority || "").toLowerCase().includes(searchTerm)
       );
     }
 
@@ -239,7 +259,6 @@ export default function Tickets() {
     try {
       const data = await apiGetUsersForAssignment();
       if (data?.success) setUsers(data.users || []);
-
     } catch (e) {
       console.error("fetchUsers error", e);
     }
@@ -257,12 +276,25 @@ export default function Tickets() {
     }
   };
 
-  const openViewModal = async (id) => {
+  const openViewModal = async (id, { pushHistory = true } = {}) => {
+    if (!id) return;
     try {
+      // optionally push URL so route matches the modal
+      if (pushHistory) {
+        navigate(`/tickets/${id}`, { replace: false });
+      }
+
       const data = await apiGetTicket(id);
       if (data?.success) {
         setSelectedTicket({ ...data.ticket, comments: data.comments || [] });
         setShowView(true);
+      } else {
+        // fallback - set selected from cached list if exists
+        const cached = allTickets.find(t => String(t.id) === String(id));
+        if (cached) {
+          setSelectedTicket({ ...cached, comments: [] });
+          setShowView(true);
+        }
       }
     } catch (e) {
       console.error("openViewModal error", e);
@@ -285,6 +317,8 @@ export default function Tickets() {
           assigned_to: t.assigned_to || "",
         });
         setShowEdit(true);
+        // reflect URL too
+        navigate(`/tickets/${id}`, { replace: false });
       }
     } catch (e) {
       console.error("openEditFromCard error", e);
@@ -301,13 +335,14 @@ export default function Tickets() {
           setShowView(false);
           setShowEdit(false);
           setSelectedTicket(null);
+          navigate("/tickets");
         }
         await fetchTickets();
       }
-      showToast("Ticket Deleted", "success")
+      showToast("Ticket Deleted", "success");
     } catch (e) {
       console.error("deleteTicket error", e);
-      showToast("Ticket Delete Failed")
+      showToast("Ticket Delete Failed");
     }
   };
 
@@ -329,10 +364,10 @@ export default function Tickets() {
         setNewTicket({ title: "", description: "", priority: "medium", assigned_to: "" });
         fetchTickets();
       }
-      showToast("Ticket Created", "success")
+      showToast("Ticket Created", "success");
     } catch (e) {
       console.error("handleCreateSubmit error", e);
-      showToast("Ticket Create Failed", "error")
+      showToast("Ticket Create Failed", "error");
     }
   };
 
@@ -348,12 +383,12 @@ export default function Tickets() {
       if (res?.success) {
         setShowEdit(false);
         await fetchTickets();
-        await openViewModal(selectedTicket.id);
+        await openViewModal(selectedTicket.id, { pushHistory: false });
       }
-      showToast("Ticket Updated", "success")
+      showToast("Ticket Updated", "success");
     } catch (e) {
       console.error("handleEditSubmit error", e);
-      showToast("Ticket Updated Failed", "error")
+      showToast("Ticket Updated Failed", "error");
     }
   };
 
@@ -461,8 +496,8 @@ export default function Tickets() {
                   <div className="ticket-header">
                     {/* LEFT */}
                     <div className="ticket-left">
-                    <span style={{ marginLeft: 8, fontWeight: "bold", backgroundColor: "#1e90ff", color: "#fff", borderRadius: "8px", paddingLeft: "5px", paddingRight: "5px" }} > {ticket.id}</span>
-                     <UserAvatar name={ticket.creator_name} />
+                      <span style={{ marginLeft: 8, fontWeight: "bold", backgroundColor: "#1e90ff", color: "#fff", borderRadius: "8px", paddingLeft: "5px", paddingRight: "5px" }} > {ticket.id}</span>
+                      <UserAvatar name={ticket.creator_name} />
 
                       <h4 className="ticket-creator">{ticket.creator_name}</h4>
 
@@ -603,7 +638,12 @@ export default function Tickets() {
       {/* ---------------------------- View Ticket Modal --------------------------- */}
       <ViewTicketModal
         open={showView}
-        onClose={() => setShowView(false)}
+        onClose={() => {
+          setShowView(false);
+          setSelectedTicket(null);
+          // when modal closes, remove ticket id from URL
+          navigate("/tickets", { replace: false });
+        }}
         ticket={selectedTicket}
         canManage={!!selectedTicket && (selectedTicket.created_by === user.id || user.role === "admin")}
         openEdit={() => openEditFromCard(selectedTicket?.id)}
@@ -618,7 +658,6 @@ export default function Tickets() {
         centered
         scrollable={false}
         dialogClassName="modal-lg"
-
       >
         <form onSubmit={handleEditSubmit} className="ticket-form">
           <div className="form-group">
@@ -716,6 +755,13 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
   const [comments, setComments] = useState(ticket?.comments || []);
   const [newComment, setNewComment] = useState("");
   const [viewLoading, setViewLoading] = useState(false);
+
+  // --- IMPORTANT: hook must be called unconditionally (top-level) to satisfy rules of hooks
+  useDeepLinkHandler({
+    resourceType: "ticket",
+    resourceId: ticket ? ticket.id : null,
+    whenLoaded: () => !viewLoading && Array.isArray(comments),
+  });
 
   useEffect(() => {
     setViewLoading(true);
@@ -920,7 +966,7 @@ function CommentItem({ comment, isManageable, onDelete, onUpdate }) {
   };
 
   return (
-    <div className="comment hover-frame">
+    <div className="comment hover-frame" id={`comment-${comment.id}`} tabIndex={-1}>
       <div className="comment-header">
         <div className="comment-author-info">
           <UserAvatar name={comment.user_name} />

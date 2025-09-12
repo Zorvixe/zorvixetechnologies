@@ -2196,75 +2196,175 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
   }
 });
 
-
-app.get('/api/stats/tickets', requireAuth, async (_req, res) => {
+// GET /api/stats/tickets — robust + debug-friendly
+app.get("/api/stats/tickets", requireAuth, async (req, res) => {
   try {
-    const [
-      // Basic ticket count
-      ticketsCount,
+    const authUser = req.user || {};
+    // DEBUG: log req.user so we can see what's coming in
+    console.log("[stats/tickets] req.user:", JSON.stringify(authUser));
 
-      // Recent tickets and comments
-      ticketsRecent,
-      ticketCommentsRecent,
+    const role = String((authUser.role || "")).toLowerCase();
+    const isAdmin = role === "admin";
+    const uid = isAdmin ? null : Number(req.user.sub); // Convert to number
 
-      // Ticket breakdowns
-      ticketsByStatus,
-      ticketsByPriority,
+    console.log(`[stats/tickets] isAdmin=${isAdmin} uid=${uid}`);
 
-      // Ticket activity trends
-      ticketsLast30,
-      commentsLast30,
-    ] = await Promise.all([
-      pool.query(`SELECT COUNT(*)::BIGINT AS c FROM tickets`),
+    // If non-admin and no uid, return empty safe response
+    if (!isAdmin && !uid) {
+      console.warn("[stats/tickets] non-admin request but no uid present — returning empty result");
+      return res.json({
+        totals: { tickets: 0 },
+        statusBreakdowns: { byStatus: [], byPriority: [] },
+        trendsLast30: { tickets: [], comments: [] },
+        activityFeed: [],
+        recentData: { tickets: [], ticketComments: [] },
+      });
+    }
 
-      pool.query(`
-        SELECT 
-          t.id, t.title, t.status, t.priority, t.created_at, t.updated_at,
-          au.name AS assigned_to_name, au.email AS assigned_to_email,
-          creator.name AS created_by_name
+    // Build queries separately for admin / non-admin to avoid string manipulation errors
+    const params = isAdmin ? [] : [uid];
+
+    // 1) tickets count
+    const qTicketsCount = isAdmin
+      ? `SELECT COUNT(*)::BIGINT AS c FROM tickets`
+      : `SELECT COUNT(*)::BIGINT AS c FROM tickets t
+         WHERE (t.created_by = $1 OR t.assigned_to = $1
+                OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $1))`;
+
+    // 2) recent tickets
+    const qTicketsRecent = isAdmin
+      ? `
+        SELECT t.id, t.title, t.status, t.priority, t.created_at, t.updated_at,
+               au.name AS assigned_to_name, au.email AS assigned_to_email,
+               creator.name AS created_by_name
         FROM tickets t
         LEFT JOIN admin_users au ON au.id = t.assigned_to
         LEFT JOIN admin_users creator ON creator.id = t.created_by
         ORDER BY t.created_at DESC
         LIMIT 10
-      `),
+      `
+      : `
+        SELECT t.id, t.title, t.status, t.priority, t.created_at, t.updated_at,
+               au.name AS assigned_to_name, au.email AS assigned_to_email,
+               creator.name AS created_by_name
+        FROM tickets t
+        LEFT JOIN admin_users au ON au.id = t.assigned_to
+        LEFT JOIN admin_users creator ON creator.id = t.created_by
+        WHERE (t.created_by = $1 OR t.assigned_to = $1
+               OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $1))
+        ORDER BY t.created_at DESC
+        LIMIT 10
+      `;
 
-      pool.query(`
-        SELECT 
-          tc.id, tc.ticket_id, tc.comment_text, tc.created_at,
-          t.title AS ticket_title, t.status AS ticket_status,
-          u.name AS user_name, u.email AS user_email
+    // 3) recent ticket comments (limit 10): show comments either on visible tickets or comments authored by the user
+    const qTicketCommentsRecent = isAdmin
+      ? `
+        SELECT tc.id, tc.ticket_id, tc.comment_text, tc.created_at,
+               t.title AS ticket_title, t.status AS ticket_status,
+               u.name AS user_name, u.email AS user_email
         FROM ticket_comments tc
         JOIN tickets t ON t.id = tc.ticket_id
         JOIN admin_users u ON u.id = tc.user_id
         ORDER BY tc.created_at DESC
         LIMIT 10
-      `),
+      `
+      : `
+        SELECT tc.id, tc.ticket_id, tc.comment_text, tc.created_at,
+               t.title AS ticket_title, t.status AS ticket_status,
+               u.name AS user_name, u.email AS user_email
+        FROM ticket_comments tc
+        JOIN tickets t ON t.id = tc.ticket_id
+        JOIN admin_users u ON u.id = tc.user_id
+        WHERE (t.created_by = $1 OR t.assigned_to = $1 OR tc.user_id = $1)
+        ORDER BY tc.created_at DESC
+        LIMIT 10
+      `;
 
-      pool.query(`SELECT status, COUNT(*)::BIGINT AS count FROM tickets GROUP BY status`),
-      pool.query(`SELECT priority, COUNT(*)::BIGINT AS count FROM tickets GROUP BY priority`),
+    // 4) tickets by status
+    const qTicketsByStatus = isAdmin
+      ? `SELECT status, COUNT(*)::BIGINT AS count FROM tickets GROUP BY status`
+      : `
+        SELECT status, COUNT(*)::BIGINT AS count
+        FROM tickets t
+        WHERE (t.created_by = $1 OR t.assigned_to = $1
+               OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $1))
+        GROUP BY status
+      `;
 
-      pool.query(`
+    // 5) tickets by priority
+    const qTicketsByPriority = isAdmin
+      ? `SELECT priority, COUNT(*)::BIGINT AS count FROM tickets GROUP BY priority`
+      : `
+        SELECT priority, COUNT(*)::BIGINT AS count
+        FROM tickets t
+        WHERE (t.created_by = $1 OR t.assigned_to = $1
+               OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $1))
+        GROUP BY priority
+      `;
+
+    // 6) tickets last 30 days
+    const qTicketsLast30 = isAdmin
+      ? `
         SELECT date_trunc('day', created_at) AS day, COUNT(*)::BIGINT AS count
         FROM tickets
         WHERE created_at >= NOW() - INTERVAL '30 days'
         GROUP BY day
         ORDER BY day ASC
-      `),
+      `
+      : `
+        SELECT date_trunc('day', t.created_at) AS day, COUNT(*)::BIGINT AS count
+        FROM tickets t
+        WHERE (t.created_by = $1 OR t.assigned_to = $1
+               OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $1))
+          AND t.created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY day
+        ORDER BY day ASC
+      `;
 
-      pool.query(`
+    // 7) comments last 30 days
+    const qCommentsLast30 = isAdmin
+      ? `
         SELECT date_trunc('day', created_at) AS day, COUNT(*)::BIGINT AS count
         FROM ticket_comments
         WHERE created_at >= NOW() - INTERVAL '30 days'
         GROUP BY day
         ORDER BY day ASC
-      `),
+      `
+      : `
+        SELECT date_trunc('day', tc.created_at) AS day, COUNT(*)::BIGINT AS count
+        FROM ticket_comments tc
+        JOIN tickets t ON t.id = tc.ticket_id
+        WHERE (t.created_by = $1 OR t.assigned_to = $1 OR tc.user_id = $1)
+          AND tc.created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY day
+        ORDER BY day ASC
+      `;
+
+    // Execute all
+    const [
+      ticketsCountQ,
+      ticketsRecentQ,
+      ticketCommentsRecentQ,
+      ticketsByStatusQ,
+      ticketsByPriorityQ,
+      ticketsLast30Q,
+      commentsLast30Q,
+    ] = await Promise.all([
+      pool.query(qTicketsCount, params),
+      pool.query(qTicketsRecent, params),
+      pool.query(qTicketCommentsRecent, params),
+      pool.query(qTicketsByStatus, params),
+      pool.query(qTicketsByPriority, params),
+      pool.query(qTicketsLast30, params),
+      pool.query(qCommentsLast30, params),
     ]);
 
-    // Build activity feed (only tickets + ticket comments)
+    console.log("[stats/tickets] rows recent:", ticketsRecentQ.rows.length, "commentsRecent:", ticketCommentsRecentQ.rows.length);
+
+    // Build activity feed
     const acts = [];
 
-    ticketsRecent.rows.forEach((r) => {
+    ticketsRecentQ.rows.forEach((r) => {
       acts.push({
         type: "ticket",
         at: r.created_at,
@@ -2273,7 +2373,7 @@ app.get('/api/stats/tickets', requireAuth, async (_req, res) => {
       });
     });
 
-    ticketCommentsRecent.rows.forEach((r) => {
+    ticketCommentsRecentQ.rows.forEach((r) => {
       acts.push({
         type: "ticket_comment",
         at: r.created_at,
@@ -2286,40 +2386,26 @@ app.get('/api/stats/tickets', requireAuth, async (_req, res) => {
     const activityFeed = acts.slice(0, 20);
 
     res.json({
-      totals: {
-        tickets: Number(ticketsCount.rows[0]?.c || 0),
-      },
+      totals: { tickets: Number(ticketsCountQ.rows[0]?.c || 0) },
       statusBreakdowns: {
-        byStatus: ticketsByStatus.rows.map((r) => ({
-          status: r.status,
-          count: Number(r.count || 0),
-        })),
-        byPriority: ticketsByPriority.rows.map((r) => ({
-          priority: r.priority,
-          count: Number(r.count || 0),
-        })),
+        byStatus: ticketsByStatusQ.rows.map((r) => ({ status: r.status, count: Number(r.count || 0) })),
+        byPriority: ticketsByPriorityQ.rows.map((r) => ({ priority: r.priority, count: Number(r.count || 0) })),
       },
       trendsLast30: {
-        tickets: ticketsLast30.rows.map((r) => ({
-          day: r.day,
-          count: Number(r.count || 0),
-        })),
-        comments: commentsLast30.rows.map((r) => ({
-          day: r.day,
-          count: Number(r.count || 0),
-        })),
+        tickets: ticketsLast30Q.rows.map((r) => ({ day: r.day, count: Number(r.count || 0) })),
+        comments: commentsLast30Q.rows.map((r) => ({ day: r.day, count: Number(r.count || 0) })),
       },
       activityFeed,
-      recentData: {
-        tickets: ticketsRecent.rows,
-        ticketComments: ticketCommentsRecent.rows,
-      },
+      recentData: { tickets: ticketsRecentQ.rows, ticketComments: ticketCommentsRecentQ.rows },
     });
   } catch (e) {
-    console.error(e);
+    console.error("[stats/tickets] error:", e);
     res.status(500).json({ message: "Server error" });
   }
 });
+
+
+
 
 
 /* --------------------------------- Projects Commets ---------------------------------- */

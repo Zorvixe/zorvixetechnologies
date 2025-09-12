@@ -1,7 +1,9 @@
+// src/pages/Notification.js
 import React, { useEffect, useState, useRef } from 'react';
 import { apiStatsNotifications } from '../api';
 import { useAuth } from '../auth';
 import './Notifications.css';
+import { buildDeepLink } from '../deeplink/resourceRegistry';
 
 /** ---- Local date helpers ---- */
 const localYMD = (d = new Date()) => d.toLocaleDateString('en-CA');
@@ -133,6 +135,7 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
           related_data: activity.data,
           created_at: activity.at,
           is_new: !seen.has(key),
+          activityType: activity.type,
         };
       });
 
@@ -194,36 +197,80 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
       return next;
     });
 
-    let path = '';
-    switch (notification.related_type) {
-      case 'ticket':
-        path = notification.related_data?.id
-          ? `/tickets?view=${notification.related_data.id}`
-          : '/tickets';
-        break;
-      case 'project':
-        path = notification.related_data?.id
-          ? `/clients?project=${notification.related_data.id}`
-          : '/clients';
-        break;
-      case 'project_comment':
-        path = notification.related_data?.project_id
-          ? `/clients?project=${notification.related_data.project_id}`
-          : '/clients';
-        break;
-      case 'ticket_comment':
-        path = notification.related_data?.ticket_id
-          ? `/tickets?view=${notification.related_data.ticket_id}`
-          : '/tickets';
-        break;
-      default:
-        break;
+    let url = '';
+    try {
+      switch (notification.related_type) {
+        case 'ticket':
+          if (notification.related_data?.id) {
+            url = buildDeepLink({
+              resourceType: 'ticket',
+              resourceId: notification.related_data.id,
+            });
+          } else {
+            url = '/tickets';
+          }
+          break;
+
+        case 'project':
+          if (notification.related_data?.id) {
+            url = buildDeepLink({
+              resourceType: 'project',
+              resourceId: notification.related_data.id,
+            });
+          } else {
+            url = '/clients';
+          }
+          break;
+
+        case 'project_comment': {
+          const projId = notification.related_data?.project_id;
+          const commentId = notification.related_data?.id;
+          if (projId && commentId) {
+            url = buildDeepLink({
+              resourceType: 'project',
+              resourceId: projId,
+              targetType: 'comment',
+              targetId: commentId,
+            });
+          } else if (projId) {
+            url = buildDeepLink({ resourceType: 'project', resourceId: projId });
+          } else {
+            url = '/clients';
+          }
+          break;
+        }
+
+        case 'ticket_comment': {
+          const tId = notification.related_data?.ticket_id;
+          const commentId = notification.related_data?.id;
+          if (tId && commentId) {
+            url = buildDeepLink({
+              resourceType: 'ticket',
+              resourceId: tId,
+              targetType: 'comment',
+              targetId: commentId,
+            });
+          } else if (tId) {
+            url = buildDeepLink({ resourceType: 'ticket', resourceId: tId });
+          } else {
+            url = '/tickets';
+          }
+          break;
+        }
+
+        default:
+          url = '/stats';
+          break;
+      }
+    } catch (e) {
+      url = '/stats';
     }
 
-    if (path) {
-      window.history.pushState(null, '', path);
-      window.dispatchEvent(new PopStateEvent('popstate')); // let router react
+    if (url) {
+      window.history.pushState(null, '', url);
+      window.dispatchEvent(new PopStateEvent('popstate'));
     }
+
     onClose();
   };
 

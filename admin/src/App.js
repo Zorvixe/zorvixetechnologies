@@ -1,3 +1,4 @@
+// src/App.js
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth';
@@ -14,7 +15,10 @@ import Clients from './pages/Clients';
 import Payments from './pages/Payments';
 import Tickets from './pages/Tickets';
 
+
+
 import './App.css';
+import './styles/deeplink.css'; // ensure highlight CSS loaded globally
 
 const restricted = ['users', 'candidates', 'payments'];
 
@@ -77,9 +81,20 @@ function Shell() {
           <Route path="/stats" element={<Stats />} />
           <Route path="/users" element={role === 'admin' ? <Users /> : <Navigate to="/stats" />} />
           <Route path="/candidates" element={role === 'admin' ? <Candidates /> : <Navigate to="/stats" />} />
-          <Route path="/clients" element={<Clients />} />
           <Route path="/payments" element={role === 'admin' ? <Payments /> : <Navigate to="/stats" />} />
+
+          {/* Tickets list & modal route:
+              both /tickets and /tickets/:id render Tickets component.
+              Tickets reads useParams() and opens the modal when :id exists.
+          */}
           <Route path="/tickets" element={<Tickets />} />
+          <Route path="/tickets/:id" element={<Tickets />} />
+
+          {/* Project detail remains as separate page */}
+          <Route path="/clients" element={<Clients />} />
+
+          <Route path="/projects/:id" element={<Clients />} />
+
           <Route path="*" element={<Navigate to="/stats" />} />
         </Routes>
       </main>

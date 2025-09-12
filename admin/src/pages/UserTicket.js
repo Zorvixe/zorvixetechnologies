@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "../auth";
 import { apiStatsTickets } from "../api";
 import "./Notifications.css";
+import { buildDeepLink } from "../deeplink/resourceRegistry";
 
 /** ---- Local date helpers ---- */
 const localYMD = (d = new Date()) => d.toLocaleDateString("en-CA");
@@ -140,6 +141,7 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
           related_data: activity?.data,
           created_at: activity?.at,
           is_new: !seen.has(key),
+          activityType: activity?.type || null,
         };
       });
 
@@ -165,7 +167,6 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
   };
 
   const handleTicketClick = (ticket) => {
-    // mark as seen
     const seen = loadSeenSet(userId);
     if (!seen.has(ticket.key)) {
       seen.add(ticket.key);
@@ -177,10 +178,41 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
       return next;
     });
 
-    // navigate to ticket view if available
-    const tid = ticket.related_data?.id || ticket.related_data?.ticket_id;
-    const path = tid ? `/tickets?view=${tid}` : "/tickets";
-    window.history.pushState(null, "", path);
+    const data = ticket.related_data || {};
+    // Derive ticketId and commentId explicitly:
+    const ticketId =
+      // if it's a comment activity, prefer data.ticket_id; otherwise prefer data.id
+      ticket.activityType === "ticket_comment"
+        ? (data.ticket_id ?? data.id)
+        : (data.id ?? data.ticket_id);
+    const commentId = ticket.activityType === "ticket_comment" ? data.id : null;
+
+    let url = "/tickets";
+    if (ticketId) {
+      if (ticket.activityType === "ticket_comment" && commentId) {
+        // Build deep link to ticket with target comment
+        try {
+          url = buildDeepLink({
+            resourceType: "ticket",
+            resourceId: ticketId,
+            targetType: "comment",
+            targetId: commentId,
+          });
+        } catch (e) {
+          // fallback
+          url = `/tickets/${ticketId}?target=comment-${commentId}`;
+        }
+      } else {
+        try {
+          url = buildDeepLink({ resourceType: "ticket", resourceId: ticketId });
+        } catch (e) {
+          url = `/tickets/${ticketId}`;
+        }
+      }
+    }
+
+    // push/dispatch so app routing reacts
+    window.history.pushState(null, "", url);
     window.dispatchEvent(new PopStateEvent("popstate"));
     onClose();
   };
@@ -225,50 +257,67 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
               </p>
             </div>
           ) : (
-          tickets.map((ticket) => (
-  <div
-    key={ticket.key}
-    className={`notification-item ${ticket.is_new ? "notification-unseen" : ""}`}
-    onClick={() => handleTicketClick(ticket)}
-  >
-    <div className="notification-content">
-      <div className="notification-details">
-        <div className="notification-header-row">
-          <div className="notification-title">
-         {ticket.related_data?.id || ticket.related_data?.ticket_id ? (
-            <span style={{ marginLeft: 8, fontWeight: "bold", backgroundColor: "#1e90ff", color: "#fff", borderRadius: "8px", paddingLeft: "5px", paddingRight: "5px" }}>
-              #{ticket.related_data?.id || ticket.related_data?.ticket_id}
-            </span>
-          ) : null}   {ticket.title}
-            {ticket.is_new && <span className="notif-dot" />}
-          </div>
-          {ticket.creator && (
-            <div className="notification-assigned">👤 {ticket.creator}</div>
-          )}
-        </div>
+            tickets.map((ticket) => {
+              // compute ticketId for display:
+              const data = ticket.related_data || {};
+              const ticketId =
+                ticket.activityType === "ticket_comment"
+                  ? (data.ticket_id ?? data.id)
+                  : (data.id ?? data.ticket_id);
 
-        <div className="notification-message">
-          {ticket.message}
-          
-        </div>
+              return (
+                <div
+                  key={ticket.key}
+                  className={`notification-item ${ticket.is_new ? "notification-unseen" : ""}`}
+                  onClick={() => handleTicketClick(ticket)}
+                >
+                  <div className="notification-content">
+                    <div className="notification-details">
+                      <div className="notification-header-row">
+                        <div className="notification-title">
+                          {ticketId ? (
+                            <span
+                              style={{
+                                marginLeft: 8,
+                                fontWeight: "bold",
+                                backgroundColor: "#1e90ff",
+                                color: "#fff",
+                                borderRadius: "8px",
+                                paddingLeft: "5px",
+                                paddingRight: "5px",
+                                marginRight: 8,
+                              }}
+                            >
+                              #{ticketId}
+                            </span>
+                          ) : null}
+                          {ticket.title}
+                          {ticket.is_new && <span className="notif-dot" />}
+                        </div>
+                        {ticket.creator && (
+                          <div className="notification-assigned">👤 {ticket.creator}</div>
+                        )}
+                      </div>
 
-        <div className="notification-footer">
-          <div className="notification-time">{formatTime(ticket.created_at)}</div>
-          <div className="notification-date">
-            {ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : ""}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-))
+                      <div className="notification-message">{ticket.message}</div>
 
+                      <div className="notification-footer">
+                        <div className="notification-time">{formatTime(ticket.created_at)}</div>
+                        <div className="notification-date">
+                          {ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : ""}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
 
         <div className="notification-footer-info">
           <div className="notification-count">
-            {tickets.length} ticket activit{tickets.length === 1 ? "y" : "ies"}
+            {tickets.length} ticket activ{tickets.length === 1 ? "y" : "ies"}
             {selectedDate && ` for ${new Date(selectedDate).toLocaleDateString()}`}
           </div>
         </div>
