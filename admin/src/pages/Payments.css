@@ -1,0 +1,6 @@
+/* Optional: makes link tables a bit tighter */
+.table-links td, .table-links th { vertical-align: middle; }
+.table-links code { font-size: 12px; }
+.link-row + .link-row { margin-top: 6px; }
+.link-row .badge { white-space: nowrap; }
+.link-row .row-amount, .link-row .row-expiry { white-space: nowrap; }

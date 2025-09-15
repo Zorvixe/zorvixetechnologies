@@ -1,0 +1,320 @@
+
+/* ========================== STYLES (append to CSS) ========================== */
+
+/* Comments Section Styles */
+.comments-container {
+  padding: 20px 0;
+}
+
+.comments-title {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: #333;
+  font-weight: 600;
+}
+
+.comment-form {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.comment-input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.comment-input:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.no-comments {
+  text-align: center;
+  padding: 30px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Comment Item Styles */
+.comment {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.comment.reply {
+  margin-left: 40px;
+  border-left: 3px solid #e9ecef;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.comment-author {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.comment-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.comment-edited {
+  font-style: italic;
+}
+
+.comment-body {
+  margin-bottom: 15px;
+}
+
+.comment-body p {
+  margin: 0;
+  line-height: 1.5;
+  color: #495057;
+}
+
+/* Hover Action Buttons (comments) */
+.comment-action-buttons {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.comment:hover .comment-action-buttons {
+  opacity: 1;
+}
+.comment-action-buttons .btn-link {
+  padding: 4px;
+  border-radius: 4px;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.comment-action-buttons .btn-link:hover {
+  background: #e9e9e9;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #4a90e2;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+.btn-link:hover {
+  text-decoration: underline;
+  color: #357abd;
+}
+.edit-btn { color: #6c757d; }
+.delete-btn { color: #dc3545; }
+.delete-btn:hover { color: #bd2130; }
+
+/* Reply Form Styles */
+.reply-form {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+.reply-form .form-group { margin-bottom: 10px; }
+.reply-form .form-actions { justify-content: flex-end; }
+
+/* Replies Container */
+.replies {
+  margin-top: 20px;
+  padding-left: 20px;
+  border-left: 2px solid #e9ecef;
+}
+
+/* Button Styles */
+.btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+.btn-primary {
+  background-color: #4a90e2;
+  color: white;
+  border-color: #4a90e2;
+}
+.btn-primary:hover {
+  background-color: #357abd;
+  border-color: #357abd;
+}
+.btn-primary:disabled {
+  background-color: #a0c5f7;
+  border-color: #a0c5f7;
+  cursor: not-allowed;
+}
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border-color: #6c757d;
+}
+.btn-secondary:hover {
+  background-color: #5a6268;
+  border-color: #5a6268;
+}
+.btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .comment-header { flex-direction: column; gap: 5px; }
+  .comment.reply { margin-left: 20px; }
+  .replies { padding-left: 15px; }
+  .form-actions { flex-direction: column; }
+  .btn { width: 100%; }
+}
+
+/* User Avatar */
+.user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+  flex-shrink: 0;
+}
+
+/* Comment Header with Avatar */
+.comment-author-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.author-details { display: flex; flex-direction: column; }
+.comment-author { font-weight: 600; color: #2c3e50; font-size: 0.95rem; }
+.comment-meta { display: flex; gap: 8px; font-size: 0.8rem; color: #6c757d; margin-top: 2px; }
+
+/* ============= Tickets Styles ============= */
+.tickets-container { padding: 20px; }
+.tickets-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+}
+.tickets-filters {
+  display: flex; gap: 10px; margin-bottom: 20px;
+}
+.tickets-filters select, .tickets-filters input {
+  padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;
+}
+
+/* Card */
+.ticket-item {
+  border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 16px;
+  cursor: pointer; transition: box-shadow 0.2s, border-color 0.2s; background: #fff; position: relative;
+}
+.ticket-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-color: #d6d6d6; }
+
+/* Ticket hover action buttons (top-right) */
+.ticket-action-buttons {
+  position: absolute; top: 10px; right: 10px;
+  display: flex; gap: 8px; opacity: 0; transition: opacity .2s ease;
+}
+.ticket-item:hover .ticket-action-buttons { opacity: 1; }
+.ticket-action-buttons .btn-link {
+  padding: 4px; border-radius: 4px; background: #f5f5f5; display: inline-flex; align-items: center; justify-content: center;
+}
+.ticket-action-buttons .btn-link:hover { background: #e9e9e9; }
+
+/* Also in modal (over details box) */
+.hover-frame { position: relative; }
+.ticket-action-buttons.in-modal {
+  position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity .2s ease;
+}
+.hover-frame:hover .ticket-action-buttons.in-modal { opacity: 1; }
+
+/* Header layout */
+.ticket-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px;
+}
+.ticket-left { display: flex; flex-direction: row; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.ticket-creator { margin: 0; font-weight: 700; font-size: 1rem; }
+.ticket-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.ticket-meta-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #888; }
+.icon { width: 16px; height: 16px; display: inline-block; }
+
+/* Right side: assignee + badges */
+.ticket-right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; text-align: right; flex-wrap: wrap; }
+.ticket-assignee {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #555;
+}
+
+.ticket-status, .ticket-priority {
+  padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; white-space: nowrap; margin-right: 10px;
+}
+
+/* Status colors */
+.ticket-status.open { background-color: #e3f2fd; color: #1976d2; }
+.ticket-status.in_progress { background-color: #fff3e0; color: #f57c00; }
+.ticket-status.resolved { background-color: #e8f5e9; color: #388e3c; }
+.ticket-status.closed { background-color: #f5f5f5; color: #616161; }
+
+/* Priority colors */
+.ticket-priority.low { background-color: #e8f5e9; color: #388e3c; }
+.ticket-priority.medium { background-color: #fff3e0; color: #f57c00; }
+.ticket-priority.high { background-color: #ffe0e0; color: #d32f2f; }
+.ticket-priority.urgent { background-color: #ffcdd2; color: #c62828; }
+
+/* Body */
+.ticket-body { margin-top: 8px; }
+.ticket-title { margin: 0 0 6px 0; font-size: 1rem; }
+.ticket-description { margin: 20px; color: #666; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ticket-header { flex-direction: column; align-items: stretch; gap: 10px; }
+  .ticket-right { justify-content: flex-start; }
+  .ticket-action-buttons { opacity: 1; } /* keep visible on mobile */
+}
+.ticket-item { position: relative; }
+.ticket-action-buttons {
+  position: absolute; top: 8px; right: 8px;
+  display: flex; gap: 8px; opacity: 0;
+  transition: opacity .2s ease;
+}
+.ticket-item:hover .ticket-action-buttons { opacity: 1; }
+
+/* If you also show them inside the modal header area */
+.ticket-action-buttons.in-modal { position: absolute; top: 12px; right: 12px; }
+.hover-frame:hover .ticket-action-buttons.in-modal { opacity: 1; }
+.comment_text{
+  padding-left: 50px;
+}

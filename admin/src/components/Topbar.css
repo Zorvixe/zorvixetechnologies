@@ -1,0 +1,115 @@
+:root { --tb-h: 56px; }
+
+/* Global header — now truly fixed */
+.topbar--global {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--tb-h);
+  z-index: 1000;               /* above sidebar/content */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Spacer to offset fixed header; insert right after header in JSX */
+.topbar-spacer {
+  height: var(--tb-h);
+}
+
+/* Layout pieces inside the header */
+.tb-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.tb-right { display: flex; align-items: center; gap: 8px; }
+.tb-logo { height: 40px; width: auto; }
+.tb-divider { width: 1px; height: 24px; background: #e5e7eb; margin: 0 4px; }
+.tb-title {
+  font-size: 1.1rem; font-weight: 600; color: #1e293b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: min(40vw, 520px);
+}
+.tb-actions { margin-left: 10px; display: flex; align-items: center; gap: 8px; }
+
+.icon-btn {
+  background: transparent; border: 0; border-radius: 8px;
+  padding: 6px; cursor: pointer; color: #1f2937;
+  position: relative; /* so badges can be placed on it */
+}
+.icon-btn:hover { background: #f3f4f6; }
+
+.avatar-btn { background: transparent; border: 0; padding: 0; cursor: pointer; border-radius: 999px; }
+.avatar {
+  height: 28px; width: 28px; border-radius: 999px; display: grid; place-items: center;
+  background: #e2e8f0; color: #0f172a; font-weight: 700; font-size: 0.85rem;
+}
+.avatar-btn.is-open .avatar { outline: 2px solid #dbeafe; background: #eaf1ff; }
+
+/* Profile dropdown */
+.profile-anchor { position: relative; }
+.profile-menu {
+  position: absolute;
+  right: 0;
+  top: 38px;
+  width: 320px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  border-radius: 12px;
+  overflow: hidden;
+  animation: pmIn .12s ease-out;
+  z-index: 1001; /* above header content */
+}
+@keyframes pmIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+.pm-header { display: flex; gap: 12px; padding: 14px; align-items: center; }
+.pm-avatar {
+  height: 40px; width: 40px; border-radius: 999px; background: #e2e8f0;
+  display: grid; place-items: center; font-weight: 700; color: #0f172a;
+}
+.pm-user { min-width: 0; }
+.pm-name { font-weight: 600; color: #111827; }
+.pm-email { font-size: 0.875rem; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-link { margin-top: 4px; padding: 0; background: none; border: 0; color: #1a73e8; font-weight: 600; cursor: pointer; }
+
+.pm-actions { border-top: 1px solid #eef2f7; display: flex; flex-direction: column; padding: 6px; }
+.pm-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 8px;
+  border: 0; background: transparent; border-radius: 8px; cursor: pointer; text-align: left;
+}
+.pm-item:hover { background: #ff000010;}
+.pm-icon { width: 18px; height: 18px; display: grid; place-items: center; color: #334155; }
+
+/* Page variant (used on internal pages if you choose) */
+.topbar--page {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px; border: 1px solid #e5e7eb; border-radius: 5px;
+}
+.page-title { margin: 0; font-size: 1.05rem; font-weight: 600; color: #1e293b; }
+.page-controls { display: flex; gap: 10px; }
+
+/* Notification badge is pinned to its button now */
+.notification-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #dc3545;
+  color: white;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  line-height: 18px;
+}
+
+/* Small screens */
+@media (max-width: 640px) {
+  .tb-title { max-width: 48vw; }
+}

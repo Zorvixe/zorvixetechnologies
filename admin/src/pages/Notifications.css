@@ -1,0 +1,415 @@
+/* Notification.css */
+.notification-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  z-index: 1050;
+  padding-top: 60px;
+  padding-right: 16px;
+}
+
+.notification-modal {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 400px;
+  height: auto;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.notification-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.notification-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-tabs {
+  display: flex;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.notification-tabs button {
+  flex: 1;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #6c757d;
+  border-bottom: 2px solid transparent;
+}
+
+.notification-tabs button.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  font-weight: 500;
+}
+
+.notification-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.notification-loading,
+.notification-empty {
+  padding: 32px;
+  text-align: center;
+  color: #6c757d;
+}
+
+.notification-item {
+  display: flex;
+  padding: 16px;
+  border-bottom: 1px solid #f8f9fa;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.notification-item:hover {
+  background-color: #f8f9fa;
+}
+
+.notification-item.unread {
+  background-color: #e8f4ff;
+}
+
+.notification-item.unread:hover {
+  background-color: #d1e9ff;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #212529;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notification-item.unread .notification-title {
+  color: #0056b3;
+}
+
+.notification-message {
+  color: #6c757d;
+  font-size: 14px;
+  margin-bottom: 4px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notification-time {
+  font-size: 12px;
+  color: #adb5bd;
+}
+
+.notification-item-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin-left: 12px;
+}
+
+.btn-mark-read,
+.btn-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 3px;
+  font-size: 14px;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.btn-mark-read:hover {
+  opacity: 1;
+  color: #28a745;
+}
+
+.btn-delete:hover {
+  opacity: 1;
+  color: #dc3545;
+}
+
+/* Responsive design */
+@media (max-width: 576px) {
+  .notification-overlay {
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .notification-modal {
+    width: 90%;
+    max-width: 400px;
+    max-height: 80%;
+  }
+}
+
+.notification-new-badge {
+  background: #ff4757;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.notification-item {
+  cursor: pointer;
+  transition: background-color 0.2s;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.notification-item:hover {
+  background-color: #f8f9fa;
+}
+
+.notification-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.notification-message {
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.notification-time {
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.notification-content {
+  position: relative;
+}
+
+.notification-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-title {
+  font-weight: 600;
+  color: #333;
+  flex: 1; /* title takes remaining space */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notification-assigned {
+  font-size: 12px;
+  color: #6c757d;
+  font-style: italic;
+  white-space: nowrap;
+  margin-top: -14px;
+}
+
+/* Add these styles to your existing Notifications.css */
+
+.notification-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.notification-title-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notification-calendar-icon {
+  font-size: 24px;
+}
+
+.date-filter-section {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.date-filter-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.date-filter-input label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.date-filter-input input[type="date"] {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.clear-date-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-date-btn:hover {
+  background: #5a6268;
+}
+
+.date-filter-info {
+  font-size: 12px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.notification-icon {
+  font-size: 20px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.notification-content {
+  display: flex;
+  align-items: flex-start;
+}
+
+.notification-details {
+  flex: 1;
+}
+
+.notification-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.notification-date {
+  font-size: 11px;
+  color: #888;
+}
+
+.notification-footer-info {
+  padding: 15px;
+  border-top: 1px solid #eee;
+  background: #f8f9fa;
+  text-align: center;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.notification-count {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .date-filter-input {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .date-filter-input label {
+    justify-content: center;
+  }
+  
+  .notification-header-top {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Animation for date filter */
+.date-filter-section {
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Blue dot for new/unseen notifications */
+.notif-dot {
+  display: inline-block;
+  margin-left: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1e90ff; /* blue */
+  vertical-align: middle;
+}
+
+/* Optional: give unseen items a subtle background */
+.notification-item.notification-unseen {
+  background: rgba(30, 144, 255, 0.08);
+}
+
+/* Keep the dot aligned inside the title row on small screens */
+.notification-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

@@ -1,0 +1,517 @@
+/* src/pages/Clients.css */
+
+.controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.input,
+.select,
+textarea {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: #fff;
+}
+.textarea_description {
+  margin-top: 10px;
+  width: 98% !important;
+}
+.project_desc {
+  min-height: 300px !important;
+}
+.row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.last-edited {
+  color: #6b7280;
+}
+.card-foot {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+.muted {
+  color: #6b7280;
+}
+.center {
+  text-align: center;
+  margin: 24px 0;
+}
+.error {
+  color: #ef4444;
+}
+
+button {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  cursor: pointer;
+}
+button.primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+}
+button.secondary {
+  background: transparent;
+}
+
+/* Action buttons (small icons) */
+.row-actions button {
+  margin-right: 6px;
+}
+
+/* dropdown (kept for future use) */
+.dropdown {
+  position: relative;
+}
+.dropdown-btn {
+  min-width: 160px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.menu {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  z-index: 20;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  min-width: 220px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.menu ul {
+  list-style: none;
+  padding: 6px;
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+}
+.menu li {
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.menu li:hover {
+  background: #f3f4f6;
+}
+
+.tagbar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tag {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: .85rem;
+}
+.small {
+  font-size: .85rem;
+}
+
+.inputedit {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: .95rem;
+}
+
+/* Project form */
+.project-form .row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.project-form .input,
+.project-form select {
+  flex: 1;
+  min-width: 160px;
+}
+.project-form .textarea,
+.project-form textarea {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+}
+/* flexible columns inside the project form */
+.project-form .grow {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Projects grid inside detail */
+.projects-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Generic tables */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+.table thead th {
+  background: #f9fafb;
+}
+
+/* Meta table for project details */
+.meta-table {
+  margin-top: 8px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.meta-table th {
+  width: 18%;
+  background: #f9fafb;
+  font-weight: 600;
+}
+.meta-table th,
+.meta-table td {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Sections inside the details card */
+.section {
+  margin-top: 16px;
+}
+.section-title {
+  margin: 0;
+}
+.section-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Members table niceties */
+.table-members th.center-col,
+.table-members td.center-col {
+  text-align: center;
+}
+.table-members td.right-col {
+  text-align: right;
+}
+.m-name {
+  font-weight: 600;
+}
+
+/* Permission switch label */
+.perm-toggle {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: .95rem;
+  user-select: none;
+}
+.perm-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Add member row */
+.add-member-row {
+  margin-top: 12px;
+  align-items: center;
+}
+.access_members {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.access_selection_input {
+  max-width: 300px;
+}
+
+/* Members header */
+.members-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.members-header h4 {
+  margin: 0;
+}
+.members-body {
+  margin-top: 8px;
+}
+
+/* Payment link row */
+.payment_row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.payment_buttons {
+  display: inline-flex;
+  gap: 8px;
+}
+.make_link_button {
+  white-space: nowrap;
+}
+
+.link-row {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Hover help bubble (question icon) */
+.help-bubble {
+  position: relative;
+  display: inline-block;
+  outline: none;
+}
+.help-bubble:focus .help-tip,
+.help-bubble:hover .help-tip {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #d1d5db;
+  color: #4b5563;
+  font-weight: 700;
+  font-size: 12px;
+  background: #fff;
+  cursor: default;
+}
+.help-tip {
+  position: absolute;
+  top: 130%;
+  left: 0;
+  min-width: 260px;
+  max-width: 320px;
+  background: #ffffff;
+  color: #5a5959;
+  padding: 8px 10px;
+  border-radius: 8px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity .15s ease, transform .15s ease;
+  pointer-events: none;
+  z-index: 2000;
+  font-size: 12.5px;
+  line-height: 1.35;
+  border: 1px solid #ccc;
+}
+.help-tip::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 12px;
+  width: 10px;
+  height: 10px;
+  background: #111;
+  transform: rotate(45deg);
+}
+
+/* Pagination */
+.pagination {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Toast (bottom-right) */
+.toastx {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 280px;
+  max-width: min(92vw, 420px);
+  padding: 12px 12px;
+  background: #fff;
+  color: #111;
+  border-left: 4px solid;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  transform: translateY(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .25s ease, opacity .25s ease;
+}
+.toastx.show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.toastx.success {
+  border-left-color: #16a34a;
+}
+.toastx.error {
+  border-left-color: #dc2626;
+}
+
+.toastx-icon {
+  line-height: 1;
+  margin-top: 2px;
+}
+.toastx-body {
+  display: grid;
+  gap: 2px;
+}
+.toastx-title {
+  font-weight: 600;
+}
+.toastx-msg {
+  font-size: 14px;
+  opacity: 0.9;
+}
+.toastx-close {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.toastx-close:hover {
+  opacity: 1;
+}
+
+/* Utility */
+.row.between {
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Modal: make body scroll without a dark overlay */
+#project_details .modal-body {
+  max-height: 70vh;
+  overflow: auto;
+}
+
+/* Button styles for small actions */
+.buttontick,
+.buttondanger,
+.buttoneye,
+.buttonedit {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+}
+.buttontick {
+  color: #16a34a;
+}
+.buttondanger {
+  color: #dc2626;
+}
+.buttoneye,
+.buttonedit {
+  color: #4b5563;
+}
+
+.buttontick:hover {
+  background: #f0fdf4;
+}
+.buttondanger:hover {
+  background: #fef2f2;
+}
+.buttoneye:hover,
+.buttonedit:hover {
+  background: #f9fafb;
+}
+
+.modal_backdrop {
+  opacity: 0.95 !important; /* semi-transparent background */
+  background-color: #111;
+}
+.access_members_admin{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
+.access_text{
+  padding-right: 10px;
+}
+
+.loader_container {
+  height: 100%;         /* take available height */
+  min-height: 300px;    /* enough space for center alignment */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;            /* space between spinner and text */
+}
+
+.loader_spinner {
+  width: 40px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 5px solid #1a73e8;
+  animation:
+    l20-1 0.8s infinite linear alternate,
+    l20-2 1.6s infinite linear;
+}
+
+@keyframes l20-1 {
+  0%    {clip-path: polygon(50% 50%,0 0,50% 0%,50% 0%,50% 0%,50% 0%,50% 0%)}
+  12.5% {clip-path: polygon(50% 50%,0 0,50% 0%,100% 0%,100% 0%,100% 0%,100% 0%)}
+  25%   {clip-path: polygon(50% 50%,0 0,50% 0%,100% 0%,100% 100%,100% 100%,100% 100%)}
+  50%   {clip-path: polygon(50% 50%,0 0,50% 0%,100% 0%,100% 100%,50% 100%,0 100%)}
+  62.5% {clip-path: polygon(50% 50%,100% 0,100% 0%,100% 0%,100% 100%,50% 100%,0 100%)}
+  75%   {clip-path: polygon(50% 50%,100% 100%,100% 100%,100% 100%,100% 100%,50% 100%,0 100%)}
+  100%  {clip-path: polygon(50% 50%,50% 100%,50% 100%,50% 100%,50% 100%,50% 100%,0 100%)}
+}
+
+@keyframes l20-2 {
+  0%    {transform:scaleY(1) rotate(0deg)}
+  49.99%{transform:scaleY(1) rotate(135deg)}
+  50%   {transform:scaleY(-1) rotate(0deg)}
+  100%  {transform:scaleY(-1) rotate(-135deg)}
+}
