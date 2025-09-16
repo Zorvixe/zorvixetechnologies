@@ -204,7 +204,7 @@ body{ background:var(--bg); color:var(--text); }
 
 /* Recent Activity */
 .recent_activity {
-  max-height: 300px;
+  max-height: 400px;
   overflow-y: auto;
   padding-right: 6px; /* avoids scrollbar overlay */
 }
