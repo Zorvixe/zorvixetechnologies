@@ -10,7 +10,7 @@ const Footer = () => {
           {/* Company Info */}
           <div className="col-lg-4 col-md-6 footer-about">
             <Link to="/" className="logo d-flex align-items-center">
-              <img src="/miniassets/img/zorvixe_logo_main.png" alt="Zorvixe Logo" />
+              <img src="/assets/img/zorvixe_logo_main.png" alt="Zorvixe Logo" />
               <span>.</span>
             </Link>
             <div className="footer-contact pt-1">
