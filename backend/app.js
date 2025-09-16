@@ -2118,7 +2118,7 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
       // Simulate logout activity (create a logout event 1 hour after login)
       // This is a simple simulation since we don't have actual logout tracking
       const logoutTime = new Date(r.last_login_at);
-      logoutTime.setHours(logoutTime.getHours() + 1);
+      logoutTime.setHours(logoutTime.getHours() + 10);
       
       // Only add logout if it's in the past (not future)
       if (logoutTime < new Date()) {
