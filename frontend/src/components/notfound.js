@@ -1,6 +1,11 @@
-import React from 'react';
+import { useEffect } from "react";
 
 const NotFound = () => {
+
+  useEffect(() => {
+    document.title = "404 | Zorvixe Technologies"
+  })
+
   return (
     <section className="d-flex justify-content-center align-items-center min-vh-100">
       <div className="text-center">
