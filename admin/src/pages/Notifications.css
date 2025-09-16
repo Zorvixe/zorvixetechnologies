@@ -169,7 +169,7 @@
     justify-content: center;
     align-items: center;
   }
-  
+
   .notification-modal {
     width: 90%;
     max-width: 400px;
@@ -229,7 +229,8 @@
 .notification-title {
   font-weight: 600;
   color: #333;
-  flex: 1; /* title takes remaining space */
+  flex: 1;
+  /* title takes remaining space */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -364,11 +365,11 @@
     align-items: stretch;
     gap: 8px;
   }
-  
+
   .date-filter-input label {
     justify-content: center;
   }
-  
+
   .notification-header-top {
     flex-direction: column;
     gap: 10px;
@@ -385,6 +386,7 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -398,7 +400,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #1e90ff; /* blue */
+  background: #1e90ff;
+  /* blue */
   vertical-align: middle;
 }
 

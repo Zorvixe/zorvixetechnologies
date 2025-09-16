@@ -49,13 +49,10 @@ export default function Contacts() {
   }
 
   return (
-    <>
+    <div>
       <Topbar title="Contacts">
         <div className='contacts_topbar'>
-          <div>
-            <input className="input contact_search" placeholder="Search…" value={search} onChange={e => { setPage(1); setSearch(e.target.value) }} />
 
-          </div>
           <div>
             <select className="select top_bar_selects" value={status} onChange={e => { setPage(1); setStatus(e.target.value) }}>
               <option value="">All</option>
@@ -141,6 +138,6 @@ export default function Contacts() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   )
 }

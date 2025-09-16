@@ -9,7 +9,6 @@ import {
   apiDeletePaymentLink,
   apiTogglePaymentLink, // project-wide enable/disable (kept)
   apiMe,
-  // ✅ new imports that use the request() wrapper (Bearer token)
   apiUpdatePaymentLinkMeta,
   apiRegeneratePaymentLink,
   apiListLinkSubmissions,
@@ -19,7 +18,7 @@ import {
 } from "../api"
 
 
-
+import "./Payments.css"
 
 // ---- Helpers ----
 function maskUrl(url = "") {
@@ -430,7 +429,42 @@ export default function Payments() {
                         onClick={() => refreshProjectLinks(row)}
                         disabled={linksLoadingId === row.project.id}
                       >
-                        {linksLoadingId === row.project.id ? "Refreshing…" : "Refresh"}
+                        {linksLoadingId === row.project.id ? (
+                          <svg
+                            className="rotate"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 5.36A9 9 0 0020.49 15"></path>
+                          </svg>
+                        ) : (
+                          <svg
+                            className=""
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 5.36A9 9 0 0020.49 15"></path>
+                          </svg>
+                        )}
+
                       </button>
                     </td>
                   </tr>

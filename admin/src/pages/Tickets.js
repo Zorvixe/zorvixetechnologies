@@ -1,5 +1,7 @@
 // src/pages/Tickets.js
 import React, { useEffect, useState, useRef, useCallback } from "react";
+import Topbar from '../components/Topbar'
+
 import {
   apiListTickets,
   apiCreateTicket,
@@ -20,20 +22,20 @@ import useDeepLinkHandler from "../deeplink/useDeepLinkHandler";
 // Function to detect URLs and convert them to clickable links
 const linkifyText = (text) => {
   if (!text) return text;
-  
+
   // Regular expression to match URLs
   const urlRegex = /(https?:\/\/[^\s]+)/g;
-  
+
   // Split text into parts, keeping URLs as separate elements
   const parts = text.split(urlRegex);
-  
+
   return parts.map((part, index) => {
     if (urlRegex.test(part)) {
       return (
-        <a 
+        <a
           key={index}
-          href={part} 
-          target="_blank" 
+          href={part}
+          target="_blank"
           rel="noopener noreferrer"
           className="comment-link"
           onClick={(e) => e.stopPropagation()}
@@ -142,10 +144,10 @@ const UserAvatar = ({ name = "U", size = 40 }) => {
     "#F9A826",
     "#6A5ACD",
     "#FFA5A5",
-    "#77DD77",
+    "#58d458ff",
     "#836953",
     "#CF9FFF",
-    "#FDFD96",
+    "#00d9ffff",
     "#FFB347",
     "#B19CD9",
   ];
@@ -179,10 +181,21 @@ export default function Tickets() {
   const [filteredTickets, setFilteredTickets] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+
   const [filters, setFilters] = useState({
     status: "all",
     priority: "all",
     search: "",
+    date: getTodayDate(),
+    assignee: "all"
   });
 
   // toast
@@ -281,6 +294,22 @@ export default function Tickets() {
       );
     }
 
+    // Apply date filter
+    if (filters.date) {
+      results = results.filter(ticket => {
+        const ticketDate = new Date(ticket.created_at).toLocaleDateString();
+        const filterDate = new Date(filters.date).toLocaleDateString();
+        return ticketDate === filterDate;
+      });
+    }
+
+    // Apply assignee filter
+    if (filters.assignee !== "all") {
+      results = results.filter(ticket =>
+        String(ticket.assigned_to) === String(filters.assignee)
+      );
+    }
+
     setFilteredTickets(results);
   };
 
@@ -305,30 +334,30 @@ export default function Tickets() {
     }
   };
 
- const openViewModal = async (id, { pushHistory = true } = {}) => {
-  if (!id) return;
-  try {
-    // optionally push URL so route matches the modal
-    if (pushHistory) {
-      navigate(`/tickets/${id}`, { replace: false });
-    }
-
-    const data = await apiGetTicket(id);
-    if (data?.success) {
-      setSelectedTicket({ ...data.ticket, comments: data.comments || [] });
-      setShowView(true);
-    } else {
-      // fallback - set selected from cached list if exists
-      const cached = allTickets.find(t => String(t.id) === String(id));
-      if (cached) {
-        setSelectedTicket({ ...cached, comments: [] });
-        setShowView(true);
+  const openViewModal = async (id, { pushHistory = true } = {}) => {
+    if (!id) return;
+    try {
+      // optionally push URL so route matches the modal
+      if (pushHistory) {
+        navigate(`/tickets/${id}`, { replace: false });
       }
+
+      const data = await apiGetTicket(id);
+      if (data?.success) {
+        setSelectedTicket({ ...data.ticket, comments: data.comments || [] });
+        setShowView(true);
+      } else {
+        // fallback - set selected from cached list if exists
+        const cached = allTickets.find(t => String(t.id) === String(id));
+        if (cached) {
+          setSelectedTicket({ ...cached, comments: [] });
+          setShowView(true);
+        }
+      }
+    } catch (e) {
+      console.error("openViewModal error", e);
     }
-  } catch (e) {
-    console.error("openViewModal error", e);
-  }
-};
+  };
 
 
   const openEditFromCard = async (id, e) => {
@@ -424,19 +453,20 @@ export default function Tickets() {
 
   return (
     <div className="tickets-container">
-      <div className="tickets-header">
-        <h5>Tickets</h5>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowCreate(true)}
-          aria-haspopup="dialog"
-        >
-          New Ticket
-        </button>
-      </div>
+      <Topbar title="Tickets">
+        <div className="">
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowCreate(true)}
+            aria-haspopup="dialog"
+          >
+            New Ticket
+          </button>
+        </div></Topbar>
+
 
       {/* Filters */}
-      <div className="tickets-filters">
+      <div className="tickets-filters mt-3">
         <select
           value={filters.status}
           onChange={(e) => setFilters({ ...filters, status: e.target.value })}
@@ -458,6 +488,25 @@ export default function Tickets() {
           <option value="high">High</option>
           <option value="urgent">Urgent</option>
         </select>
+
+        <select
+          value={filters.assignee}
+          onChange={(e) => setFilters({ ...filters, assignee: e.target.value })}
+        >
+          <option value="all">All Members</option>
+          {users.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.name} ({u.email})
+            </option>
+          ))}
+        </select>
+
+        <input
+          type="date"
+          value={filters.date}
+          onChange={(e) => setFilters({ ...filters, date: e.target.value })}
+          className="comment-input"
+        />
 
         <input
           type="text"
@@ -599,6 +648,7 @@ export default function Tickets() {
         title="Create New Ticket"
         centered
         scrollable={false}
+        dialogClassName="modal-lg"
       >
         <form onSubmit={handleCreateSubmit} className="ticket-form">
           <div className="form-group">

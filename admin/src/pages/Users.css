@@ -3,7 +3,7 @@
   border-radius: 12px;
   padding: 20px;
   margin-top: 16px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .controls {
@@ -13,7 +13,8 @@
   margin-top: 10px;
 }
 
-.input, .select {
+.input,
+.select {
   padding: 8px 10px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -25,7 +26,8 @@
   border-collapse: collapse;
 }
 
-.table th, .table td {
+.table th,
+.table td {
   padding: 10px;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -56,7 +58,7 @@
   border: 1px solid #d1d5db;
 }
 
-.buttondanger{
+.buttondanger {
   color: #ef4444;
   border: none;
   background: none;
@@ -64,40 +66,43 @@
   border-radius: 5px;
   border: 1px solid rgba(240, 128, 128, 0.24);
 }
-.buttondanger:hover{
+
+.buttondanger:hover {
   background-color: rgba(240, 128, 128, 0.24);
 }
 
-.buttonedit{
+.buttonedit {
   border: 1px solid #ccc;
   background: none;
   cursor: pointer;
   border-radius: 5px;
 }
 
-.buttonedit:hover{
+.buttonedit:hover {
   background-color: #cccccc62;
 }
 
-.buttoneye{
+.buttoneye {
   border: 1px solid #ccc;
   background: none;
   cursor: pointer;
   border-radius: 5px;
 }
-.buttoneye:hover{
+
+.buttoneye:hover {
   background-color: #cccccc62;
 }
 
-.buttontick{
-    border: 1px solid #5af36f;
+.buttontick {
+  border: 1px solid #5af36f;
   background: none;
   cursor: pointer;
   border-radius: 5px;
   color: #5af36f;
 
 }
-.buttontick:hover{
+
+.buttontick:hover {
   background-color: #5af36e34;
 }
 
@@ -107,6 +112,7 @@
   align-items: center;
   padding-top: 12px;
 }
+
 .user-form {
   display: flex;
   flex-direction: column;
@@ -129,6 +135,6 @@
   gap: 10px;
 }
 
-.user_search{
+.user_search {
   width: 100%;
 }

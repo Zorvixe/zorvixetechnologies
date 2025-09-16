@@ -1,6 +1,37 @@
 /* Optional: makes link tables a bit tighter */
-.table-links td, .table-links th { vertical-align: middle; }
-.table-links code { font-size: 12px; }
-.link-row + .link-row { margin-top: 6px; }
-.link-row .badge { white-space: nowrap; }
-.link-row .row-amount, .link-row .row-expiry { white-space: nowrap; }
+.table-links td,
+.table-links th {
+  vertical-align: middle;
+}
+
+.table-links code {
+  font-size: 12px;
+}
+
+.link-row+.link-row {
+  margin-top: 6px;
+}
+
+.link-row .badge {
+  white-space: nowrap;
+}
+
+.link-row .row-amount,
+.link-row .row-expiry {
+  white-space: nowrap;
+}
+
+.rotate {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -10,17 +10,21 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
+    "check-disk-space": "^3.4.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "express-rate-limit": "^8.0.1",
+    "express-validator": "^7.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.6.5",
     "pg": "^8.16.3",
+    "qrcode": "^1.5.4",
+    "speakeasy": "^2.0.0",
     "ws": "^8.18.3"
   },
   "devDependencies": {

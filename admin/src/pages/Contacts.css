@@ -2,7 +2,7 @@
   background: #fff;
   border-radius: 12px;
   margin-top: 16px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .table-responsive {
@@ -26,7 +26,8 @@
   vertical-align: top;
 }
 
-.select, .input {
+.select,
+.input {
   padding: 8px 10px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -63,15 +64,17 @@
   padding-top: 12px;
 }
 
-.contact_search{
+.contact_search {
   width: 180%;
 }
-.contacts_topbar{
+
+.contacts_topbar {
   width: 100%;
   display: flex;
   justify-content: space-between;
 
 }
-.top_bar_selects{
+
+.top_bar_selects {
   margin-right: 10px;
 }

@@ -10,7 +10,7 @@
   background: #fff;
   border-radius: 12px;
   padding: 32px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
 
 .card h3 {
@@ -31,7 +31,7 @@
 .input:focus {
   border-color: #2563eb;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(37,99,235,0.3);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
 }
 
 .button {
@@ -56,10 +56,11 @@
   font-size: 0.85rem;
 }
 
-.zorvixe_login_logo{
+.zorvixe_login_logo {
   height: 50px;
 }
-.login_logo_container{
+
+.login_logo_container {
   display: flex;
   justify-content: center;
   align-items: center;

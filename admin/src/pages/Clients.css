@@ -6,6 +6,7 @@
   flex-wrap: wrap;
   margin-top: 10px;
 }
+
 .input,
 .select,
 textarea {
@@ -15,43 +16,53 @@ textarea {
   font-size: 0.95rem;
   background: #fff;
 }
+
 .textarea_description {
   margin-top: 10px;
   width: 98% !important;
 }
+
 .project_desc {
   min-height: 300px !important;
 }
+
 .row {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 16px;
 }
+
 .card-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .last-edited {
   color: #6b7280;
 }
+
 .card-foot {
   margin-top: 10px;
   display: flex;
   gap: 8px;
 }
+
 .muted {
   color: #6b7280;
 }
+
 .center {
   text-align: center;
   margin: 24px 0;
 }
+
 .error {
   color: #ef4444;
 }
@@ -63,11 +74,13 @@ button {
   background: #fff;
   cursor: pointer;
 }
+
 button.primary {
   background: #2563eb;
   color: #fff;
   border: none;
 }
+
 button.secondary {
   background: transparent;
 }
@@ -81,12 +94,14 @@ button.secondary {
 .dropdown {
   position: relative;
 }
+
 .dropdown-btn {
   min-width: 160px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .menu {
   position: absolute;
   top: 110%;
@@ -98,6 +113,7 @@ button.secondary {
   min-width: 220px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
+
 .menu ul {
   list-style: none;
   padding: 6px;
@@ -105,11 +121,13 @@ button.secondary {
   max-height: 260px;
   overflow: auto;
 }
+
 .menu li {
   padding: 8px 10px;
   border-radius: 6px;
   cursor: pointer;
 }
+
 .menu li:hover {
   background: #f3f4f6;
 }
@@ -119,6 +137,7 @@ button.secondary {
   gap: 6px;
   flex-wrap: wrap;
 }
+
 .tag {
   background: #eef2ff;
   border: 1px solid #c7d2fe;
@@ -126,6 +145,7 @@ button.secondary {
   border-radius: 999px;
   font-size: .85rem;
 }
+
 .small {
   font-size: .85rem;
 }
@@ -144,17 +164,20 @@ button.secondary {
   flex-wrap: wrap;
   align-items: center;
 }
+
 .project-form .input,
 .project-form select {
   flex: 1;
   min-width: 160px;
 }
+
 .project-form .textarea,
 .project-form textarea {
   width: 100%;
   min-height: 100px;
   resize: vertical;
 }
+
 /* flexible columns inside the project form */
 .project-form .grow {
   flex: 1;
@@ -167,6 +190,7 @@ button.secondary {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+
 @media (max-width: 900px) {
   .projects-grid {
     grid-template-columns: 1fr;
@@ -178,12 +202,14 @@ button.secondary {
   width: 100%;
   border-collapse: collapse;
 }
+
 .table th,
 .table td {
   padding: 10px 12px;
   border-bottom: 1px solid #e5e7eb;
   vertical-align: top;
 }
+
 .table thead th {
   background: #f9fafb;
 }
@@ -194,11 +220,13 @@ button.secondary {
   border-collapse: separate;
   border-spacing: 0;
 }
+
 .meta-table th {
   width: 18%;
   background: #f9fafb;
   font-weight: 600;
 }
+
 .meta-table th,
 .meta-table td {
   border-bottom: 1px solid #e5e7eb;
@@ -208,9 +236,11 @@ button.secondary {
 .section {
   margin-top: 16px;
 }
+
 .section-title {
   margin: 0;
 }
+
 .section-title-row {
   display: inline-flex;
   align-items: center;
@@ -222,9 +252,11 @@ button.secondary {
 .table-members td.center-col {
   text-align: center;
 }
+
 .table-members td.right-col {
   text-align: right;
 }
+
 .m-name {
   font-weight: 600;
 }
@@ -237,6 +269,7 @@ button.secondary {
   font-size: .95rem;
   user-select: none;
 }
+
 .perm-toggle input[type="checkbox"] {
   width: 16px;
   height: 16px;
@@ -248,12 +281,14 @@ button.secondary {
   margin-top: 12px;
   align-items: center;
 }
+
 .access_members {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
 }
+
 .access_selection_input {
   max-width: 300px;
 }
@@ -265,9 +300,11 @@ button.secondary {
   gap: 8px;
   margin-bottom: 8px;
 }
+
 .members-header h4 {
   margin: 0;
 }
+
 .members-body {
   margin-top: 8px;
 }
@@ -279,10 +316,12 @@ button.secondary {
   gap: 10px;
   flex-wrap: wrap;
 }
+
 .payment_buttons {
   display: inline-flex;
   gap: 8px;
 }
+
 .make_link_button {
   white-space: nowrap;
 }
@@ -300,6 +339,7 @@ button.secondary {
   display: inline-block;
   outline: none;
 }
+
 .help-bubble:focus .help-tip,
 .help-bubble:hover .help-tip {
   opacity: 1;
@@ -321,6 +361,7 @@ button.secondary {
   background: #fff;
   cursor: default;
 }
+
 .help-tip {
   position: absolute;
   top: 130%;
@@ -340,6 +381,7 @@ button.secondary {
   line-height: 1.35;
   border: 1px solid #ccc;
 }
+
 .help-tip::before {
   content: "";
   position: absolute;
@@ -381,14 +423,17 @@ button.secondary {
   pointer-events: none;
   transition: transform .25s ease, opacity .25s ease;
 }
+
 .toastx.show {
   transform: translateY(0);
   opacity: 1;
   pointer-events: auto;
 }
+
 .toastx.success {
   border-left-color: #16a34a;
 }
+
 .toastx.error {
   border-left-color: #dc2626;
 }
@@ -397,17 +442,21 @@ button.secondary {
   line-height: 1;
   margin-top: 2px;
 }
+
 .toastx-body {
   display: grid;
   gap: 2px;
 }
+
 .toastx-title {
   font-weight: 600;
 }
+
 .toastx-msg {
   font-size: 14px;
   opacity: 0.9;
 }
+
 .toastx-close {
   margin-left: auto;
   background: transparent;
@@ -417,6 +466,7 @@ button.secondary {
   cursor: pointer;
   opacity: 0.6;
 }
+
 .toastx-close:hover {
   opacity: 1;
 }
@@ -444,12 +494,15 @@ button.secondary {
   background: #fff;
   cursor: pointer;
 }
+
 .buttontick {
   color: #16a34a;
 }
+
 .buttondanger {
   color: #dc2626;
 }
+
 .buttoneye,
 .buttonedit {
   color: #4b5563;
@@ -458,35 +511,43 @@ button.secondary {
 .buttontick:hover {
   background: #f0fdf4;
 }
+
 .buttondanger:hover {
   background: #fef2f2;
 }
+
 .buttoneye:hover,
 .buttonedit:hover {
   background: #f9fafb;
 }
 
 .modal_backdrop {
-  opacity: 0.95 !important; /* semi-transparent background */
+  opacity: 0.95 !important;
+  /* semi-transparent background */
   background-color: #111;
 }
-.access_members_admin{
+
+.access_members_admin {
   display: flex;
   flex-direction: row;
   justify-content: space-around;
 }
-.access_text{
+
+.access_text {
   padding-right: 10px;
 }
 
 .loader_container {
-  height: 100%;         /* take available height */
-  min-height: 300px;    /* enough space for center alignment */
+  height: 100%;
+  /* take available height */
+  min-height: 300px;
+  /* enough space for center alignment */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 12px;            /* space between spinner and text */
+  gap: 12px;
+  /* space between spinner and text */
 }
 
 .loader_spinner {
@@ -500,18 +561,49 @@ button.secondary {
 }
 
 @keyframes l20-1 {
-  0%    {clip-path: polygon(50% 50%,0 0,50% 0%,50% 0%,50% 0%,50% 0%,50% 0%)}
-  12.5% {clip-path: polygon(50% 50%,0 0,50% 0%,100% 0%,100% 0%,100% 0%,100% 0%)}
-  25%   {clip-path: polygon(50% 50%,0 0,50% 0%,100% 0%,100% 100%,100% 100%,100% 100%)}
-  50%   {clip-path: polygon(50% 50%,0 0,50% 0%,100% 0%,100% 100%,50% 100%,0 100%)}
-  62.5% {clip-path: polygon(50% 50%,100% 0,100% 0%,100% 0%,100% 100%,50% 100%,0 100%)}
-  75%   {clip-path: polygon(50% 50%,100% 100%,100% 100%,100% 100%,100% 100%,50% 100%,0 100%)}
-  100%  {clip-path: polygon(50% 50%,50% 100%,50% 100%,50% 100%,50% 100%,50% 100%,0 100%)}
+  0% {
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 50% 0%, 50% 0%, 50% 0%, 50% 0%)
+  }
+
+  12.5% {
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 0%, 100% 0%, 100% 0%)
+  }
+
+  25% {
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 100% 100%, 100% 100%)
+  }
+
+  50% {
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 50% 100%, 0 100%)
+  }
+
+  62.5% {
+    clip-path: polygon(50% 50%, 100% 0, 100% 0%, 100% 0%, 100% 100%, 50% 100%, 0 100%)
+  }
+
+  75% {
+    clip-path: polygon(50% 50%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 50% 100%, 0 100%)
+  }
+
+  100% {
+    clip-path: polygon(50% 50%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 0 100%)
+  }
 }
 
 @keyframes l20-2 {
-  0%    {transform:scaleY(1) rotate(0deg)}
-  49.99%{transform:scaleY(1) rotate(135deg)}
-  50%   {transform:scaleY(-1) rotate(0deg)}
-  100%  {transform:scaleY(-1) rotate(-135deg)}
+  0% {
+    transform: scaleY(1) rotate(0deg)
+  }
+
+  49.99% {
+    transform: scaleY(1) rotate(135deg)
+  }
+
+  50% {
+    transform: scaleY(-1) rotate(0deg)
+  }
+
+  100% {
+    transform: scaleY(-1) rotate(-135deg)
+  }
 }

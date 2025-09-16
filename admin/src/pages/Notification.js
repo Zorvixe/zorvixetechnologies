@@ -31,7 +31,7 @@ const loadSeenSet = (userId) => {
 const saveSeenSet = (userId, set) => {
   try {
     localStorage.setItem(storageKey(userId), JSON.stringify(Array.from(set)));
-  } catch {}
+  } catch { }
 };
 
 /** Build stable key per notification */
