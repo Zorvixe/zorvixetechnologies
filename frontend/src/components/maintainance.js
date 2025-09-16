@@ -15,13 +15,13 @@ const Maintenance = () => {
             src="/miniassets/img/zorvixe_logo_main.png" 
             style={{ width: '150px' }} 
             className="mb-3" 
-            alt="Zorvixe Logo"
+            alt="Zorvixe Technologies Logo"
           />
           <img 
             src="/assets/img/maintainance.jpg" 
             className="img-fluid mb-2 rounded-3"
             style={{ maxWidth: '400px' }}
-            alt="Maintenance in progress"
+            alt="Zorvixe Technologies Maintenance in progress"
           />
           <h4 className="fw-bold mt-3">We're Down for Maintenance.</h4>
           <p className="text-muted mt-2">

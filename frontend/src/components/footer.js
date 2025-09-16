@@ -10,12 +10,12 @@ const Footer = () => {
           {/* Company Info */}
           <div className="col-lg-4 col-md-6 footer-about">
             <Link to="/" className="logo d-flex align-items-center">
-              <img src="/assets/img/zorvixe_logo_main.png" alt="Zorvixe Logo" />
+              <img src="/assets/img/zorvixe_logo_main.png" alt="Zorvixe Technologies Logo" />
               <span>.</span>
             </Link>
             <div className="footer-contact pt-1">
               <p>
-                ZORVIXE – Your trusted partner for digital solutions. We empower businesses with
+                ZORVIXE TECHNNOLOGIES – Your trusted partner for digital solutions. We empower businesses with
                 cutting-edge technology to enhance efficiency, growth, and online presence.
               </p>
             </div>
@@ -51,7 +51,7 @@ const Footer = () => {
             <div className="footer-contact">
               <p>Kurnool Andhra Pradesh, Hyderabad, Banglore</p>
               <p className="mt-3"><strong>Phone:</strong> <span>+91 8328590444 / 7993971574</span></p>
-              <p><strong>Email:</strong> <span>zorvixe@gmail.com</span></p>
+              <p><strong>Email:</strong> <span>zorvixetechnologies@gmail.com</span></p>
             </div>
             <div className="social-links d-flex mt-4">
               <a href="https://x.com/zorvixe_tech" target="_blank" rel="noopener noreferrer">

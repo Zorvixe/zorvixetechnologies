@@ -53,7 +53,7 @@ const DigitalMarketingService = () => {
               <div className="service-main-image" data-aos="zoom-in" data-aos-delay="200">
                 <img
                   src="/assets/img/services/digital_marketing_section_image.jpg"
-                  alt="Digital Marketing"
+                  alt="Zorvixe Technologies Digital Marketing"
                   className="img-fluid rounded-4"
                 />
                 <div className="experience-badge">
@@ -122,7 +122,7 @@ const DigitalMarketingService = () => {
                     <div className="col-lg-5" data-aos="fade-right" data-aos-delay="100">
                       <img
                         src="/assets/img/services/digital_marketing_seo.jpg"
-                        alt="SEO optimization process"
+                        alt="Zorvixe Technologies SEO optimization process"
                         className="img-fluid rounded-4"
                       />
                     </div>
@@ -165,7 +165,7 @@ const DigitalMarketingService = () => {
                     <div className="col-lg-5" data-aos="fade-right" data-aos-delay="100">
                       <img
                         src="/assets/img/services/digital_marketing_ppc.jpg"
-                        alt="Digital advertising dashboard"
+                        alt="Zorvixe Technologies Digital advertising dashboard"
                         className="img-fluid rounded-4"
                       />
                     </div>
@@ -207,7 +207,7 @@ const DigitalMarketingService = () => {
                     <div className="col-lg-5" data-aos="fade-right" data-aos-delay="100">
                       <img
                         src="/assets/img/services/digital_marketing_social_media.webp"
-                        alt="Social media marketing strategy"
+                        alt="Zorvixe Technologies Social media marketing strategy"
                         className="img-fluid rounded-4"
                       />
                     </div>
@@ -249,7 +249,7 @@ const DigitalMarketingService = () => {
                     <div className="col-lg-5" data-aos="fade-right" data-aos-delay="100">
                       <img
                         src="/assets/img/services/digital_marketing_email.jpg"
-                        alt="Conversion rate optimization process"
+                        alt="Zorvixe Technologies Conversion rate optimization process"
                         className="img-fluid rounded-4"
                       />
                     </div>

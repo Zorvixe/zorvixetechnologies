@@ -102,7 +102,7 @@ const UiUx = () => {
               <div className="service-main-image" data-aos="zoom-in" data-aos-delay="200">
                 <img
                   src="/assets/img/services/ui_ux_1.jpg"
-                  alt="UI/UX Design Process"
+                  alt="Zorvixe Technologies UI/UX Design Process"
                   className="img-fluid rounded-4"
                 />
                 <div className="experience-badge">

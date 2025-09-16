@@ -47,7 +47,7 @@ const MobileAppSolutions = () => {
               <div className="service-main-image" data-aos="zoom-in" data-aos-delay="200">
                 <img
                   src="/assets/img/services/app_development_1.png"
-                  alt="Mobile App Development"
+                  alt="Zorvixe Technologies Mobile App Development"
                   className="img-fluid rounded-4"
                 />
                 <div className="experience-badge">
@@ -120,7 +120,7 @@ const MobileAppSolutions = () => {
                   id: 1,
                   title: "Custom App Development",
                   img: "app_development_2.png",
-                  alt: "App development process",
+                  alt: "Zorvixe Technologies App development process",
                   description: "We build high-performance mobile applications tailored to your business needs and user requirements, using the latest technologies and development practices.",
                   features: [
                     { icon: "apple", title: "iOS Development", text: "Native iOS apps built with Swift for optimal performance on Apple devices." },
@@ -131,7 +131,7 @@ const MobileAppSolutions = () => {
                   id: 2,
                   title: "UI/UX Design Services",
                   img: "app_development_3.png",
-                  alt: "App UI/UX design",
+                  alt: "Zorvixe Technologies App UI/UX design",
                   description: "We create intuitive and visually stunning interfaces that enhance user engagement and satisfaction, following the latest design trends and usability principles.",
                   features: [
                     { icon: "layout-text-window", title: "Wireframing", text: "Detailed blueprints that map out your app's structure and user flows." },
@@ -142,7 +142,7 @@ const MobileAppSolutions = () => {
                   id: 3,
                   title: "App Maintenance & Support",
                   img: "app_development_4.png",
-                  alt: "App maintenance",
+                  alt: "Zorvixe Technologies App maintenance",
                   description: "We provide ongoing maintenance services to keep your app running smoothly, with regular updates, bug fixes, and performance optimizations.",
                   features: [
                     { icon: "bug", title: "Bug Fixes", text: "Prompt resolution of any technical issues that may arise." },
@@ -153,7 +153,7 @@ const MobileAppSolutions = () => {
                   id: 4,
                   title: "App Store Optimization & Marketing",
                   img: "app_development_5.png",
-                  alt: "App marketing",
+                  alt: "Zorvixe Technologies App marketing",
                   description: "We help your app get discovered and downloaded through strategic marketing campaigns and app store optimization techniques.",
                   features: [
                     { icon: "search", title: "ASO", text: "Optimizing your app store listing for better visibility and conversions." },

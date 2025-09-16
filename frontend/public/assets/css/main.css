@@ -803,8 +803,9 @@ section,
 
 .hero .badge-wrapper .d-inline-flex .badge-text {
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--heading-color);
+  padding-top: 10px;
 }
 
 @media (max-width: 767.98px) {

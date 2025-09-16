@@ -203,7 +203,7 @@ const Contact = () => {
               <h3>Contact Number</h3>
               <p>Mobile: +91 8328590444 / 7993971574<br />
 
-                Email: zorvixe@gmail.com
+                Email: zorvixetechnologies@gmail.com
               </p>
             </div>
           </div>
@@ -368,7 +368,7 @@ const Contact = () => {
                     style={{ border: 0 }}
                     allowFullScreen=""
                     loading="lazy"
-                    title="Zorvixe"
+                    title="Zorvixe Technologies"
                   ></iframe>
                 </div>
               </div>
@@ -380,7 +380,7 @@ const Contact = () => {
       {/* Success Modal */}
       <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title><img className='contact_zorvixe_logo' src='/miniassets/img/zorvixe_logo_main.png' alt='contact_zorvixe_logo' /></Modal.Title>
+          <Modal.Title><img className='contact_zorvixe_logo' src='/miniassets/img/zorvixe_logo_main.png' alt='Zorvixe Technologies logo' /></Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center p-1">
           <div className="mb-4">

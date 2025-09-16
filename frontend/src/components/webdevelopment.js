@@ -49,7 +49,7 @@ const WebDevelopment = () => {
           <div className="row gy-5">
             <div className="col-lg-6">
               <div className="service-main-image" data-aos="zoom-in" data-aos-delay="200">
-                <img src="/assets/img/services/services-4.webp" alt="Web Development Team"
+                <img src="/assets/img/services/services-4.webp" alt="Zorvixe Technologies Web Development Team"
                   className="img-fluid rounded-4" />
                 <div className="experience-badge">
                   <span>1+</span>
@@ -126,7 +126,7 @@ const WebDevelopment = () => {
               <div className={`tab-pane fade ${activeTab === 'tab1' ? 'show active' : ''}`}>
                 <div className="row align-items-center">
                   <div className="col-lg-5" data-aos="fade-right" data-aos-delay="100">
-                    <img src="/assets/img/services/services-5.webp" alt="Frontend Development"
+                    <img src="/assets/img/services/services-5.webp" alt="Zorvixe Technologies Frontend Development"
                       className="img-fluid rounded-4" />
                   </div>
                   <div className="col-lg-7" data-aos="fade-left" data-aos-delay="200">
@@ -160,7 +160,7 @@ const WebDevelopment = () => {
               <div className={`tab-pane fade ${activeTab === 'tab2' ? 'show active' : ''}`}>
                 <div className="row align-items-center">
                   <div className="col-lg-5" data-aos="fade-right" data-aos-delay="100">
-                    <img src="/assets/img/services/services-6.webp" alt="Backend Development"
+                    <img src="/assets/img/services/services-6.webp" alt="Zorvixe Technologies Backend Development"
                       className="img-fluid rounded-4" />
                   </div>
                   <div className="col-lg-7" data-aos="fade-left" data-aos-delay="200">
@@ -194,7 +194,7 @@ const WebDevelopment = () => {
               <div className={`tab-pane fade ${activeTab === 'tab3' ? 'show active' : ''}`}>
                 <div className="row align-items-center">
                   <div className="col-lg-5" data-aos="fade-right" data-aos-delay="100">
-                    <img src="/assets/img/services/services-7.webp" alt="E-commerce Solutions"
+                    <img src="/assets/img/services/services-7.webp" alt="Zorvixe Technologies E-commerce Solutions"
                       className="img-fluid rounded-4" />
                   </div>
                   <div className="col-lg-7" data-aos="fade-left" data-aos-delay="200">
@@ -227,7 +227,7 @@ const WebDevelopment = () => {
               <div className={`tab-pane fade ${activeTab === 'tab4' ? 'show active' : ''}`}>
                 <div className="row align-items-center">
                   <div className="col-lg-5" data-aos="fade-right" data-aos-delay="100">
-                    <img src="/assets/img/services/services-8.webp" alt="Mobile Integration"
+                    <img src="/assets/img/services/services-8.webp" alt="Zorvixe Technologies Mobile Integration"
                       className="img-fluid rounded-4" />
                   </div>
                   <div className="col-lg-7" data-aos="fade-left" data-aos-delay="200">

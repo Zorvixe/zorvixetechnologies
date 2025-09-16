@@ -23,7 +23,7 @@ const AboutPage = () => {
       icon: Users,
       title: "Who We Are",
       content:
-        "Zorvixe is a dynamic technology-driven company specializing in website development, digital marketing, and branding solutions, helping businesses establish a powerful online presence and achieve measurable success.",
+        "Zorvixe Technologies is a dynamic technology-driven company specializing in website development, digital marketing, and branding solutions, helping businesses establish a powerful online presence and achieve measurable success.",
       image: "/assets/img/about/whoweare-bg.jpg",
       gradient: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
       bgClass: "bg-primary",
@@ -131,11 +131,11 @@ const AboutPage = () => {
 
               <motion.h1
                 variants={itemVariants}
-                className="display-1 fw-bold mb-4 lh-1 text-light"
+                className="fw-bold  text-light"
               >
-                <span className="text-white">Zorvixe</span>
+                <h1 className="text-white">Zorvixe Technologies</h1>
                 <br />
-                <span className="text-light display-2">
+                <span className="text-light">
                   Transforming Ideas
                 </span>
               </motion.h1>
@@ -160,7 +160,7 @@ const AboutPage = () => {
                 <div className="position-relative rounded-4 overflow-hidden shadow-lg border border-light border-opacity-25">
                   <img
                     src="/assets/img/about/aboutus1.jpg"
-                    alt="Zorvixe Team"
+                    alt="Zorvixe Technologies Team"
                     className="img-fluid w-100"
                     style={{ height: "500px", objectFit: "cover" }}
                   />
@@ -388,7 +388,7 @@ const AboutPage = () => {
                     </h2>
 
                     <p className="fs-4 mb-5 mx-auto text-light" style={{ maxWidth: "700px", lineHeight: "1.6" }}>
-                      At Zorvixe, we craft cutting-edge websites, powerful digital marketing strategies, and
+                      At Zorvixe Technologies, we craft cutting-edge websites, powerful digital marketing strategies, and
                       smart business solutions that drive real results.
                     </p>
                     <button

@@ -49,7 +49,7 @@ const WebHosting = () => {
           <div className="row gy-5">
             <div className="col-lg-6">
               <div className="service-main-image" data-aos="zoom-in" data-aos-delay="200">
-                <img src="/assets/img/services/hosting_1.jpg" alt="Web Hosting Infrastructure"
+                <img src="/assets/img/services/hosting_1.jpg" alt="Zorvixe Technologies Web Hosting Infrastructure"
                   className="img-fluid rounded-4" />
                 <div className="experience-badge">
                   <span>1+</span>
@@ -127,7 +127,7 @@ const WebHosting = () => {
               <div className={`tab-pane fade ${activeTab === 'tab1' ? 'show active' : ''}`}>
                 <div className="row align-items-center">
                   <div className="col-lg-5" data-aos="fade-right" data-aos-delay="100">
-                    <img src="/assets/img/services/hosting_2.jpg" alt="Shared Hosting"
+                    <img src="/assets/img/services/hosting_2.jpg" alt="Zorvixe Technologies Shared Hosting"
                       className="img-fluid rounded-4" />
                   </div>
                   <div className="col-lg-7" data-aos="fade-left" data-aos-delay="200">
@@ -159,7 +159,7 @@ const WebHosting = () => {
               <div className={`tab-pane fade ${activeTab === 'tab2' ? 'show active' : ''}`}>
                 <div className="row align-items-center">
                   <div className="col-lg-5" data-aos="fade-right" data-aos-delay="100">
-                    <img src="/assets/img/services/hosting_3.jpg" alt="VPS Hosting"
+                    <img src="/assets/img/services/hosting_3.jpg" alt="Zorvixe Technologies VPS Hosting"
                       className="img-fluid rounded-4" />
                   </div>
                   <div className="col-lg-7" data-aos="fade-left" data-aos-delay="200">
@@ -190,7 +190,7 @@ const WebHosting = () => {
               <div className={`tab-pane fade ${activeTab === 'tab3' ? 'show active' : ''}`}>
                 <div className="row align-items-center">
                   <div className="col-lg-5" data-aos="fade-right" data-aos-delay="100">
-                    <img src="/assets/img/services/hosting_4.jpg" alt="Dedicated Servers"
+                    <img src="/assets/img/services/hosting_4.jpg" alt="Zorvixe Technologies Dedicated Servers"
                       className="img-fluid rounded-4" />
                   </div>
                   <div className="col-lg-7" data-aos="fade-left" data-aos-delay="200">
@@ -221,7 +221,7 @@ const WebHosting = () => {
               <div className={`tab-pane fade ${activeTab === 'tab4' ? 'show active' : ''}`}>
                 <div className="row align-items-center">
                   <div className="col-lg-5" data-aos="fade-right" data-aos-delay="100">
-                    <img src="/assets/img/services/hosting_5.jpg" alt="Cloud Hosting"
+                    <img src="/assets/img/services/hosting_5.jpg" alt="Zorvixe Technologies Cloud Hosting"
                       className="img-fluid rounded-4" />
                   </div>
                   <div className="col-lg-7" data-aos="fade-left" data-aos-delay="200">

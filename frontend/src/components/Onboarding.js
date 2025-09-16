@@ -200,7 +200,7 @@ export default function Onboarding() {
       <div className="header">
         <img
           src="/miniassets/img/zorvixe_logo_main.png"
-          alt="Zorvixe Logo"
+          alt="Zorvixe Technologies Logo"
           className="logo_payment"
         />
       </div>
@@ -462,7 +462,7 @@ export default function Onboarding() {
         <div className="container copyright text-center mt-4">
           <p>
             <span>Copyright &copy; {currentYear}</span>
-            <strong className="px-1 sitename">ZORVIXE</strong>
+            <strong className="px-1 sitename">ZORVIXE TECHNNOLOGIES</strong>
             <span>All Rights Reserved</span>
           </p>
         </div>

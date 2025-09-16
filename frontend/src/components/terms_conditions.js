@@ -49,7 +49,7 @@ const TermsAndConditions = () => {
                                         <li className="mb-3">
                                             <p><strong className="text-dark">Company</strong> (referred to as either &quot;the Company&quot;,
                                                 &quot;We&quot;, &quot;Us&quot; or &quot;Our&quot; in this Agreement) refers to
-                                                Zorvixe.</p>
+                                                Zorvixe Technologies.</p>
                                         </li>
                                         <li className="mb-3">
                                             <p><strong className="text-dark">Device</strong> means any device that can access the Service such as a
@@ -69,7 +69,7 @@ const TermsAndConditions = () => {
                                                 may be displayed, included or made available by the Service.</p>
                                         </li>
                                         <li className="mb-3">
-                                            <p><strong className="text-dark">Website</strong> refers to Zorvixe, accessible from
+                                            <p><strong className="text-dark">Website</strong> refers to Zorvixe Technologies, accessible from
                                                 <a
                                                     href="https://www.zorvixetechnologies.com/" rel="noopener noreferrer"
                                                     target="_blank" className="text-decoration-none text-primary">https://www.zorvixetechnologies.com/</a></p>
@@ -214,7 +214,7 @@ const TermsAndConditions = () => {
                                     <ul className="list-unstyled">
                                         <li className="d-flex align-items-center">
                                             <i className="bi bi-envelope-fill me-2 text-primary"></i>
-                                            <span>By email: <a href="mailto:zorvixe@gmail.com" className="text-decoration-none text-primary ms-1">zorvixe@gmail.com</a></span>
+                                            <span>By email: <a href="mailto:zorvixetechnologies@gmail.com" className="text-decoration-none text-primary ms-1">zorvixetechnologies@gmail.com</a></span>
                                         </li>
                                     </ul>
                                 </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 const Home = () => {
 
     useEffect(() => {
-        document.title = "Home | Zorvixe Technologies";
+        document.title = "Home | Zorvixe Technologies – Web Development, Software & Digital Marketing";
     }, []);
 
     const redirectToContact = () => {
@@ -17,7 +17,7 @@ const Home = () => {
 
     const faqItems = [
         {
-            question: "What makes ZORVIXE different from other web development agencies?",
+            question: "What makes ZORVIXE TECHNOLOGIES different from other web development agencies?",
             answer: "We combine cutting-edge technology with deep business insight to create solutions that actually drive growth. Unlike agencies that just build websites, we focus on creating digital assets that help small businesses compete and thrive in today's market."
         },
         {
@@ -50,7 +50,7 @@ const Home = () => {
                                     <div className="icon-circle me-2">
                                         <i className="bi bi-bell"></i>
                                     </div>
-                                    <span className="badge-text me-3">ZORVIXE TECHNOLOGIES</span>
+                                    <h1 className="badge-text me-3">ZORVIXE TECHNOLOGIES</h1>
                                 </div>
                             </div>
                             <h1 className="hero-title mb-4">Transform Your Vision into <span
@@ -69,7 +69,7 @@ const Home = () => {
 
                         <div className="col-lg-6">
                             <div className="hero-image">
-                                <img src="assets/img/illustration/illustration-16.webp" alt="Business Growth" className="img-fluid"
+                                <img src="assets/img/illustration/illustration-16.webp" alt="Zorvixe Technologies Business Growth" className="img-fluid"
                                     loading="lazy" />
                             </div>
                         </div>
@@ -84,7 +84,7 @@ const Home = () => {
                                 <div className="feature-content">
                                     <h3 className="feature-title">Rapid Deployment</h3>
                                     <p className="feature-text">We deliver fast, without cutting corners. From idea to launch,
-                                        ZORVIXE ensures your website or campaign goes live quickly — so you can start growing
+                                        ZORVIXE TECHNOLOGIES ensures your website or campaign goes live quickly — so you can start growing
                                         sooner.</p>
                                 </div>
                             </div>
@@ -129,7 +129,7 @@ const Home = () => {
                             <p className="who-we-are">Who We Are</p>
                             <h3>Unleashing Potential with Creative Strategy</h3>
                             <p className="fst-italic">
-                                At ZORVIXE, we're not just developers or marketers — we're digital growth partners. Our mission
+                                At ZORVIXE TECHNOLOGIES, we're not just developers or marketers — we're digital growth partners. Our mission
                                 is to help small businesses rise through innovative websites and results-driven marketing.
                             </p>
                             <ul>
@@ -143,15 +143,15 @@ const Home = () => {
                         <div className="col-lg-6 about-images" data-aos="fade-up" data-aos-delay="200">
                             <div className="row gy-4">
                                 <div className="col-lg-6">
-                                    <img src="assets/img/about/about-portrait-1.webp" className="img-fluid" alt="" />
+                                    <img src="assets/img/about/about-portrait-1.webp" className="img-fluid" alt="Zorvixe Technologies about-1" />
                                 </div>
                                 <div className="col-lg-6">
                                     <div className="row gy-4">
                                         <div className="col-lg-12">
-                                            <img src="assets/img/about/about-8.webp" className="img-fluid" alt="" />
+                                            <img src="assets/img/about/about-8.webp" className="img-fluid" alt="Zorvixe Technologies about-8" />
                                         </div>
                                         <div className="col-lg-12">
-                                            <img src="assets/img/about/about-12.webp" className="img-fluid" alt="" />
+                                            <img src="assets/img/about/about-12.webp" className="img-fluid" alt="Zorvixe Technologies about-12" />
                                         </div>
                                     </div>
                                 </div>
@@ -355,7 +355,7 @@ const Home = () => {
                     <div className="row">
                         <div className="col-lg-6" data-aos="fade-up" data-aos-delay="100">
                             <div className="content-block">
-                                <h6 className="subtitle">Our zorvixe services</h6>
+                                <h6 className="subtitle">Our ZORVIXE TECHNOLOGIES services</h6>
                                 <h2 className="title">Our customers excel in technology management</h2>
                                 <p className="description">
                                     We empower our clients to lead in technology management by delivering innovative solutions
@@ -417,7 +417,7 @@ const Home = () => {
                     <div className="row g-5 align-items-center">
                         <div className="col-lg-6" data-aos="fade-right" data-aos-delay="200">
                             <div className="cta-image-wrapper">
-                                <img src="assets/img/cta/cta-4.webp" alt="Call to Action" className="img-fluid rounded-4" />
+                                <img src="assets/img/cta/cta-4.webp" alt="Zorvixe Technologies Call to Action" className="img-fluid rounded-4" />
                                 <div className="cta-pattern"></div>
                             </div>
                         </div>
@@ -492,7 +492,7 @@ const Home = () => {
                 <div className="text-center"
                     style={{ height: '500px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                     <h4 className="hero-title"><strong>Revolutionize Your Business with <br />Advanced Digital Solutions</strong></h4>
-                    <p className="hero-description">Unlock growth with zorvixe top-notch website development, <br />digital marketing
+                    <p className="hero-description">Unlock growth with Zorvixe Technologies top-notch website development, <br />digital marketing
                         services tailored for your success.</p>
 
                     <button className="btn" style={{ backgroundColor: '#5d57f4' }} onClick={redirectToContact}>
@@ -580,7 +580,7 @@ const Home = () => {
                                 </div>
                                 <h3>Contact Number</h3>
                                 <p>Mobile: +91 8328590444 / 7993971574<br />
-                                    Email: zorvixe@gmail.com</p>
+                                    Email: zorvixetechnologies@gmail.com</p>
                             </div>
                         </div>
 
