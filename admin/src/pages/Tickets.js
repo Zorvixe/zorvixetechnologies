@@ -551,8 +551,8 @@ export default function Tickets() {
                               fill="currentColor"
                             />
                           </svg>
-                          <time dateTime={new Date(ticket.updated_at).toISOString()}>
-                            {new Date(ticket.updated_at).toLocaleString()}
+                          <time dateTime={new Date(ticket.created_at).toISOString()}>
+                            {new Date(ticket.created_at).toLocaleString()}
                           </time>
                         </span>
                       </div>
@@ -824,11 +824,11 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
       if (res?.success) {
         setComments([...comments, res.comment]);
         setNewComment("");
-        showToast("Comment added", "success");
+        showToast("Ticket added", "success");
       }
     } catch (e) {
       console.error("addComment error", e);
-      showToast("Failed to add comment", "error");
+      showToast("Failed to add Ticket", "error");
     } finally {
       setViewLoading(false);
     }
@@ -840,10 +840,10 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
     try {
       await apiDeleteTicketComment(id);
       setComments(comments.filter((c) => c.id !== id));
-      showToast("Comment deleted", "success");
+      showToast("Ticket deleted", "success");
     } catch (e) {
       console.error("deleteComment error", e);
-      showToast("Failed to delete comment", "error");
+      showToast("Failed to delete Ticket", "error");
     } finally {
       setViewLoading(false);
     }
@@ -859,7 +859,7 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
       showToast("Comment updated", "success");
     } catch (e) {
       console.error("updateComment error", e);
-      showToast("Failed to update comment", "error");
+      showToast("Failed to update Ticket", "error");
     } finally {
       setViewLoading(false);
     }
@@ -920,7 +920,7 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
               d="M12 1.75a10.25 10.25 0 1 0 0 20.5 10.25 10.25 0 0 0 0-20.5Zm.75 5.5a.75.75 0 0 0-1.5 0v5.25c0 .2.08.39.22.53l3.5 3.5a.75.75 0 0 0 1.06-1.06l-3.28-3.28V7.25Z"
               fill="currentColor"
             />
-          </svg> {new Date(ticket.updated_at).toLocaleString()}</span>
+          </svg> {new Date(ticket.created_at).toLocaleString()}</span>
         </div>
         {/* 🔽 updated to use linkifyText like CommentItem */}
         <p className="ticket-description">{linkifyText(ticket.description)}</p>
