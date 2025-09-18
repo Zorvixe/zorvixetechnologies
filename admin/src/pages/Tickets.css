@@ -606,3 +606,11 @@
   font-size: 15px;
   white-space: nowrap;
 }
+.ticket_create_rows{
+  display: flex;
+  flex-direction: row;
+  gap: 30px;
+}
+.create_descrption{
+min-height: 280px;
+}

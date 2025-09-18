@@ -658,7 +658,8 @@ export default function Tickets() {
         dialogClassName="modal-lg"
       >
         <form onSubmit={handleCreateSubmit} className="ticket-form">
-          <div className="form-group">
+         <div className="ticket_create_rows">
+           <div className="form-group col-5">
             <label htmlFor="new-title">Title</label>
             <input
               id="new-title"
@@ -670,18 +671,8 @@ export default function Tickets() {
               autoFocus
             />
           </div>
-          <div className="form-group">
-            <label htmlFor="new-desc">Description</label>
-            <textarea
-              id="new-desc"
-              rows="4"
-              className="comment-input"
-              value={newTicket.description}
-              onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
-              required
-            />
-          </div>
-          <div className="form-group">
+         
+          <div className="form-group col-3">
             <label htmlFor="new-priority">Priority</label>
             <select
               id="new-priority"
@@ -695,7 +686,7 @@ export default function Tickets() {
               <option value="urgent">Urgent</option>
             </select>
           </div>
-          <div className="form-group">
+          <div className="form-group col-3">
             <label htmlFor="new-assignee">Assign To</label>
             <select
               id="new-assignee"
@@ -710,6 +701,18 @@ export default function Tickets() {
                 </option>
               ))}
             </select>
+          </div>
+         </div>
+           <div className="form-group">
+            <label htmlFor="new-desc">Description</label>
+            <textarea
+              id="new-desc"
+              rows="4"
+              className="comment-input create_descrption"
+              value={newTicket.description}
+              onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
+              required
+            />
           </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary">
@@ -744,10 +747,11 @@ export default function Tickets() {
         title="Edit Ticket"
         centered
         scrollable={false}
-        dialogClassName="modal-lg"
+        dialogClassName="modal-xl"
       >
         <form onSubmit={handleEditSubmit} className="ticket-form">
-          <div className="form-group">
+         <div className="ticket_create_rows">
+           <div className="form-group col-3">
             <label>Title</label>
             <input
               className="comment-input"
@@ -756,17 +760,8 @@ export default function Tickets() {
               required
             />
           </div>
-          <div className="form-group">
-            <label>Description</label>
-            <textarea
-              rows="4"
-              className="comment-input"
-              value={editData.description}
-              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-              required
-            />
-          </div>
-          <div className="form-group">
+         
+          <div className="form-group col-3">
             <label>Status</label>
             <select
               className="comment-input"
@@ -779,7 +774,7 @@ export default function Tickets() {
               <option value="closed">Closed</option>
             </select>
           </div>
-          <div className="form-group">
+          <div className="form-group col-2">
             <label>Priority</label>
             <select
               className="comment-input"
@@ -792,7 +787,7 @@ export default function Tickets() {
               <option value="urgent">Urgent</option>
             </select>
           </div>
-          <div className="form-group">
+          <div className="form-group col-3.5">
             <label>Assign To</label>
             <select
               className="comment-input"
@@ -806,6 +801,17 @@ export default function Tickets() {
                 </option>
               ))}
             </select>
+          </div>
+         </div>
+           <div className="form-group">
+            <label>Description</label>
+            <textarea
+              rows="4"
+              className="comment-input create_descrption"
+              value={editData.description}
+              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+              required
+            />
           </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary">
