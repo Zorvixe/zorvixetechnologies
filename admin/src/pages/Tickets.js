@@ -20,32 +20,36 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import useDeepLinkHandler from "../deeplink/useDeepLinkHandler";
 
 // Function to detect URLs and convert them to clickable links
-const linkifyText = (text) => {
-  if (!text) return text;
+const truncateUrl = (url, maxLength = 30) => {
+  if (url.length <= maxLength) return url;
+  return url.slice(0, maxLength) + "...";
+};
 
-  // Regular expression to match URLs
+const linkifyText = (text) => {
+  if (!text) return null;
+
   const urlRegex = /(https?:\/\/[^\s]+)/g;
 
-  // Split text into parts, keeping URLs as separate elements
-  const parts = text.split(urlRegex);
-
-  return parts.map((part, index) => {
-    if (urlRegex.test(part)) {
-      return (
-        <a
-          key={index}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="comment-link"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {part}
-        </a>
-      );
-    }
-    return part;
-  });
+  return text.split("\n").map((line, lineIndex) => (
+    <span key={lineIndex}>
+      {line.split(urlRegex).map((part, i) =>
+        urlRegex.test(part) ? (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline"
+          >
+            {truncateUrl(part)}
+          </a>
+        ) : (
+          part
+        )
+      )}
+      <br />
+    </span>
+  ));
 };
 
 /* ------------------------- Bootstrap Modal Wrapper ------------------------- */
@@ -127,7 +131,7 @@ function BootstrapModal({
 }
 
 /* ------------------------------ User Avatar ------------------------------- */
-const UserAvatar = ({ name = "U", size = 40 }) => {
+const UserAvatar = ({ name = "U", size = 25 }) => {
   const initials = name
     .split(" ")
     .map((w) => w[0])
@@ -573,39 +577,16 @@ export default function Tickets() {
 
                   {/* Header: Left + Right */}
                   <div className="ticket-header">
-                    {/* LEFT */}
-                    <div className="ticket-left">
-                      <span style={{ marginLeft: 8, fontWeight: "bold", backgroundColor: "#1e90ff", color: "#fff", borderRadius: "8px", paddingLeft: "5px", paddingRight: "5px" }} > {ticket.id}</span>
-                      <UserAvatar name={ticket.creator_name} />
-
-                      <h4 className="ticket-creator">{ticket.creator_name}</h4>
-
-                      <div className="ticket-meta">
-                        {/* comment count */}
-                        <span className="ticket-meta-item" title="Comments">
-                          <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                            <path
-                              d="M20 2H4a2 2 0 0 0-2 2v13.5A1.5 1.5 0 0 0 3.5 19H6l3.6 3.2a1 1 0 0 0 1.4 0L14 19h6a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"
-                              fill="currentColor"
-                            />
-                          </svg>
-                          <span>{Number(ticket.comment_count || 0)}</span>
-                        </span>
-
-                        {/* last updated */}
-                        <span className="ticket-meta-item" title="Last updated">
-                          <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                            <path
-                              d="M12 1.75a10.25 10.25 0 1 0 0 20.5 10.25 10.25 0 0 0 0-20.5Zm.75 5.5a.75.75 0 0 0-1.5 0v5.25c0 .2.08.39.22.53l3.5 3.5a.75.75 0 0 0 1.06-1.06l-3.28-3.28V7.25Z"
-                              fill="currentColor"
-                            />
-                          </svg>
-                          <time dateTime={new Date(ticket.created_at).toISOString()}>
-                            {new Date(ticket.created_at).toLocaleString()}
-                          </time>
-                        </span>
-                      </div>
+                    <div>
+                      <h4 className="ticket-title">{ticket.title}</h4>
+                      {/* LEFT */}
+                      <p className="ticket-description">
+                        {(ticket.description || "").length > 100
+                          ? `${(ticket.description || "").substring(0, 100)}…`
+                          : ticket.description || ""}
+                      </p>
                     </div>
+
 
                     {/* RIGHT */}
                     <div className="ticket-right">
@@ -627,12 +608,38 @@ export default function Tickets() {
 
                   {/* Bottom: title + description */}
                   <div className="ticket-body">
-                    <h4 className="ticket-title">{ticket.title}</h4>
-                    <p className="ticket-description">
-                      {(ticket.description || "").length > 100
-                        ? `${(ticket.description || "").substring(0, 100)}…`
-                        : ticket.description || ""}
-                    </p>
+                    <div className="ticket-left">
+                      <UserAvatar name={ticket.creator_name} />
+
+                      <h4 className="ticket-creator">{ticket.creator_name}</h4>
+
+                      <div className="ticket-meta">
+                        {/* comment count */}
+                        <span className="ticket-meta-item" title="Comments">
+                          <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                            <path
+                              d="M20 2H4a2 2 0 0 0-2 2v13.5A1.5 1.5 0 0 0 3.5 19H6l3.6 3.2a1 1 0 0 0 1.4 0L14 19h6a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                          <span>{Number(ticket.comment_count || 0)}</span>
+                        </span>
+
+                        {/* last updated */}
+                        <span className="ticket-meta-item p-2" title="Last updated">
+                          <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                            <path
+                              d="M12 1.75a10.25 10.25 0 1 0 0 20.5 10.25 10.25 0 0 0 0-20.5Zm.75 5.5a.75.75 0 0 0-1.5 0v5.25c0 .2.08.39.22.53l3.5 3.5a.75.75 0 0 0 1.06-1.06l-3.28-3.28V7.25Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                          <time dateTime={new Date(ticket.created_at).toISOString()}>
+                            {new Date(ticket.created_at).toLocaleString()}
+                          </time>
+                        </span>
+                      </div>
+                    </div>
+                    <span className="ticket-id-badge">{ticket.id}</span>
                   </div>
                 </div>
               );
@@ -954,31 +961,51 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
           </div>
         )}
 
-        <h4 style={{ marginTop: 5, marginBottom: 5 }}>{ticket.title}</h4>
-        <div className="ticket-meta" style={{ marginBottom: 8, marginTop: 5 }}>
-          <span className={`ticket-status ${ticket.status}`}>{ticket.status}</span>
-          <span className={`ticket-priority ${ticket.priority}`}>{ticket.priority}</span>
-          <span>Created by: {ticket.creator_name}</span>
-          {ticket.assignee_name && <span><svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+     <div className="ticket_detail_view">
+        <div className="ticket_view_left">
+         <h4>{ticket.title}</h4>
+       
+        {/* 🔽 updated to use linkifyText like CommentItem */}
+<p className="ticket-description" style={{ whiteSpace: 'pre-wrap' }}>{linkifyText(ticket.description)}</p>
+       </div>
+
+         <div className="ticket-meta_view ticket_view_right gap-4" style={{ marginBottom: 8, marginTop: 5 }}>
+          <div><svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path
+              d="M12 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 12c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"
+              fill="currentColor"
+            />
+          </svg> {ticket.creator_name}</div>
+         {ticket.assignee_name && <span>
+          <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
             <path
               d="M12 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 12c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"
               fill="currentColor"
             />
           </svg> {ticket.assignee_name}</span>}
+         
+          <div>
+            <span className={`ticket-status ${ticket.status}`}>{ticket.status}</span>
+          </div>
+            
+         <div>
+          <span className={`ticket-priority ${ticket.priority}`}>{ticket.priority}</span>
+         </div>
+
+
           <span><svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
             <path
               d="M12 1.75a10.25 10.25 0 1 0 0 20.5 10.25 10.25 0 0 0 0-20.5Zm.75 5.5a.75.75 0 0 0-1.5 0v5.25c0 .2.08.39.22.53l3.5 3.5a.75.75 0 0 0 1.06-1.06l-3.28-3.28V7.25Z"
               fill="currentColor"
             />
           </svg> {new Date(ticket.created_at).toLocaleString()}</span>
+        
         </div>
-        {/* 🔽 updated to use linkifyText like CommentItem */}
-        <p className="ticket-description">{linkifyText(ticket.description)}</p>
+     </div>
       </div>
 
       {/* Comments Section (unchanged) */}
       <div className="comments-section">
-        <h3 className="comments-title">Discussion</h3>
         <form onSubmit={addComment} className="comment-form">
           <div className="form-group">
             <textarea
@@ -986,7 +1013,7 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Reply a Ticket..."
               rows="3"
-              className="comment-input"
+              className="comment-input-tiket"
             />
           </div>
           <div className="form-actions">

@@ -13,36 +13,33 @@
 }
 
 .comment-form {
-  background: #f8f9fa;
   border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
+  background-color: transparent;
+  border: 1px solid #cccccc62;
 }
 
-.form-group {
-  margin-bottom: 15px;
-}
 
-.comment-input {
+.comment-input-tiket {
   width: 100%;
-  padding: 12px 15px;
-  border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 14px;
   resize: vertical;
   transition: border-color 0.2s;
+  border: none;
 }
 
-.comment-input:focus {
+.comment-input-tiket:focus {
   outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+  border: none !important;
 }
 
 .form-actions {
   display: flex;
+  justify-content: flex-end; /* push button(s) to right */
   gap: 10px;
 }
+
 
 .comments-list {
   display: flex;
@@ -393,10 +390,56 @@
   font-size: 1rem;
 }
 
-.ticket-meta {
+.ticket_detail_view{
   display: flex;
-  gap: 12px;
+}
+
+.ticket_view_left{
+  width: 70%;
+  border-right: 1px solid #cccccc62;
+}
+.ticket_view_right{
+  padding-left: 10px;
+  width: 30%;
+}
+
+.ticket-meta_view.ticket_view_right {
+  display: flex;
+  gap: 6px;
+  font-size: 14px;
+}
+
+/* each line = label left, value right */
+.ticket-meta_view.ticket_view_right span,
+.ticket-meta_view.ticket_view_right div {
+  display: flex;
+  justify-content: flex-start;
   align-items: center;
+  gap: 8px;
+}
+
+/* make labels same width so values align */
+.ticket-meta_view.ticket_view_right span::before,
+.ticket-meta_view.ticket_view_right div::before {
+  flex: 0 0 90px; /* fixed width for property names */
+  font-weight: 600;
+  color: #333;
+}
+
+
+
+/* Special targeting: replace text with label in ::before */
+.ticket-meta_view.ticket_view_right div:nth-child(1)::before { content: "Created by:"; }
+.ticket-meta_view.ticket_view_right span:nth-child(2)::before { content: "Assigned to:"; }
+.ticket-meta_view.ticket_view_right div:nth-child(3)::before { content: "Status:"; }
+.ticket-meta_view.ticket_view_right div:nth-child(4)::before { content: "Priority:"; }
+.ticket-meta_view.ticket_view_right span:nth-child(5)::before { content: "Date:"; }
+
+
+.ticket-meta_view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -486,6 +529,9 @@
 
 /* Body */
 .ticket-body {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
   margin-top: 8px;
 }
 
@@ -495,7 +541,6 @@
 }
 
 .ticket-description {
-  margin: 20px;
   color: #666;
 }
 
@@ -549,4 +594,48 @@
 
 .comment_text {
   padding-left: 50px;
+}
+
+/* Ticket ID badge OUTSIDE on right */
+.ticket-id-badge {
+  transform: translateY(-50%);
+  font-weight: bold;
+  color: #00000080;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+//* Add these styles to your existing CSS */
+
+.code-block-container {
+  position: relative;
+  margin: 8px 0;
+}
+
+.code-block {
+  background: #f4f4f4;
+  padding: 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.code-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #ddd;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.code-copy-btn:hover {
+  opacity: 1;
+  background: #ccc;
 }

@@ -1,0 +1,153 @@
+/* Rich Text Editor Styles */
+.rich-text-editor {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.rich-text-editor:focus-within {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+  flex-wrap: wrap;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: #dee2e6;
+  margin: 0 4px;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #495057;
+  transition: all 0.2s;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  background: #e9ecef;
+  color: #212529;
+}
+
+.toolbar-btn:active:not(:disabled) {
+  background: #dee2e6;
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.editor-content {
+  padding: 12px 16px;
+  min-height: 120px;
+  max-height: 300px;
+  overflow-y: auto;
+  outline: none;
+  line-height: 1.5;
+  font-family: inherit;
+  font-size: 14px;
+  color: #495057;
+  word-wrap: break-word;
+  border-radius: 0 0 8px 8px;
+}
+
+.editor-content:empty::before {
+  content: attr(data-placeholder);
+  color: #6c757d;
+  pointer-events: none;
+}
+
+.editor-content p {
+  margin: 0 0 8px 0;
+}
+
+.editor-content p:last-child {
+  margin-bottom: 0;
+}
+
+.editor-content ul, .editor-content ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.editor-content li {
+  margin: 4px 0;
+}
+
+.editor-content a {
+  color: #4a90e2;
+  text-decoration: underline;
+}
+
+.editor-content a:hover {
+  color: #357abd;
+}
+
+.editor-content code {
+  background-color: #f1f3f4 !important;
+  padding: 2px 4px !important;
+  border-radius: 3px !important;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+  font-size: 0.9em !important;
+}
+
+.editor-content blockquote {
+  border-left: 4px solid #dee2e6;
+  margin: 8px 0;
+  padding: 8px 16px;
+  background: #f8f9fa;
+  font-style: italic;
+}
+
+.rich-text-editor.expanded .editor-content {
+  min-height: 200px;
+  max-height: 500px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .editor-toolbar {
+    padding: 6px 8px;
+    gap: 2px;
+  }
+  
+  .toolbar-btn {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .toolbar-divider {
+    margin: 0 2px;
+  }
+  
+  .editor-content {
+    padding: 10px 12px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
