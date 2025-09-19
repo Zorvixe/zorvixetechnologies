@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, useRef } from "react"
 import Topbar from "../components/Topbar"
+import RichTextEditor from '../components/RichTextEditor'
+
 import {
   apiListClients,
   apiCreateClient,
@@ -24,7 +26,44 @@ import ProjectComments from "../components/ProjectComments"
 import "./Clients.css"
 
 
+import DOMPurify from "dompurify";
+import linkifyHtml from "linkify-html";
 
+
+const truncateUrl = (url, maxLength = 30) => {
+  if (url.length <= maxLength) return url;
+  return url.slice(0, maxLength) + "...";
+};
+
+const renderSafeHtmlWithLinks = (html) => {
+  if (!html) return "";
+
+  // 1) initial sanitize (allow basic formatting + anchors/images as you want)
+  const allowedTags = ["b", "i", "em", "strong", "a", "p", "ul", "ol", "li", "br", "span", "div", "img"];
+  const allowedAttrs = ["href", "src", "alt", "title", "target", "rel", "class", "style"];
+
+  const sanitized = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: allowedTags,
+    ALLOWED_ATTR: allowedAttrs,
+  });
+
+  // 2) linkify raw URLs inside the sanitized HTML
+  const linkified = linkifyHtml(sanitized, {
+    defaultProtocol: "https",
+    attributes: {
+      rel: "noopener noreferrer",
+      target: "_blank",
+    },
+    // shorten displayed URL text (optional)
+    format: (value, type) => (type === "url" ? truncateUrl(value) : value),
+  });
+
+  // 3) final sanitize after linkify to be extra safe
+  return DOMPurify.sanitize(linkified, {
+    ALLOWED_TAGS: allowedTags,
+    ALLOWED_ATTR: allowedAttrs,
+  });
+};
 
 export default function Clients() {
   const [isAdmin, setIsAdmin] = useState(false)
@@ -646,12 +685,12 @@ export default function Clients() {
                   <div className="row">
                     <div className="grow">
                       <label htmlFor="npDesc" className="visually-hidden">Description</label>
-                      <textarea
+                      <RichTextEditor
                         id="npDesc"
                         className="textarea_description project_desc"
                         placeholder="Project description"
                         value={np.description}
-                        onChange={(e) => setNp({ ...np, description: e.target.value })}
+                        onChange={(content) => setNp({ ...np, description: content })}
                         autoComplete="off"
                         rows={5}
                       />
@@ -760,9 +799,11 @@ export default function Clients() {
 
                         <div className="section">
                           <h4 className="section-title">Description</h4>
-                          <div style={{ whiteSpace: "pre-wrap" }}>
-                            {viewProject.description || <span className="muted">No description</span>}
-                          </div>
+                          <div style={{ whiteSpace: "pre-wrap" }}
+
+                            dangerouslySetInnerHTML={{ __html: renderSafeHtmlWithLinks(viewProject.description) }}
+
+                          />
                         </div>
                       </div>
                     </div>
@@ -864,12 +905,12 @@ export default function Clients() {
                   <div className="row">
                     <div className="grow">
                       <label htmlFor="epDesc" className="visually-hidden">Description</label>
-                      <textarea
+                      <RichTextEditor
                         id="epDesc"
                         className="textarea_description project_desc"
                         placeholder="Project description"
                         value={epForm.description}
-                        onChange={(e) => setEpForm({ ...epForm, description: e.target.value })}
+                        onChange={(content) => setEpForm({ ...epForm, description: content })}
                         rows={5}
                       />
                     </div>

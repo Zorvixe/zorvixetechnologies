@@ -22,12 +22,13 @@
 
 .comment-input-tiket {
   width: 100%;
-  border-radius: 6px;
+  border-radius: 10px;
   font-size: 14px;
   resize: vertical;
   transition: border-color 0.2s;
-  border: none;
+  border: 1px solid #ccc;
 }
+
 
 .comment-input-tiket:focus {
   outline: none;

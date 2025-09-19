@@ -7,35 +7,48 @@ import {
   apiDeleteComment,
 } from "../api";
 
+import RichTextEditor from './RichTextEditor'
+
+import DOMPurify from "dompurify";
+import linkifyHtml from "linkify-html";
+
+
 import useDeepLinkHandler from "../deeplink/useDeepLinkHandler";
 import "./ProjectComment.css";
 
 // Function to detect URLs and convert them to clickable links
-const linkifyText = (text) => {
-  if (!text) return text;
-  
-  // Regular expression to match URLs
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  
-  // Split text into parts, keeping URLs as separate elements
-  const parts = text.split(urlRegex);
-  
-  return parts.map((part, index) => {
-    if (urlRegex.test(part)) {
-      return (
-        <a 
-          key={index}
-          href={part} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="comment-link"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {part}
-        </a>
-      );
-    }
-    return part;
+const truncateUrl = (url, maxLength = 30) => {
+  if (url.length <= maxLength) return url;
+  return url.slice(0, maxLength) + "...";
+};
+
+const renderSafeHtmlWithLinks = (html) => {
+  if (!html) return "";
+
+  // 1) initial sanitize (allow basic formatting + anchors/images as you want)
+  const allowedTags = ["b", "i", "em", "strong", "a", "p", "ul", "ol", "li", "br", "span", "div", "img"];
+  const allowedAttrs = ["href", "src", "alt", "title", "target", "rel", "class", "style"];
+
+  const sanitized = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: allowedTags,
+    ALLOWED_ATTR: allowedAttrs,
+  });
+
+  // 2) linkify raw URLs inside the sanitized HTML
+  const linkified = linkifyHtml(sanitized, {
+    defaultProtocol: "https",
+    attributes: {
+      rel: "noopener noreferrer",
+      target: "_blank",
+    },
+    // shorten displayed URL text (optional)
+    format: (value, type) => (type === "url" ? truncateUrl(value) : value),
+  });
+
+  // 3) final sanitize after linkify to be extra safe
+  return DOMPurify.sanitize(linkified, {
+    ALLOWED_TAGS: allowedTags,
+    ALLOWED_ATTR: allowedAttrs,
   });
 };
 
@@ -229,14 +242,14 @@ export default function ProjectComments({ projectId, isAdmin, currentUser }) {
       )}
 
       {/* New comment form */}
-      <form onSubmit={submitComment} className="comment-form" onKeyDown={(e) => e.stopPropagation()}>
+      <form onSubmit={submitComment} className="" onKeyDown={(e) => e.stopPropagation()}>
         <div className="form-group">
-          <textarea
+          <RichTextEditor
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
+            onChange={(content) => setNewComment(content)}
             placeholder="Add a comment..."
             rows="3"
-            className="comment-input"
+            className=""
           />
         </div>
         <div className="form-actions">
@@ -379,13 +392,13 @@ function CommentItem({
       <div className="comment-body" onClick={stop}>
         {isEditing ? (
           <div className="edit-form" onKeyDown={stop}>
-            <textarea
+            <RichTextEditor
               value={editText}
-              onChange={(e) => setEditText(e.target.value)}
+              onChange={(content) => setEditText(content)}
               rows="3"
               className="comment-input"
             />
-            <div className="edit-actions">
+            <div className="edit-actions form-actions">
               <button
                 onClick={handleEdit}
                 className="btn btn-primary btn-sm"
@@ -402,7 +415,9 @@ function CommentItem({
             </div>
           </div>
         ) : (
-          <p>{linkifyText(comment.comment_text)}</p>
+          <div style={{ whiteSpace: "pre-wrap" }}
+
+            dangerouslySetInnerHTML={{ __html: renderSafeHtmlWithLinks(comment.comment_text) }} />
         )}
       </div>
 
@@ -418,14 +433,14 @@ function CommentItem({
 
       {/* Reply form */}
       {isReplying && (
-        <div className="reply-form" onClick={stop}>
+        <div className="mt-5" onClick={stop}>
           <div className="form-group">
-            <textarea
+            <RichTextEditor
               value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
+              onChange={(content) => setReplyText(content)}
               placeholder="Write a reply..."
               rows="2"
-              className="comment-input"
+              className=""
             />
           </div>
           <div className="form-actions">

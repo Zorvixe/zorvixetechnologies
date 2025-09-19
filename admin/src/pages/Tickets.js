@@ -1,6 +1,9 @@
 // src/pages/Tickets.js
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import Topbar from '../components/Topbar'
+import RichTextEditor from '../components/RichTextEditor'
+import DOMPurify from "dompurify";
+import linkifyHtml from "linkify-html";
 
 import {
   apiListTickets,
@@ -25,32 +28,36 @@ const truncateUrl = (url, maxLength = 30) => {
   return url.slice(0, maxLength) + "...";
 };
 
-const linkifyText = (text) => {
-  if (!text) return null;
+const renderSafeHtmlWithLinks = (html) => {
+  if (!html) return "";
 
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  // 1) initial sanitize (allow basic formatting + anchors/images as you want)
+  const allowedTags = ["b", "i", "em", "strong", "a", "p", "ul", "ol", "li", "br", "span", "div", "img"];
+  const allowedAttrs = ["href", "src", "alt", "title", "target", "rel", "class", "style"];
 
-  return text.split("\n").map((line, lineIndex) => (
-    <span key={lineIndex}>
-      {line.split(urlRegex).map((part, i) =>
-        urlRegex.test(part) ? (
-          <a
-            key={i}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 underline"
-          >
-            {truncateUrl(part)}
-          </a>
-        ) : (
-          part
-        )
-      )}
-      <br />
-    </span>
-  ));
+  const sanitized = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: allowedTags,
+    ALLOWED_ATTR: allowedAttrs,
+  });
+
+  // 2) linkify raw URLs inside the sanitized HTML
+  const linkified = linkifyHtml(sanitized, {
+    defaultProtocol: "https",
+    attributes: {
+      rel: "noopener noreferrer",
+      target: "_blank",
+    },
+    // shorten displayed URL text (optional)
+    format: (value, type) => (type === "url" ? truncateUrl(value) : value),
+  });
+
+  // 3) final sanitize after linkify to be extra safe
+  return DOMPurify.sanitize(linkified, {
+    ALLOWED_TAGS: allowedTags,
+    ALLOWED_ATTR: allowedAttrs,
+  });
 };
+
 
 /* ------------------------- Bootstrap Modal Wrapper ------------------------- */
 function BootstrapModal({
@@ -581,9 +588,10 @@ export default function Tickets() {
                       <h4 className="ticket-title">{ticket.title}</h4>
                       {/* LEFT */}
                       <p className="ticket-description">
-                        {(ticket.description || "").length > 100
-                          ? `${(ticket.description || "").substring(0, 100)}…`
-                          : ticket.description || ""}
+                        {ticket.description ?
+                          // Strip HTML tags for the list view
+                          ticket.description.replace(/<[^>]*>/g, '').substring(0, 100) + '...' :
+                          ''}
                       </p>
                     </div>
 
@@ -658,60 +666,59 @@ export default function Tickets() {
         dialogClassName="modal-lg"
       >
         <form onSubmit={handleCreateSubmit} className="ticket-form">
-         <div className="ticket_create_rows">
-           <div className="form-group col-5">
-            <label htmlFor="new-title">Title</label>
-            <input
-              id="new-title"
-              type="text"
-              className="comment-input"
-              value={newTicket.title}
-              onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
-              required
-              autoFocus
-            />
+          <div className="ticket_create_rows">
+            <div className="form-group col-5">
+              <label htmlFor="new-title">Title</label>
+              <input
+                id="new-title"
+                type="text"
+                className="comment-input"
+                value={newTicket.title}
+                onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
+                required
+                autoFocus
+              />
+            </div>
+
+            <div className="form-group col-3">
+              <label htmlFor="new-priority">Priority</label>
+              <select
+                id="new-priority"
+                className="comment-input"
+                value={newTicket.priority}
+                onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value })}
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div className="form-group col-3">
+              <label htmlFor="new-assignee">Assign To</label>
+              <select
+                id="new-assignee"
+                className="comment-input"
+                value={newTicket.assigned_to}
+                onChange={(e) => setNewTicket({ ...newTicket, assigned_to: e.target.value })}
+              >
+                <option value="">Unassigned</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.email})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-         
-          <div className="form-group col-3">
-            <label htmlFor="new-priority">Priority</label>
-            <select
-              id="new-priority"
-              className="comment-input"
-              value={newTicket.priority}
-              onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value })}
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
-          </div>
-          <div className="form-group col-3">
-            <label htmlFor="new-assignee">Assign To</label>
-            <select
-              id="new-assignee"
-              className="comment-input"
-              value={newTicket.assigned_to}
-              onChange={(e) => setNewTicket({ ...newTicket, assigned_to: e.target.value })}
-            >
-              <option value="">Unassigned</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name} ({u.email})
-                </option>
-              ))}
-            </select>
-          </div>
-         </div>
-           <div className="form-group">
+          <div className="form-group">
             <label htmlFor="new-desc">Description</label>
-            <textarea
-              id="new-desc"
-              rows="4"
-              className="comment-input create_descrption"
+            <RichTextEditor
               value={newTicket.description}
-              onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
-              required
+              style={{ minHeight: "280px" }}
+              className="comment-input create_descrption"
+              placeholder="Descrption"
+              onChange={(content) => setNewTicket({ ...newTicket, description: content })}
             />
           </div>
           <div className="form-actions">
@@ -750,67 +757,67 @@ export default function Tickets() {
         dialogClassName="modal-xl"
       >
         <form onSubmit={handleEditSubmit} className="ticket-form">
-         <div className="ticket_create_rows">
-           <div className="form-group col-3">
-            <label>Title</label>
-            <input
-              className="comment-input"
-              value={editData.title}
-              onChange={(e) => setEditData({ ...editData, title: e.target.value })}
-              required
-            />
+          <div className="ticket_create_rows">
+            <div className="form-group col-3">
+              <label>Title</label>
+              <input
+                className="comment-input"
+                value={editData.title}
+                onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="form-group col-3">
+              <label>Status</label>
+              <select
+                className="comment-input"
+                value={editData.status}
+                onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+              >
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            <div className="form-group col-2">
+              <label>Priority</label>
+              <select
+                className="comment-input"
+                value={editData.priority}
+                onChange={(e) => setEditData({ ...editData, priority: e.target.value })}
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div className="form-group col-3.5">
+              <label>Assign To</label>
+              <select
+                className="comment-input"
+                value={editData.assigned_to}
+                onChange={(e) => setEditData({ ...editData, assigned_to: e.target.value })}
+              >
+                <option value="">Unassigned</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.email})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-         
-          <div className="form-group col-3">
-            <label>Status</label>
-            <select
-              className="comment-input"
-              value={editData.status}
-              onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-            >
-              <option value="open">Open</option>
-              <option value="in_progress">In Progress</option>
-              <option value="resolved">Resolved</option>
-              <option value="closed">Closed</option>
-            </select>
-          </div>
-          <div className="form-group col-2">
-            <label>Priority</label>
-            <select
-              className="comment-input"
-              value={editData.priority}
-              onChange={(e) => setEditData({ ...editData, priority: e.target.value })}
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
-          </div>
-          <div className="form-group col-3.5">
-            <label>Assign To</label>
-            <select
-              className="comment-input"
-              value={editData.assigned_to}
-              onChange={(e) => setEditData({ ...editData, assigned_to: e.target.value })}
-            >
-              <option value="">Unassigned</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name} ({u.email})
-                </option>
-              ))}
-            </select>
-          </div>
-         </div>
-           <div className="form-group">
+          <div className="form-group">
             <label>Description</label>
-            <textarea
-              rows="4"
-              className="comment-input create_descrption"
+            <RichTextEditor
               value={editData.description}
-              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-              required
+              placeholder="Description"
+              style={{ minHeight: "280px" }}
+
+              onChange={(content) => setEditData({ ...editData, description: content })}
             />
           </div>
           <div className="form-actions">
@@ -946,79 +953,80 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
       dialogClassName="modal-xl"
     >
       <div className="ticket-info hover-frame">
-        {canManage && (
-          <div className="ticket-action-buttons in-modal">
-            <button className="btn-link edit-btn" title="Edit ticket" onClick={openEdit}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 000-1.77l-2.34-2.34a1.25 1.25 0 00-1.77 0l-1.83 1.83 3.75 3.75 2.19-2.19z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
-            <button className="btn-link delete-btn" title="Delete ticket" onClick={onDelete}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
-          </div>
-        )}
-
-     <div className="ticket_detail_view">
-        <div className="ticket_view_left">
-         <h4>{ticket.title}</h4>
-       
-        {/* 🔽 updated to use linkifyText like CommentItem */}
-<p className="ticket-description" style={{ whiteSpace: 'pre-wrap' }}>{linkifyText(ticket.description)}</p>
-       </div>
-
-         <div className="ticket-meta_view ticket_view_right gap-4" style={{ marginBottom: 8, marginTop: 5 }}>
-          <div><svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-            <path
-              d="M12 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 12c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"
-              fill="currentColor"
-            />
-          </svg> {ticket.creator_name}</div>
-         {ticket.assignee_name && <span>
-          <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-            <path
-              d="M12 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 12c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"
-              fill="currentColor"
-            />
-          </svg> {ticket.assignee_name}</span>}
-         
-          <div>
-            <span className={`ticket-status ${ticket.status}`}>{ticket.status}</span>
-          </div>
-            
-         <div>
-          <span className={`ticket-priority ${ticket.priority}`}>{ticket.priority}</span>
-         </div>
-
-
-          <span><svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-            <path
-              d="M12 1.75a10.25 10.25 0 1 0 0 20.5 10.25 10.25 0 0 0 0-20.5Zm.75 5.5a.75.75 0 0 0-1.5 0v5.25c0 .2.08.39.22.53l3.5 3.5a.75.75 0 0 0 1.06-1.06l-3.28-3.28V7.25Z"
-              fill="currentColor"
-            />
-          </svg> {new Date(ticket.created_at).toLocaleString()}</span>
-        
+        <div className="ticket-action-buttons in-modal">
+          <button className="btn-link edit-btn" title="Edit ticket" onClick={openEdit}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 000-1.77l-2.34-2.34a1.25 1.25 0 00-1.77 0l-1.83 1.83 3.75 3.75 2.19-2.19z"
+                fill="currentColor"
+              />
+            </svg>
+          </button>
+          <button className="btn-link delete-btn" title="Delete ticket" onClick={onDelete}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                fill="currentColor"
+              />
+            </svg>
+          </button>
         </div>
-     </div>
+
+        <div className="ticket_detail_view">
+          <div className="ticket_view_left">
+            <h4>{ticket.title}</h4>
+
+            {/* 🔽 updated to use linkifyText like CommentItem */}
+            <div style={{ whiteSpace: 'pre-wrap' }}
+              className="ticket-description"
+              dangerouslySetInnerHTML={{ __html: renderSafeHtmlWithLinks(ticket.description) }}
+            />       </div>
+
+          <div className="ticket-meta_view ticket_view_right gap-4" style={{ marginBottom: 8, marginTop: 5 }}>
+            <div><svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <path
+                d="M12 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 12c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"
+                fill="currentColor"
+              />
+            </svg> {ticket.creator_name}</div>
+            {ticket.assignee_name && <span>
+              <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path
+                  d="M12 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 12c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"
+                  fill="currentColor"
+                />
+              </svg> {ticket.assignee_name}</span>}
+
+            <div>
+              <span className={`ticket-status ${ticket.status}`}>{ticket.status}</span>
+            </div>
+
+            <div>
+              <span className={`ticket-priority ${ticket.priority}`}>{ticket.priority}</span>
+            </div>
+
+
+            <span><svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <path
+                d="M12 1.75a10.25 10.25 0 1 0 0 20.5 10.25 10.25 0 0 0 0-20.5Zm.75 5.5a.75.75 0 0 0-1.5 0v5.25c0 .2.08.39.22.53l3.5 3.5a.75.75 0 0 0 1.06-1.06l-3.28-3.28V7.25Z"
+                fill="currentColor"
+              />
+            </svg> {new Date(ticket.created_at).toLocaleString()}</span>
+
+          </div>
+        </div>
       </div>
+
+      <hr></hr>
 
       {/* Comments Section (unchanged) */}
       <div className="comments-section">
-        <form onSubmit={addComment} className="comment-form">
-          <div className="form-group">
-            <textarea
+        <form onSubmit={addComment} className="" >
+          <div className="form-group comment_input_con">
+            <RichTextEditor
               value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
+              onChange={(content) => setNewComment(content)}
               placeholder="Reply a Ticket..."
-              rows="3"
               className="comment-input-tiket"
             />
           </div>
@@ -1029,7 +1037,7 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
           </div>
         </form>
 
-        <div className="comments-list">
+        <div className="comments-list mt-3">
           {comments.length === 0 ? (
             <div className="no-comments">
               <p>No Tickets yet. Update your today's Task</p>
@@ -1129,9 +1137,9 @@ function CommentItem({ comment, isManageable, onDelete, onUpdate }) {
       <div className="comment-body">
         {isEditing ? (
           <div className="edit-form">
-            <textarea
+            <RichTextEditor
               value={editText}
-              onChange={(e) => setEditText(e.target.value)}
+              onChange={(content) => setEditText(content)}
               rows="3"
               className="comment-input"
             />
@@ -1151,7 +1159,12 @@ function CommentItem({ comment, isManageable, onDelete, onUpdate }) {
             </div>
           </div>
         ) : (
-          <p className="comment_text">{linkifyText(comment.comment_text)}</p>
+          <div
+            className="comment_text"
+            style={{ whiteSpace: "pre-wrap" }}
+            dangerouslySetInnerHTML={{ __html: renderSafeHtmlWithLinks(comment.comment_text) }}
+          />
+
         )}
       </div>
 
