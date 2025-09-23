@@ -206,7 +206,7 @@ export default function Payment() {
     <div className="payment-container">
       {/* Header */}
       <div className="header">
-        <img src="/miniassets/img/zorvixe_logo_main.png" alt="Zorvixe Technologies Logo" className="logo_payment" />
+        <img src="/assets/img/zorvixe_logo_main.png" alt="Zorvixe Technologies Logo" className="logo_payment" />
       </div>
 
       <div className="header-section">

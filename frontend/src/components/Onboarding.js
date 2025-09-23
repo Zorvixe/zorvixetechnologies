@@ -199,7 +199,7 @@ export default function Onboarding() {
     <div className="onboarding-page-onb">
       <div className="header">
         <img
-          src="/miniassets/img/zorvixe_logo_main.png"
+          src="/assets/img/zorvixe_logo_main.png"
           alt="Zorvixe Technologies Logo"
           className="logo_payment"
         />
