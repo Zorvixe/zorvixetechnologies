@@ -10,6 +10,25 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Helper: schedule auto logout at midnight
+  const scheduleMidnightLogout = () => {
+    const now = new Date()
+    const midnight = new Date(now)
+    midnight.setHours(24, 0, 0, 0) // today 24:00 = tomorrow 00:00
+
+    const msUntilMidnight = midnight.getTime() - now.getTime()
+
+    // Clear any existing timer
+    if (window._midnightTimer) clearTimeout(window._midnightTimer)
+
+    // Schedule logout
+    window._midnightTimer = setTimeout(() => {
+      logout()
+      // re-schedule for next midnight
+      scheduleMidnightLogout()
+    }, msUntilMidnight)
+  }
+
   useEffect(() => {
     if (!getToken()) {
       setLoading(false)
@@ -20,8 +39,15 @@ export function AuthProvider({ children }) {
       .catch(() => {
         clearToken()
         setUser(null)
-      }) // make sure we reset user too
+      })
       .finally(() => setLoading(false))
+
+    // Always schedule auto logout at mount
+    scheduleMidnightLogout()
+
+    return () => {
+      if (window._midnightTimer) clearTimeout(window._midnightTimer)
+    }
   }, [])
 
   const login = async (identifier, password) => {
@@ -29,16 +55,21 @@ export function AuthProvider({ children }) {
     setToken(data.token)
     const me = await apiMe()
     setUser(me.me)
+    scheduleMidnightLogout() // reschedule after login
     return me.me
   }
 
   const logout = async () => {
     try {
       await apiLogout()
-    } catch {}
+    } catch { }
     clearToken()
     setUser(null)
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }

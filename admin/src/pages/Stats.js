@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import Topbar from "../components/Topbar";
 import { apiStats } from "../api";
 import { useAuth } from "../auth";   // <-- add this
+import banner from "../assets/home_banner.png";
+import jira_logo from "../assets/jira_logo.png";
+import projects_logo from "../assets/projects_logo.png";
+
 import "./Stats.css";
+
 
 export default function Stats() {
   const [data, setData] = useState(null);
@@ -44,14 +48,72 @@ export default function Stats() {
 
   return (
     <div>
-      <Topbar title="Dashboard">
-        <div className="dash-actions">
-          <button className="button ghost" onClick={load} aria-label="Refresh dashboard"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
-            <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
-            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
-          </svg></button>
+      <div
+        style={{
+          backgroundImage: `url(${banner})`,
+          height: "150px",
+          width: "100%",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          borderRadius: "12px",
+          padding: "16px", // space inside
+          color: "#000",   // text color (adjust if needed)
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between"
+        }}
+      >
+        {/* Top Section - Date + Greeting */}
+        <div>
+          <div style={{ fontSize: "14px", opacity: 0.8 }}>
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric"
+            })}
+          </div>
+          <h4 style={{ margin: 0, fontWeight: "bold" }}>Hello, {user?.name || "User"}</h4>
         </div>
-      </Topbar>
+
+        {/* Bottom Section - Buttons */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}
+        >
+          <a href="/clients" className="home_banner_style"
+            style={{
+              background: "transparent",
+              border: "1px solid #ccc",
+              borderRadius: "6px",
+              marginTop: "20px",
+              padding: "1px 5px",
+              cursor: "pointer"
+            }}
+          >
+            <img src={projects_logo} alt="projects_logo" style={{ width: 25, height: 22, borderRadius: "5px", marginRight: "5px", marginBottom: "2px" }} />
+            Read project updates
+          </a>
+
+          <a href="/tickets" className="home_banner_style"
+            style={{
+              background: "#ffffff",
+              border: "1px solid #ccc",
+              borderRadius: "6px",
+              marginTop: "20px",
+              padding: "1px 10px",
+              cursor: "pointer"
+            }}
+          >
+            <img src={jira_logo} alt="Jira" style={{ width: 20, height: 20, borderRadius: "5px", marginRight: "5px", marginBottom: "2px" }} />
+            Read new tickets updates
+          </a>
+        </div>
+      </div>
+
 
       {err && (
         <div className="card error" role="alert">

@@ -543,3 +543,8 @@ body {
   overflow-y: auto;
   padding-right: 6px;
 }
+
+.home_banner_style {
+  text-decoration: none;
+  color: #000000;
+}
