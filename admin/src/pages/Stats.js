@@ -1,7 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiStats } from "../api";
 import { useAuth } from "../auth";   // <-- add this
-import banner from "../assets/home_banner.png";
+
+// Import banners with unique names
+import banner1 from "../assets/home_banner_1.png";
+import banner2 from "../assets/home_banner_2.png";
+import banner3 from "../assets/home_banner_3.png";
+import banner4 from "../assets/home_banner_4.png";
+import banner5 from "../assets/home_banner_5.png";
+
 import jira_logo from "../assets/jira_logo.png";
 import projects_logo from "../assets/projects_logo.png";
 
@@ -14,6 +21,16 @@ export default function Stats() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+
+  // Put banners in an array
+  const banners = [banner1, banner2, banner3, banner4, banner5];
+
+  // Select banner based on the current day
+  const today = new Date();
+  const dayOfYear = Math.floor(
+    (today - new Date(today.getFullYear(), 0, 0)) / 86400000
+  );
+  const selectedBanner = banners[dayOfYear % banners.length];
 
 
   async function load() {
@@ -50,7 +67,7 @@ export default function Stats() {
     <div>
       <div
         style={{
-          backgroundImage: `url(${banner})`,
+          backgroundImage: `url(${selectedBanner})`,
           height: "150px",
           width: "100%",
           backgroundSize: "cover",
