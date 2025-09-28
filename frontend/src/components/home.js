@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
 const Home = () => {
 
-    useEffect(() => {
-        document.title = "Home | Zorvixe Technologies – Web Development, Software & Digital Marketing";
-    }, []);
-
     const redirectToContact = () => {
         window.location.href = "contact_us";
     };
