@@ -1059,6 +1059,7 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
               </div>
 
               {/* Viewers section */}
+              {/* Viewers section */}
               <div className="ticket-viewers-section" ref={viewersRef}>
                 <div className="viewers-header" onClick={() => setShowAllViewers(!showAllViewers)}>
                   <svg className="icon eye-icon" viewBox="0 0 24 24" width="16" height="16">
@@ -1089,7 +1090,8 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
                     )}
                   </div>
                 </div>
-                {/* Viewers Popup */}
+
+                {/* Viewers Popup - Now positioned relative to viewers-header */}
                 {showAllViewers && (
                   <div className="viewers-popup">
                     <div className="viewers-popup-header">

@@ -37,7 +37,8 @@
 
 .form-actions {
   display: flex;
-  justify-content: flex-end; /* push button(s) to right */
+  justify-content: flex-end;
+  /* push button(s) to right */
   gap: 10px;
 }
 
@@ -391,15 +392,16 @@
   font-size: 1rem;
 }
 
-.ticket_detail_view{
+.ticket_detail_view {
   display: flex;
 }
 
-.ticket_view_left{
+.ticket_view_left {
   width: 70%;
   border-right: 1px solid #cccccc62;
 }
-.ticket_view_right{
+
+.ticket_view_right {
   padding-left: 10px;
   width: 30%;
 }
@@ -422,7 +424,8 @@
 /* make labels same width so values align */
 .ticket-meta_view.ticket_view_right span::before,
 .ticket-meta_view.ticket_view_right div::before {
-  flex: 0 0 90px; /* fixed width for property names */
+  flex: 0 0 90px;
+  /* fixed width for property names */
   font-weight: 600;
   color: #333;
 }
@@ -430,11 +433,25 @@
 
 
 /* Special targeting: replace text with label in ::before */
-.ticket-meta_view.ticket_view_right div:nth-child(1)::before { content: "Created by:"; }
-.ticket-meta_view.ticket_view_right span:nth-child(2)::before { content: "Assigned to:"; }
-.ticket-meta_view.ticket_view_right div:nth-child(3)::before { content: "Status:"; }
-.ticket-meta_view.ticket_view_right div:nth-child(4)::before { content: "Priority:"; }
-.ticket-meta_view.ticket_view_right span:nth-child(5)::before { content: "Date:"; }
+.ticket-meta_view.ticket_view_right div:nth-child(1)::before {
+  content: "Created by:";
+}
+
+.ticket-meta_view.ticket_view_right span:nth-child(2)::before {
+  content: "Assigned to:";
+}
+
+.ticket-meta_view.ticket_view_right div:nth-child(3)::before {
+  content: "Status:";
+}
+
+.ticket-meta_view.ticket_view_right div:nth-child(4)::before {
+  content: "Priority:";
+}
+
+.ticket-meta_view.ticket_view_right span:nth-child(5)::before {
+  content: "Date:";
+}
 
 
 .ticket-meta_view {
@@ -607,13 +624,15 @@
   font-size: 15px;
   white-space: nowrap;
 }
-.ticket_create_rows{
+
+.ticket_create_rows {
   display: flex;
   flex-direction: row;
   gap: 30px;
 }
-.create_descrption{
-min-height: 280px;
+
+.create_descrption {
+  min-height: 280px;
 }
 
 /* In Tickets.css - Add these styles */
@@ -638,13 +657,15 @@ min-height: 280px;
   font-style: italic;
 }
 
-.title_lasted_at{
+.title_lasted_at {
   display: flex;
   flex-direction: row;
 }
 
 /* Viewers section */
 .ticket-viewers-section {
+  position: relative;
+
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -753,11 +774,11 @@ min-height: 280px;
   .ticket-viewers-section {
     padding: 8px;
   }
-  
+
   .viewers-avatars {
     flex-wrap: wrap;
   }
-  
+
   .viewer-item {
     padding: 8px 0;
   }
@@ -817,8 +838,9 @@ min-height: 280px;
 /* Viewers Popup */
 .viewers-popup {
   position: absolute;
-  top: 20%;
-  left: 43%;
+  top: 100%;
+  /* Position below the viewers header */
+  left: 45;
   right: 0;
   background: white;
   border: 1px solid #e0e0e0;
@@ -827,7 +849,8 @@ min-height: 280px;
   margin-top: 4px;
   max-height: 300px;
   overflow-y: auto;
-  width: 26.5%;
+  width: 350px;
+  /* Fixed width */
 }
 
 .viewers-popup-header {
@@ -904,7 +927,7 @@ min-height: 280px;
     right: 0;
     max-width: 100%;
   }
-  
+
   .viewer-popup-item {
     padding: 10px 12px;
   }
