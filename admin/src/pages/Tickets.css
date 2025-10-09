@@ -615,3 +615,312 @@
 .create_descrption{
 min-height: 280px;
 }
+
+/* In Tickets.css - Add these styles */
+
+/* Ticket title section with last edited info */
+.ticket-title-section {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.ticket-title-section h4 {
+  margin-bottom: 5px;
+}
+
+.last-edited-info {
+  margin-left: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+.title_lasted_at{
+  display: flex;
+  flex-direction: row;
+}
+
+/* Viewers section */
+.ticket-viewers-section {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  border-radius: 6px;
+}
+
+.viewers-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+  border: 1px solid #49505769;
+  border-radius: 5px;
+  padding: 4px;
+  cursor: pointer;
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.eye-icon {
+  color: #6c757d;
+}
+
+.viewers-count {
+  font-size: 13px;
+}
+
+.viewers-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.viewers-more-btn {
+  background: #e9ecef;
+  border: none;
+  border-radius: 50%;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.viewers-more-btn:hover {
+  background: #dee2e6;
+  transform: scale(1.05);
+}
+
+/* All viewers modal */
+.all-viewers-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.viewer-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.viewer-item:last-child {
+  border-bottom: none;
+}
+
+.viewer-info {
+  flex: 1;
+}
+
+.viewer-name {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.viewer-email {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 2px;
+}
+
+.viewer-date {
+  font-size: 11px;
+  color: #888;
+}
+
+/* Disabled form fields */
+.comment-input:disabled,
+.rich-text-editor-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ticket-viewers-section {
+    padding: 8px;
+  }
+  
+  .viewers-avatars {
+    flex-wrap: wrap;
+  }
+  
+  .viewer-item {
+    padding: 8px 0;
+  }
+}
+
+
+
+.viewers-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  transition: background-color 0.2s;
+}
+
+.viewers-header:hover {
+  background: #e9ecef;
+}
+
+.viewers-count {
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  margin-right: auto;
+}
+
+.viewers-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.viewers-more-btn {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: #fde3cf;
+  color: #f56a00;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.viewers-more-btn:hover {
+  background: #fcd3b0;
+  transform: scale(1.05);
+}
+
+/* Viewers Popup */
+.viewers-popup {
+  position: absolute;
+  top: 20%;
+  left: 43%;
+  right: 0;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  z-index: 1000;
+  margin-top: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+  width: 26.5%;
+}
+
+.viewers-popup-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.viewers-popup-title {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.viewers-popup-count {
+  color: #666;
+  font-size: 13px;
+}
+
+.viewers-popup-list {
+  padding: 8px 0;
+}
+
+.viewer-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  transition: background-color 0.2s;
+}
+
+.viewer-popup-item:hover {
+  background: #f8f9fa;
+}
+
+.viewer-popup-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.viewer-popup-name {
+  font-weight: 500;
+  color: #2c3e50;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.viewer-popup-email {
+  color: #6c757d;
+  font-size: 11px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.viewer-popup-date {
+  color: #888;
+  font-size: 10px;
+}
+
+/* Ensure the popup stays within modal */
+.modal-body {
+  position: relative;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .viewers-popup {
+    left: 0;
+    right: 0;
+    max-width: 100%;
+  }
+  
+  .viewer-popup-item {
+    padding: 10px 12px;
+  }
+}
+
+/* Title section adjustments */
+.title_lasted_at {
+  margin-bottom: 12px;
+}
+
+.title_lasted_at h4 {
+  margin-bottom: 4px;
+}
+
+.last-edited-info {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}

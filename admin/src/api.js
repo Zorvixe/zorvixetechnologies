@@ -242,13 +242,19 @@ export const apiDeleteTicketComment = (commentId) =>
 export const apiDeleteTicket = (id) =>
   request(`/api/tickets/${id}`, { method: "DELETE" });
 
-
-
-
-
-
 /* --------------------------- Users for Assignment --------------------------- */
 export const apiGetUsersForAssignment = () => request("/api/admin/users/for-assignment");
+
+
+// In api.js - Add these API functions
+
+// Track ticket view
+export const apiRecordTicketView = (ticketId) =>
+  request(`/api/tickets/${ticketId}/view`, { method: 'POST' });
+
+// Get ticket viewers
+export const apiGetTicketViewers = (ticketId) =>
+  request(`/api/tickets/${ticketId}/viewers`);
 
 
 /* --------------------------- Helpers --------------------------- */

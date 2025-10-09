@@ -421,6 +421,33 @@ await client.query(`
     await client.query(`ALTER TABLE payment_registrations ADD COLUMN IF NOT EXISTS receipt_path TEXT`);
 
 
+    await client.query(`
+  CREATE TABLE IF NOT EXISTS ticket_views (
+    id BIGSERIAL PRIMARY KEY,
+    ticket_id BIGINT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+    viewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(ticket_id, user_id)
+  );
+`);
+
+await client.query(`
+  CREATE INDEX IF NOT EXISTS idx_ticket_views_ticket ON ticket_views(ticket_id);
+  CREATE INDEX IF NOT EXISTS idx_ticket_views_user ON ticket_views(user_id);
+`);
+
+// Add last_edited_by to tickets table
+await client.query(`
+  ALTER TABLE tickets ADD COLUMN IF NOT EXISTS last_edited_by BIGINT REFERENCES admin_users(id);
+`);
+
+await client.query(`
+  DROP TRIGGER IF EXISTS trg_tickets_last_edited ON tickets;
+  CREATE TRIGGER trg_tickets_last_edited
+  BEFORE UPDATE ON tickets
+  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+`);
+
 
     // Seed default admin
     if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
@@ -2659,10 +2686,12 @@ app.get('/api/tickets/:id', requireAuth, async (req, res) => {
       SELECT 
         t.*,
         creator.id AS creator_id, creator.name AS creator_name, creator.email AS creator_email,
-        assignee.id AS assignee_id, assignee.name AS assignee_name, assignee.email AS assignee_email
+        assignee.id AS assignee_id, assignee.name AS assignee_name, assignee.email AS assignee_email,
+        last_editor.name AS last_editor_name
       FROM tickets t
       LEFT JOIN admin_users creator ON creator.id = t.created_by
       LEFT JOIN admin_users assignee ON assignee.id = t.assigned_to
+      LEFT JOIN admin_users last_editor ON last_editor.id = t.last_edited_by
       WHERE t.id = $1
     `, [id]);
 
@@ -2715,6 +2744,7 @@ app.post('/api/tickets', requireAuth, async (req, res) => {
 });
 
 // Update a ticket
+// In app.js - Update the PATCH /api/tickets/:id endpoint
 app.patch('/api/tickets/:id', requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -2737,10 +2767,15 @@ app.patch('/api/tickets/:id', requireAuth, async (req, res) => {
       return res.status(400).json({ message: 'No fields to update' });
     }
 
+    // Add last_edited_by and updated_at
+    params.push(req.user.sub);
+    sets.push(`last_edited_by = $${params.length}`);
+    sets.push(`updated_at = NOW()`);
+
     params.push(id);
     const result = await pool.query(`
       UPDATE tickets 
-      SET ${sets.join(', ')}, updated_at = NOW()
+      SET ${sets.join(', ')}
       WHERE id = $${params.length}
       RETURNING *
     `, params);
@@ -2901,6 +2936,56 @@ app.delete('/api/tickets/:id', requireAuth, async (req, res) => {
   }
 });
 
+
+// Track ticket views
+app.post('/api/tickets/:id/view', requireAuth, async (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+    const userId = req.user.sub;
+    
+    if (!Number.isFinite(ticketId)) return res.status(400).json({ message: 'Invalid ticket id' });
+
+    // Check if user already viewed this ticket
+    const existingView = await pool.query(
+      'SELECT 1 FROM ticket_views WHERE ticket_id=$1 AND user_id=$2 LIMIT 1',
+      [ticketId, userId]
+    );
+
+    if (existingView.rows.length === 0) {
+      // Record new view
+      await pool.query(
+        'INSERT INTO ticket_views (ticket_id, user_id) VALUES ($1, $2)',
+        [ticketId, userId]
+      );
+    }
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Get ticket viewers
+app.get('/api/tickets/:id/viewers', requireAuth, async (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (!Number.isFinite(ticketId)) return res.status(400).json({ message: 'Invalid ticket id' });
+
+    const viewers = await pool.query(`
+      SELECT au.id, au.name, au.email, tv.viewed_at
+      FROM ticket_views tv
+      JOIN admin_users au ON au.id = tv.user_id
+      WHERE tv.ticket_id = $1
+      ORDER BY tv.viewed_at DESC
+    `, [ticketId]);
+
+    res.json({ success: true, viewers: viewers.rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 /* --------------------------------- Start ---------------------------------- */
 initDb()

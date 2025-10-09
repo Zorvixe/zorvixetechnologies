@@ -15,6 +15,8 @@ import {
   apiDeleteTicketComment,
   apiGetUsersForAssignment,
   apiDeleteTicket,
+  apiRecordTicketView,
+  apiGetTicketViewers,
 } from "../api";
 import { useAuth } from "../auth";
 import "./Tickets.css";
@@ -445,11 +447,25 @@ export default function Tickets() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!selectedTicket) return;
-    try {
-      const res = await apiUpdateTicket(selectedTicket.id, {
+
+
+    const isCreator = selectedTicket.created_by === user.id;
+    const isAdmin = user.role === "admin";
+    // If user is not creator and not admin, only allow status changes
+    let updateData;
+    if (isCreator || isAdmin) {
+      updateData = {
         ...editData,
         assigned_to: editData.assigned_to || null,
-      });
+      };
+    } else {
+      // Non-creators can only update status
+      updateData = {
+        status: editData.status,
+      };
+    }
+    try {
+      const res = await apiUpdateTicket(selectedTicket.id, updateData);
       if (res?.success) {
         setShowEdit(false);
         await fetchTickets();
@@ -458,9 +474,10 @@ export default function Tickets() {
       showToast("Ticket Updated", "success");
     } catch (e) {
       console.error("handleEditSubmit error", e);
-      showToast("Ticket Updated Failed", "error");
+      showToast("Ticket Update Failed", "error");
     }
   };
+
 
   return (
     <div className="tickets-container">
@@ -584,17 +601,21 @@ export default function Tickets() {
 
                   {/* Header: Left + Right */}
                   <div className="ticket-header">
+
                     <div>
                       <h4 className="ticket-title">{ticket.title}</h4>
-                      {/* LEFT */}
-                      <p className="ticket-description">
-                        {ticket.description ?
-                          // Strip HTML tags for the list view
-                          ticket.description.replace(/<[^>]*>/g, '').substring(0, 100) + '...' :
-                          ''}
-                      </p>
+                      <div
+                        className="ticket-description"
+                        style={{ whiteSpace: 'pre-wrap' }}
+                        dangerouslySetInnerHTML={{
+                          __html: renderSafeHtmlWithLinks(
+                            ticket.description
+                              ? ticket.description.replace(/<[^>]*>/g, '').substring(0, 100) + '…'
+                              : ''
+                          ),
+                        }}
+                      />
                     </div>
-
 
                     {/* RIGHT */}
                     <div className="ticket-right">
@@ -634,7 +655,7 @@ export default function Tickets() {
                         </span>
 
                         {/* last updated */}
-                        <span className="ticket-meta-item p-2" title="Last updated">
+                        <span className="ticket-meta-item p-2" title="Created at">
                           <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
                             <path
                               d="M12 1.75a10.25 10.25 0 1 0 0 20.5 10.25 10.25 0 0 0 0-20.5Zm.75 5.5a.75.75 0 0 0-1.5 0v5.25c0 .2.08.39.22.53l3.5 3.5a.75.75 0 0 0 1.06-1.06l-3.28-3.28V7.25Z"
@@ -765,6 +786,7 @@ export default function Tickets() {
                 value={editData.title}
                 onChange={(e) => setEditData({ ...editData, title: e.target.value })}
                 required
+                disabled={!canManageTicket(selectedTicket) || (selectedTicket?.creator_id !== user.id && user.role !== 'admin')}
               />
             </div>
 
@@ -781,12 +803,14 @@ export default function Tickets() {
                 <option value="closed">Closed</option>
               </select>
             </div>
+
             <div className="form-group col-2">
               <label>Priority</label>
               <select
                 className="comment-input"
                 value={editData.priority}
                 onChange={(e) => setEditData({ ...editData, priority: e.target.value })}
+                disabled={!canManageTicket(selectedTicket) || (selectedTicket?.creator_id !== user.id && user.role !== 'admin')}
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -794,12 +818,14 @@ export default function Tickets() {
                 <option value="urgent">Urgent</option>
               </select>
             </div>
+
             <div className="form-group col-3.5">
               <label>Assign To</label>
               <select
                 className="comment-input"
                 value={editData.assigned_to}
                 onChange={(e) => setEditData({ ...editData, assigned_to: e.target.value })}
+                disabled={!canManageTicket(selectedTicket) || (selectedTicket?.creator_id !== user.id && user.role !== 'admin')}
               >
                 <option value="">Unassigned</option>
                 {users.map((u) => (
@@ -810,16 +836,18 @@ export default function Tickets() {
               </select>
             </div>
           </div>
+
           <div className="form-group">
             <label>Description</label>
             <RichTextEditor
               value={editData.description}
               placeholder="Description"
               style={{ minHeight: "280px" }}
-
               onChange={(content) => setEditData({ ...editData, description: content })}
+              disabled={!canManageTicket(selectedTicket) || (selectedTicket?.creator_id !== user.id && user.role !== 'admin')}
             />
           </div>
+
           <div className="form-actions">
             <button type="submit" className="btn btn-primary">
               Save Changes
@@ -855,6 +883,29 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
   const [comments, setComments] = useState(ticket?.comments || []);
   const [newComment, setNewComment] = useState("");
   const [viewLoading, setViewLoading] = useState(false);
+  const [viewers, setViewers] = useState([]);
+  const [showAllViewers, setShowAllViewers] = useState(false);
+  const viewersRef = useRef(null);
+
+
+
+  // Close viewers popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (viewersRef.current && !viewersRef.current.contains(event.target)) {
+        setShowAllViewers(false);
+      }
+    };
+
+    if (showAllViewers) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAllViewers]);
+
 
   useDeepLinkHandler({
     resourceType: "ticket",
@@ -868,6 +919,26 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
     setNewComment("");
     setViewLoading(false);
   }, [ticket]);
+
+
+  // Record view when modal opens
+  useEffect(() => {
+    if (open && ticket && user) {
+      apiRecordTicketView(ticket.id).catch(console.error);
+      fetchViewers();
+    }
+  }, [open, ticket, user]);
+
+  const fetchViewers = async () => {
+    try {
+      const data = await apiGetTicketViewers(ticket.id);
+      if (data?.success) {
+        setViewers(data.viewers || []);
+      }
+    } catch (e) {
+      console.error("fetchViewers error", e);
+    }
+  };
 
   // toast
   const toastTimer = useRef(null);
@@ -974,7 +1045,78 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
 
         <div className="ticket_detail_view">
           <div className="ticket_view_left">
-            <h4>{ticket.title}</h4>
+            <div className="ticket-title-section">
+              <div className="title_lasted_at">
+                <h4>{ticket.title}</h4>
+                {ticket.last_editor_name && (
+                  <div className="last-edited-info">
+                    (edited by {ticket.last_editor_name})
+                    {ticket.updated_at && (
+                      <> at {new Date(ticket.updated_at).toLocaleString()}</>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Viewers section */}
+              <div className="ticket-viewers-section" ref={viewersRef}>
+                <div className="viewers-header" onClick={() => setShowAllViewers(!showAllViewers)}>
+                  <svg className="icon eye-icon" viewBox="0 0 24 24" width="16" height="16">
+                    <path
+                      d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  <div className="viewers-avatars flex items-center" style={{ gap: 0 }}>
+                    {viewers.slice(0, 2).map((viewer, i) => (
+                      <div
+                        key={viewer.id}
+                        style={{ marginLeft: i === 0 ? 0 : -8 }}
+                      >
+                        <UserAvatar name={viewer.name} size={25} />
+                      </div>
+                    ))}
+
+                    {viewers.length > 2 && (
+                      <button
+                        className="viewers-more-btn w-[25px] h-[25px] rounded-full border-2 border-white bg-orange-100 text-orange-600 text-xs font-medium flex items-center justify-center"
+                        onClick={() => setShowAllViewers(true)}
+                        title={`Show all ${viewers.length} viewers`}
+                        style={{ marginLeft: -8 }}
+                      >
+                        +{viewers.length - 2}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {/* Viewers Popup */}
+                {showAllViewers && (
+                  <div className="viewers-popup">
+                    <div className="viewers-popup-header">
+                      <span className="viewers-popup-title">Ticket Viewers</span>
+                      <span className="viewers-popup-count">({viewers.length})</span>
+                    </div>
+                    <div className="viewers-popup-list">
+                      {viewers.map(viewer => (
+                        <div key={viewer.id} className="viewer-popup-item">
+                          <UserAvatar name={viewer.name} size={28} />
+                          <div className="viewer-popup-info">
+                            <div className="viewer-popup-name">{viewer.name}</div>
+                            <div className="viewer-popup-email">{viewer.email}</div>
+                            <div className="viewer-popup-date">
+                              Viewed {new Date(viewer.viewed_at).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+
 
             {/* 🔽 updated to use linkifyText like CommentItem */}
             <div style={{ whiteSpace: 'pre-wrap' }}
@@ -1055,6 +1197,7 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
           )}
         </div>
       </div>
+
 
       <div className={`toastx ${toast.type} ${toast.open ? 'show' : ''}`} role="status" aria-live="polite">
         <div className="toastx-icon">
