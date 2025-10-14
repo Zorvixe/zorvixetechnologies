@@ -15,6 +15,8 @@ const RichTextEditor = ({
 }) => {
   const editorRef = useRef(null);
   const [isExpanded, setIsExpanded] = useState(false);
+   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [textColor, setTextColor] = useState("#000000");
 
   useEffect(() => {
     if (editorRef.current && value !== editorRef.current.innerHTML) {
@@ -86,6 +88,12 @@ const RichTextEditor = ({
           break;
       }
     }
+  };
+
+   const applyColor = (color) => {
+    setTextColor(color);
+    execCommand("foreColor", color);
+    setShowColorPicker(false);
   };
 
   return (
