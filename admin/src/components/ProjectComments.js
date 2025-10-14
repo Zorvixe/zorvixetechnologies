@@ -1,3 +1,4 @@
+// src/components/ProjectComments.jsx
 import { useState, useEffect, useRef } from "react";
 import {
   apiGetProjectComments,
@@ -6,12 +7,16 @@ import {
   apiDeleteComment,
 } from "../api";
 
-import RichTextEditor from "./RichTextEditor";
+import RichTextEditor from './RichTextEditor'
+
 import DOMPurify from "dompurify";
 import linkifyHtml from "linkify-html";
+
+
 import useDeepLinkHandler from "../deeplink/useDeepLinkHandler";
 import "./ProjectComment.css";
 
+// Function to detect URLs and convert them to clickable links
 const truncateUrl = (url, maxLength = 30) => {
   if (url.length <= maxLength) return url;
   return url.slice(0, maxLength) + "...";
@@ -19,22 +24,40 @@ const truncateUrl = (url, maxLength = 30) => {
 
 const renderSafeHtmlWithLinks = (html) => {
   if (!html) return "";
+
+  // 1) initial sanitize (allow basic formatting + anchors/images as you want)
   const allowedTags = ["b", "i", "em", "strong", "a", "p", "ul", "ol", "li", "br", "span", "div", "img"];
   const allowedAttrs = ["href", "src", "alt", "title", "target", "rel", "class", "style"];
-  const sanitized = DOMPurify.sanitize(html, { ALLOWED_TAGS: allowedTags, ALLOWED_ATTR: allowedAttrs });
+
+  const sanitized = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: allowedTags,
+    ALLOWED_ATTR: allowedAttrs,
+  });
+
+  // 2) linkify raw URLs inside the sanitized HTML
   const linkified = linkifyHtml(sanitized, {
     defaultProtocol: "https",
-    attributes: { rel: "noopener noreferrer", target: "_blank" },
+    attributes: {
+      rel: "noopener noreferrer",
+      target: "_blank",
+    },
+    // shorten displayed URL text (optional)
     format: (value, type) => (type === "url" ? truncateUrl(value) : value),
   });
-  return DOMPurify.sanitize(linkified, { ALLOWED_TAGS: allowedTags, ALLOWED_ATTR: allowedAttrs });
+
+  // 3) final sanitize after linkify to be extra safe
+  return DOMPurify.sanitize(linkified, {
+    ALLOWED_TAGS: allowedTags,
+    ALLOWED_ATTR: allowedAttrs,
+  });
 };
 
+// Avatar component to display user initials
 const UserAvatar = ({ name, size = 40 }) => {
   const getInitials = (name) =>
     (name || "")
       .split(" ")
-      .map((w) => w[0] || "")
+      .map((word) => word[0] || "")
       .join("")
       .toUpperCase()
       .slice(0, 2);
@@ -45,9 +68,18 @@ const UserAvatar = ({ name, size = 40 }) => {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     const colors = [
-      "#FF6B6B", "#4ECDC4", "#45B7D1", "#F9A826",
-      "#6A5ACD", "#FFA5A5", "#77DD77", "#836953",
-      "#CF9FFF", "#FDFD96", "#FFB347", "#B19CD9",
+      "#FF6B6B",
+      "#4ECDC4",
+      "#45B7D1",
+      "#F9A826",
+      "#6A5ACD",
+      "#FFA5A5",
+      "#77DD77",
+      "#836953",
+      "#CF9FFF",
+      "#FDFD96",
+      "#FFB347",
+      "#B19CD9",
     ];
     return colors[Math.abs(hash) % colors.length];
   };
@@ -78,34 +110,40 @@ export default function ProjectComments({ projectId, isAdmin, currentUser }) {
   const [authError, setAuthError] = useState("");
   const mountedRef = useRef(true);
 
+  // deep-link handler: ALWAYS call at top-level so hooks rules satisfied.
   useDeepLinkHandler({
     resourceType: "project",
     resourceId: projectId,
+    // whenLoaded returns true when comments are loaded so the handler can try to scroll to the target
     whenLoaded: () => !loading && Array.isArray(comments),
   });
 
   useEffect(() => {
     mountedRef.current = true;
     fetchComments();
-    return () => {
-      mountedRef.current = false;
-    };
+    return () => { mountedRef.current = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   const fetchComments = async () => {
     try {
       setLoading(true);
+      setAuthError("");
       const data = await apiGetProjectComments(projectId);
       if (!mountedRef.current) return;
       if (data?.success && Array.isArray(data.comments)) {
         setComments(data.comments);
-      } else {
+      } else if (!data?.success) {
         setAuthError(data?.message || "Failed to load comments");
         setComments([]);
       }
     } catch (err) {
       console.error("Error fetching comments:", err);
-      setAuthError("Failed to load comments. Please try again.");
+      if ((err.message || "").toLowerCase().includes("token") || (err.message || "").toLowerCase().includes("auth")) {
+        setAuthError("You're not signed in or your session expired.");
+      } else {
+        setAuthError("Failed to load comments. Please try again.");
+      }
       setComments([]);
     } finally {
       if (mountedRef.current) setLoading(false);
@@ -116,64 +154,102 @@ export default function ProjectComments({ projectId, isAdmin, currentUser }) {
     e?.preventDefault?.();
     if (!newComment.trim()) return;
     try {
+      setAuthError("");
       const data = await apiPostProjectComment(projectId, newComment);
       if (data?.success) {
         setNewComment("");
         await fetchComments();
-      } else throw new Error(data?.message);
+        // focus the last comment (optional)
+        setTimeout(() => {
+          const last = comments[comments.length - 1];
+          if (last) {
+            const el = document.getElementById(`comment-${last.id}`);
+            el?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+            el?.focus?.();
+          }
+        }, 200);
+      } else {
+        throw new Error(data?.message || "Failed to post");
+      }
     } catch (err) {
       console.error("Error posting comment:", err);
-      setAuthError("Failed to post comment. Please try again.");
+      if ((err.message || "").toLowerCase().includes("token") || (err.message || "").toLowerCase().includes("auth")) {
+        setAuthError("You're not signed in or your session expired.");
+      } else {
+        setAuthError("Failed to post comment. Please try again.");
+      }
     }
   };
 
   const submitReply = async (parentId) => {
     if (!replyText.trim()) return;
     try {
+      setAuthError("");
       const data = await apiPostProjectComment(projectId, replyText, parentId);
       if (data?.success) {
         setReplyText("");
         setReplyingTo(null);
         await fetchComments();
-      } else throw new Error(data?.message);
+        // optionally scroll to the new reply
+      } else {
+        throw new Error(data?.message || "Failed to post reply");
+      }
     } catch (err) {
       console.error("Error posting reply:", err);
-      setAuthError("Failed to post reply. Please try again.");
+      if ((err.message || "").toLowerCase().includes("token") || (err.message || "").toLowerCase().includes("auth")) {
+        setAuthError("You're not signed in or your session expired.");
+      } else {
+        setAuthError("Failed to post reply. Please try again.");
+      }
     }
   };
 
   const deleteComment = async (commentId) => {
     if (!window.confirm("Are you sure you want to delete this comment?")) return;
     try {
+      setAuthError("");
       const data = await apiDeleteComment(commentId);
-      if (data?.success) await fetchComments();
-      else throw new Error(data?.message);
+      if (data?.success) {
+        await fetchComments();
+      } else {
+        throw new Error(data?.message || "Failed to delete");
+      }
     } catch (err) {
       console.error("Error deleting comment:", err);
-      setAuthError("Failed to delete comment. Please try again.");
+      if ((err.message || "").toLowerCase().includes("token") || (err.message || "").toLowerCase().includes("auth")) {
+        setAuthError("You're not signed in or your session expired.");
+      } else {
+        setAuthError("Failed to delete comment. Please try again.");
+      }
     }
   };
 
-  if (loading)
-    return (
-      <div className="loader_container">
-        <p className="loader_spinner"></p>
-        <p>Loading Comments…</p>
-      </div>
-    );
+  if (loading) return (
+    <div className="loader_container">
+      <p className="loader_spinner"></p>
+      <p>Loading Comments…</p>
+    </div>
+  );
 
   return (
     <div className="comments-container">
       <h3 className="comments-title">Discussion</h3>
 
-      {authError && <div className="alert alert-warning">{authError}</div>}
+      {authError && (
+        <div className="alert alert-warning" role="alert">
+          {authError} Please log in again and retry.
+        </div>
+      )}
 
-      <form onSubmit={submitComment}>
+      {/* New comment form */}
+      <form onSubmit={submitComment} className="" onKeyDown={(e) => e.stopPropagation()}>
         <div className="form-group">
           <RichTextEditor
             value={newComment}
             onChange={(content) => setNewComment(content)}
             placeholder="Add a comment..."
+            rows="3"
+            className=""
           />
         </div>
         <div className="form-actions">
@@ -181,6 +257,7 @@ export default function ProjectComments({ projectId, isAdmin, currentUser }) {
         </div>
       </form>
 
+      {/* Comments list */}
       <div className="comments-list">
         {comments.length === 0 ? (
           <div className="no-comments">
@@ -211,6 +288,8 @@ export default function ProjectComments({ projectId, isAdmin, currentUser }) {
 
 function CommentItem({
   comment,
+  currentUser,
+  isAdmin,
   onReply,
   onDelete,
   replyingTo,
@@ -220,18 +299,17 @@ function CommentItem({
   cancelReply,
   refreshComments,
 }) {
-  // ✅ anyone can edit or delete now
-  const canEdit = true;
-  const canDelete = true;
+  const isAuthor = currentUser?.id != null && comment.user_id === currentUser.id;
+  const canEdit = isAuthor || isAdmin;
+  const canDelete = isAuthor || isAdmin;
   const isReplying = replyingTo === comment.id;
 
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.comment_text || "");
   const [showActions, setShowActions] = useState(false);
 
-  useEffect(() => {
-    setEditText(comment.comment_text || "");
-  }, [comment.comment_text]);
+  // reset editText if comment changes externally
+  useEffect(() => { setEditText(comment.comment_text || ""); }, [comment.comment_text]);
 
   const handleEdit = async (e) => {
     e?.stopPropagation();
@@ -241,7 +319,9 @@ function CommentItem({
       if (data?.success) {
         setIsEditing(false);
         await refreshComments();
-      } else throw new Error(data?.message);
+      } else {
+        throw new Error(data?.message || "Failed to update");
+      }
     } catch (err) {
       console.error("Error updating comment:", err);
       alert("Failed to update comment. Please try again.");
@@ -254,6 +334,7 @@ function CommentItem({
     setEditText(comment.comment_text || "");
   };
 
+  // stop propagation so parent clickable rows/modals don't react
   const stop = (e) => e.stopPropagation();
 
   return (
@@ -269,13 +350,7 @@ function CommentItem({
         <div className="comment-author-info">
           <UserAvatar name={comment.user_name} />
           <div className="author-details">
-            <div className="comment-author">
-              {comment.user_name}
-              {/* ✅ Show edited_by beside author */}
-              {comment.edited_by && (
-                <span className="edited-by"> • edited by {comment.edited_by}</span>
-              )}
-            </div>
+            <div className="comment-author">{comment.user_name}</div>
             <div className="comment-meta">
               <span className="comment-date">{new Date(comment.created_at).toLocaleString()}</span>
               {comment.updated_at !== comment.created_at && (
@@ -285,18 +360,27 @@ function CommentItem({
           </div>
         </div>
 
+        {/* Action buttons (only show on hover) */}
         {showActions && (
           <div className="comment-action-buttons" onClick={stop}>
-            {canEdit && !isEditing && (
-              <button onClick={(e) => { stop(e); setIsEditing(true); }} className="btn-link edit-btn" title="Edit">
-                ✏️
+              <button
+                onClick={(e) => { stop(e); setIsEditing(true); }}
+                className="btn-link edit-btn"
+                title="Edit comment"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 000-1.77l-2.34-2.34a1.25 1.25 0 00-1.77 0l-1.83 1.83 3.75 3.75 2.19-2.19z" fill="currentColor" />
+                </svg>
               </button>
-            )}
-            {canDelete && (
-              <button onClick={(e) => { stop(e); onDelete(comment.id); }} className="btn-link delete-btn" title="Delete">
-                🗑️
+              <button
+                onClick={(e) => { stop(e); onDelete(comment.id); }}
+                className="btn-link delete-btn"
+                title="Delete comment"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor" />
+                </svg>
               </button>
-            )}
           </div>
         )}
       </div>
@@ -306,57 +390,82 @@ function CommentItem({
           <div className="edit-form" onKeyDown={stop}>
             <RichTextEditor
               value={editText}
-              onChange={(c) => setEditText(c)}
+              onChange={(content) => setEditText(content)}
               rows="3"
               className="comment-input"
             />
             <div className="edit-actions form-actions">
-              <button onClick={handleEdit} className="btn btn-primary btn-sm" disabled={!editText.trim()}>
+              <button
+                onClick={handleEdit}
+                className="btn btn-primary btn-sm"
+                disabled={!editText.trim()}
+              >
                 Save
               </button>
-              <button onClick={cancelEdit} className="btn btn-secondary btn-sm">
+              <button
+                onClick={cancelEdit}
+                className="btn btn-secondary btn-sm"
+              >
                 Cancel
               </button>
             </div>
           </div>
         ) : (
-          <div style={{ whiteSpace: "pre-wrap" }} dangerouslySetInnerHTML={{ __html: renderSafeHtmlWithLinks(comment.comment_text) }} />
+          <div style={{ whiteSpace: "pre-wrap" }}
+
+            dangerouslySetInnerHTML={{ __html: renderSafeHtmlWithLinks(comment.comment_text) }} />
         )}
       </div>
 
       <div className="comment-actions" onClick={stop}>
-        <button onClick={(e) => { stop(e); if (isReplying) cancelReply(e); else onReply(); }} className="btn-link reply-btn">
-          {isReplying ? "Cancel Reply" : "Reply"}
+        <button
+          onClick={(e) => { stop(e); if (isReplying) cancelReply(e); else onReply(); }}
+          className="btn-link reply-btn"
+          aria-expanded={isReplying}
+        >
+          {isReplying ? 'Cancel Reply' : 'Reply'}
         </button>
       </div>
 
+      {/* Reply form */}
       {isReplying && (
         <div className="mt-5" onClick={stop}>
           <div className="form-group">
             <RichTextEditor
               value={replyText}
-              onChange={(c) => setReplyText(c)}
+              onChange={(content) => setReplyText(content)}
               placeholder="Write a reply..."
               rows="2"
+              className=""
             />
           </div>
           <div className="form-actions">
-            <button onClick={(e) => { stop(e); submitReply(comment.id); }} className="btn btn-primary btn-sm" disabled={!replyText.trim()}>
+            <button
+              onClick={(e) => { stop(e); submitReply(comment.id); }}
+              className="btn btn-primary btn-sm"
+              disabled={!replyText.trim()}
+            >
               Post Reply
             </button>
-            <button onClick={(e) => { stop(e); cancelReply(e); }} className="btn btn-secondary btn-sm">
+            <button
+              onClick={(e) => { stop(e); cancelReply(e); }}
+              className="btn btn-secondary btn-sm"
+            >
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      {comment.replies?.length > 0 && (
+      {/* Replies */}
+      {comment.replies && comment.replies.length > 0 && (
         <div className="replies">
           {comment.replies.map((reply) => (
             <CommentItem
               key={reply.id}
               comment={reply}
+              currentUser={currentUser}
+              isAdmin={isAdmin}
               onReply={onReply}
               onDelete={onDelete}
               replyingTo={replyingTo}
