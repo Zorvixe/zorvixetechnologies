@@ -340,6 +340,11 @@ await client.query(`
 `);
 
 await client.query(`
+  ALTER TABLE project_comments 
+ADD COLUMN edited_by INTEGER REFERENCES admin_users(id),
+`)
+
+await client.query(`
   CREATE INDEX IF NOT EXISTS idx_project_comments_project ON project_comments(project_id);
   CREATE INDEX IF NOT EXISTS idx_project_comments_parent ON project_comments(parent_id);
 `);
@@ -2436,45 +2441,46 @@ app.get("/api/stats/tickets", requireAuth, async (req, res) => {
 
 
 
-/* --------------------------------- Projects Comments ---------------------------------- */
-// Get comments for a project
+/* --------------------------------- Projects Commets ---------------------------------- */
+// ✅ Get all comments for a project (newest first, with user + editor info)
 app.get('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
   try {
     const projectId = Number(req.params.projectId)
     if (!Number.isFinite(projectId)) return res.status(400).json({ message: 'Invalid project id' })
     
-    // Check if user has access to this project
+    // ✅ Check access for non-admins
     if (!isAdmin(req)) {
       const hasAccess = await pool.query(
         'SELECT 1 FROM project_members WHERE project_id=$1 AND user_id=$2 LIMIT 1',
         [projectId, req.user.sub]
       )
-      if (hasAccess.rows.length === 0) return res.status(403).json({ message: 'Forbidden' })
+      if (hasAccess.rows.length === 0)
+        return res.status(403).json({ message: 'Forbidden' })
     }
-    
-    // Get comments with user info, ordered by creation date (newest first)
+
+    // ✅ Get all comments (include edited_by_name if exists)
     const { rows } = await pool.query(`
       SELECT 
         c.*,
-        u.name as user_name,
-        u.email as user_email,
-        u.role as user_role,
-        e.name as edited_by_name
+        u.name AS user_name,
+        u.email AS user_email,
+        u.role AS user_role,
+        e.name AS edited_by_name
       FROM project_comments c
       JOIN admin_users u ON u.id = c.user_id
       LEFT JOIN admin_users e ON e.id = c.edited_by
       WHERE c.project_id = $1
       ORDER BY c.created_at DESC
     `, [projectId])
-    
-    // Structure comments into a tree (parent/child relationships)
+
+    // ✅ Build nested structure
     const commentMap = {}
     const rootComments = []
-    
+
     rows.forEach(comment => {
       commentMap[comment.id] = { ...comment, replies: [] }
     })
-    
+
     rows.forEach(comment => {
       if (comment.parent_id) {
         if (commentMap[comment.parent_id]) {
@@ -2484,7 +2490,7 @@ app.get('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
         rootComments.push(commentMap[comment.id])
       }
     })
-    
+
     res.json({ success: true, comments: rootComments })
   } catch (e) {
     console.error(e)
@@ -2492,58 +2498,57 @@ app.get('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
   }
 })
 
-// Add a new comment
+
+// ✅ Add a new comment (admin or project member)
 app.post('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
   try {
     const projectId = Number(req.params.projectId)
-    if (!Number.isFinite(projectId)) return res.status(400).json({ message: 'Invalid project id' })
-    
+    if (!Number.isFinite(projectId))
+      return res.status(400).json({ message: 'Invalid project id' })
+
     const { comment_text, parent_id } = req.body
-    if (!comment_text || comment_text.trim().length === 0) {
+    if (!comment_text || comment_text.trim().length === 0)
       return res.status(400).json({ message: 'Comment text is required' })
-    }
-    
-    // Check if user has access to this project
+
+    // ✅ Check access for non-admins
     if (!isAdmin(req)) {
       const hasAccess = await pool.query(
         'SELECT 1 FROM project_members WHERE project_id=$1 AND user_id=$2 LIMIT 1',
         [projectId, req.user.sub]
       )
-      if (hasAccess.rows.length === 0) return res.status(403).json({ message: 'Forbidden' })
+      if (hasAccess.rows.length === 0)
+        return res.status(403).json({ message: 'Forbidden' })
     }
-    
-    // Validate parent_id if provided
+
+    // ✅ Validate parent comment if replying
     if (parent_id) {
       const parentComment = await pool.query(
         'SELECT id FROM project_comments WHERE id=$1 AND project_id=$2',
         [parent_id, projectId]
       )
-      if (parentComment.rows.length === 0) {
+      if (parentComment.rows.length === 0)
         return res.status(400).json({ message: 'Invalid parent comment' })
-      }
     }
-    
-    // Insert comment
+
+    // ✅ Insert comment
     const { rows } = await pool.query(`
       INSERT INTO project_comments (project_id, user_id, parent_id, comment_text)
       VALUES ($1, $2, $3, $4)
       RETURNING *
     `, [projectId, req.user.sub, parent_id || null, comment_text.trim()])
-    
-    // Get comment with user info
+
+    // ✅ Fetch comment with user info
     const newComment = await pool.query(`
       SELECT 
         c.*,
-        u.name as user_name,
-        u.email as user_email,
-        u.role as user_role,
-        e.name as edited_by_name
+        u.name AS user_name,
+        u.email AS user_email,
+        u.role AS user_role
       FROM project_comments c
       JOIN admin_users u ON u.id = c.user_id
-      LEFT JOIN admin_users e ON e.id = c.edited_by
       WHERE c.id = $1
     `, [rows[0].id])
-    
+
     res.status(201).json({ success: true, comment: newComment.rows[0] })
   } catch (e) {
     console.error(e)
@@ -2551,58 +2556,57 @@ app.post('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
   }
 })
 
-// Edit a comment (ANY project member can edit)
+
+// ✅ Edit a comment (anyone with access can edit; store edited_by)
 app.put('/api/comments/:commentId', requireAuth, async (req, res) => {
   try {
     const commentId = Number(req.params.commentId)
-    if (!Number.isFinite(commentId)) return res.status(400).json({ message: 'Invalid comment id' })
+    if (!Number.isFinite(commentId))
+      return res.status(400).json({ message: 'Invalid comment id' })
 
     const { comment_text } = req.body
-    if (!comment_text || comment_text.trim().length === 0) {
+    if (!comment_text || comment_text.trim().length === 0)
       return res.status(400).json({ message: 'Comment text is required' })
-    }
 
-    // Get the comment to find its project
+    // ✅ Fetch comment
     const comment = await pool.query(
       'SELECT * FROM project_comments WHERE id=$1',
       [commentId]
     )
-    
-    if (comment.rows.length === 0) return res.status(404).json({ message: 'Comment not found' })
-    
+    if (comment.rows.length === 0)
+      return res.status(404).json({ message: 'Comment not found' })
+
+    // ✅ Get project access
     const projectId = comment.rows[0].project_id
-    
-    // Check if user has access to this project (admin or project member)
     if (!isAdmin(req)) {
       const hasAccess = await pool.query(
         'SELECT 1 FROM project_members WHERE project_id=$1 AND user_id=$2 LIMIT 1',
         [projectId, req.user.sub]
       )
-      if (hasAccess.rows.length === 0) return res.status(403).json({ message: 'Forbidden' })
+      if (hasAccess.rows.length === 0)
+        return res.status(403).json({ message: 'Forbidden' })
     }
-    
-    // Update comment - ANY project member can edit
+
+    // ✅ Update and store who edited it
     const { rows } = await pool.query(`
-      UPDATE project_comments 
+      UPDATE project_comments
       SET comment_text = $1, updated_at = NOW(), edited_by = $2
       WHERE id = $3
       RETURNING *
     `, [comment_text.trim(), req.user.sub, commentId])
-    
-    // Get updated comment with user and editor info
+
+    // ✅ Fetch updated comment with editor name
     const updatedComment = await pool.query(`
       SELECT 
         c.*,
-        u.name as user_name,
-        u.email as user_email,
-        u.role as user_role,
-        e.name as edited_by_name
+        u.name AS user_name,
+        e.name AS edited_by_name
       FROM project_comments c
       JOIN admin_users u ON u.id = c.user_id
       LEFT JOIN admin_users e ON e.id = c.edited_by
       WHERE c.id = $1
-    `, [commentId])
-    
+    `, [rows[0].id])
+
     res.json({ success: true, comment: updatedComment.rows[0] })
   } catch (e) {
     console.error(e)
@@ -2610,40 +2614,43 @@ app.put('/api/comments/:commentId', requireAuth, async (req, res) => {
   }
 })
 
-// Delete a comment (ANY project member can delete)
+
+// ✅ Delete a comment (anyone with access or admin)
 app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
   try {
     const commentId = Number(req.params.commentId)
-    if (!Number.isFinite(commentId)) return res.status(400).json({ message: 'Invalid comment id' })
-    
-    // Get the comment to find its project
+    if (!Number.isFinite(commentId))
+      return res.status(400).json({ message: 'Invalid comment id' })
+
     const comment = await pool.query(
       'SELECT * FROM project_comments WHERE id=$1',
       [commentId]
     )
-    
-    if (comment.rows.length === 0) return res.status(404).json({ message: 'Comment not found' })
-    
+    if (comment.rows.length === 0)
+      return res.status(404).json({ message: 'Comment not found' })
+
     const projectId = comment.rows[0].project_id
-    
-    // Check if user has access to this project (admin or project member)
+
+    // ✅ Check project access
     if (!isAdmin(req)) {
       const hasAccess = await pool.query(
         'SELECT 1 FROM project_members WHERE project_id=$1 AND user_id=$2 LIMIT 1',
         [projectId, req.user.sub]
       )
-      if (hasAccess.rows.length === 0) return res.status(403).json({ message: 'Forbidden' })
+      if (hasAccess.rows.length === 0)
+        return res.status(403).json({ message: 'Forbidden' })
     }
-    
-    // Delete comment (cascade will delete replies) - ANY project member can delete
+
+    // ✅ Delete (cascade replies if ON DELETE CASCADE)
     await pool.query('DELETE FROM project_comments WHERE id=$1', [commentId])
-    
+
     res.json({ success: true, message: 'Comment deleted' })
   } catch (e) {
     console.error(e)
     res.status(500).json({ success: false, message: 'Server error' })
   }
 })
+
 
 
 /* --------------------------------- Tickets API --------------------------------- */
