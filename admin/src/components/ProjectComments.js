@@ -363,7 +363,6 @@ function CommentItem({
         {/* Action buttons (only show on hover) */}
         {showActions && (
           <div className="comment-action-buttons" onClick={stop}>
-            {canEdit && !isEditing && (
               <button
                 onClick={(e) => { stop(e); setIsEditing(true); }}
                 className="btn-link edit-btn"
@@ -373,8 +372,6 @@ function CommentItem({
                   <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 000-1.77l-2.34-2.34a1.25 1.25 0 00-1.77 0l-1.83 1.83 3.75 3.75 2.19-2.19z" fill="currentColor" />
                 </svg>
               </button>
-            )}
-            {canDelete && (
               <button
                 onClick={(e) => { stop(e); onDelete(comment.id); }}
                 className="btn-link delete-btn"
@@ -384,7 +381,6 @@ function CommentItem({
                   <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor" />
                 </svg>
               </button>
-            )}
           </div>
         )}
       </div>
