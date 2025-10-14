@@ -12,7 +12,6 @@ import RichTextEditor from './RichTextEditor'
 import DOMPurify from "dompurify";
 import linkifyHtml from "linkify-html";
 
-
 import useDeepLinkHandler from "../deeplink/useDeepLinkHandler";
 import "./ProjectComment.css";
 
@@ -101,7 +100,7 @@ const UserAvatar = ({ name, size = 40 }) => {
   );
 };
 
-export default function ProjectComments({ projectId, isAdmin, currentUser }) {
+export default function ProjectComments({ projectId }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
@@ -268,8 +267,6 @@ export default function ProjectComments({ projectId, isAdmin, currentUser }) {
             <CommentItem
               key={comment.id}
               comment={comment}
-              currentUser={currentUser}
-              isAdmin={isAdmin}
               onReply={() => { setReplyingTo(comment.id); setReplyText(""); }}
               onDelete={deleteComment}
               replyingTo={replyingTo}
@@ -288,8 +285,6 @@ export default function ProjectComments({ projectId, isAdmin, currentUser }) {
 
 function CommentItem({
   comment,
-  currentUser,
-  isAdmin,
   onReply,
   onDelete,
   replyingTo,
@@ -299,9 +294,6 @@ function CommentItem({
   cancelReply,
   refreshComments,
 }) {
-  const isAuthor = currentUser?.id != null && comment.user_id === currentUser.id;
-  const canEdit = isAuthor || isAdmin;
-  const canDelete = isAuthor || isAdmin;
   const isReplying = replyingTo === comment.id;
 
   const [isEditing, setIsEditing] = useState(false);
@@ -354,33 +346,38 @@ function CommentItem({
             <div className="comment-meta">
               <span className="comment-date">{new Date(comment.created_at).toLocaleString()}</span>
               {comment.updated_at !== comment.created_at && (
-                <span className="comment-edited">(edited)</span>
+                <span className="comment-edited">
+                  {comment.edited_by_name 
+                    ? `(edited by ${comment.edited_by_name})`
+                    : '(edited)'
+                  }
+                </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Action buttons (only show on hover) */}
+        {/* Action buttons (only show on hover) - Available to ALL users */}
         {showActions && (
           <div className="comment-action-buttons" onClick={stop}>
-              <button
-                onClick={(e) => { stop(e); setIsEditing(true); }}
-                className="btn-link edit-btn"
-                title="Edit comment"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 000-1.77l-2.34-2.34a1.25 1.25 0 00-1.77 0l-1.83 1.83 3.75 3.75 2.19-2.19z" fill="currentColor" />
-                </svg>
-              </button>
-              <button
-                onClick={(e) => { stop(e); onDelete(comment.id); }}
-                className="btn-link delete-btn"
-                title="Delete comment"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor" />
-                </svg>
-              </button>
+            <button
+              onClick={(e) => { stop(e); setIsEditing(true); }}
+              className="btn-link edit-btn"
+              title="Edit comment"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 000-1.77l-2.34-2.34a1.25 1.25 0 00-1.77 0l-1.83 1.83 3.75 3.75 2.19-2.19z" fill="currentColor" />
+              </svg>
+            </button>
+            <button
+              onClick={(e) => { stop(e); onDelete(comment.id); }}
+              className="btn-link delete-btn"
+              title="Delete comment"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor" />
+              </svg>
+            </button>
           </div>
         )}
       </div>
@@ -411,9 +408,10 @@ function CommentItem({
             </div>
           </div>
         ) : (
-          <div style={{ whiteSpace: "pre-wrap" }}
-
-            dangerouslySetInnerHTML={{ __html: renderSafeHtmlWithLinks(comment.comment_text) }} />
+          <div 
+            style={{ whiteSpace: "pre-wrap" }}
+            dangerouslySetInnerHTML={{ __html: renderSafeHtmlWithLinks(comment.comment_text) }} 
+          />
         )}
       </div>
 
@@ -464,8 +462,6 @@ function CommentItem({
             <CommentItem
               key={reply.id}
               comment={reply}
-              currentUser={currentUser}
-              isAdmin={isAdmin}
               onReply={onReply}
               onDelete={onDelete}
               replyingTo={replyingTo}
