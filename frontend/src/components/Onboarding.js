@@ -447,7 +447,7 @@ export default function Onboarding() {
               <div className="instructions-section-onb">
                 <h4 className="instructions-title-onb">Guidelines:</h4>
                 <ul className="instructions-list-onb">
-                  <li>• Combine all documents into one PDF</li>
+                  <li className="higlight_sen">• Combine all documents into one PDF</li>
                   <li>• Ensure documents are clear and readable</li>
                   <li>• Maximum file size: 50MB</li>
                   <li>• Only PDF format is accepted</li>

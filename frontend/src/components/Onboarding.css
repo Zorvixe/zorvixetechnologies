@@ -634,3 +634,25 @@
     height: 48px;
   }
 }
+
+.higlight_sen {
+  background-color: #fff176;
+  color: #000;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  display: inline-block;
+  animation: pulseHighlight 2s infinite;
+}
+
+@keyframes pulseHighlight {
+  0% {
+    box-shadow: 0 0 0 rgba(255, 241, 118, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(255, 241, 118, 1);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(255, 241, 118, 0.7);
+  }
+}
