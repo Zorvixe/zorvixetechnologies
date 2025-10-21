@@ -1,0 +1,280 @@
+.leave-history-container-LeaveHistory {
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.leave-history-title-LeaveHistory {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+.filters-LeaveHistory {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-item-LeaveHistory {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-item-LeaveHistory label {
+  font-weight: 600;
+  color: #555;
+  white-space: nowrap;
+}
+
+.filter-item-LeaveHistory select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.table-wrapper-LeaveHistory {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.leave-table-LeaveHistory {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leave-table-LeaveHistory th,
+.leave-table-LeaveHistory td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.leave-table-LeaveHistory th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #555;
+}
+
+.leave-table-LeaveHistory tr:hover {
+  background: #f8f9fa;
+}
+
+.tag-LeaveHistory {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.tag-LeaveHistory.type-sick {
+  background: #f44336;
+  color: white;
+}
+
+.tag-LeaveHistory.type-casual {
+  background: #2196f3;
+  color: white;
+}
+
+.tag-LeaveHistory.type-annual {
+  background: #4caf50;
+  color: white;
+}
+
+.tag-LeaveHistory.type-maternity {
+  background: #e91e63;
+  color: white;
+}
+
+.tag-LeaveHistory.type-paternity {
+  background: #ff9800;
+  color: white;
+}
+
+.approver-info-LeaveHistory strong {
+  display: block;
+  font-size: 14px;
+}
+
+.approver-info-LeaveHistory p {
+  margin: 2px 0 0 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.status-LeaveHistory {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-LeaveHistory.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-LeaveHistory.approved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-LeaveHistory.rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-LeaveHistory.cancelled {
+  background: #6c757d;
+  color: white;
+}
+
+.action-buttons-LeaveHistory {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.btn-LeaveHistory {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.btn-LeaveHistory.view {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-LeaveHistory.view:hover {
+  background: #138496;
+}
+
+.btn-LeaveHistory.edit {
+  background: #ffc107;
+  color: #212529;
+}
+
+.btn-LeaveHistory.edit:hover {
+  background: #e0a800;
+}
+
+.btn-LeaveHistory.cancel {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-LeaveHistory.cancel:hover {
+  background: #c82333;
+}
+
+.pagination-LeaveHistory {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.page-btn-LeaveHistory {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.page-btn-LeaveHistory.active {
+  background: #4a90e2;
+  color: white;
+  border-color: #4a90e2;
+}
+
+.error-box-LeaveHistory {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 10px 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.message-box-LeaveHistory {
+  padding: 10px 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.message-box-LeaveHistory.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.message-box-LeaveHistory.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.loading-box-LeaveHistory {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.spinner-LeaveHistory {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4a90e2;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin-LeaveHistory 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin-LeaveHistory {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.no-data-LeaveHistory {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .filters-LeaveHistory {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .filter-item-LeaveHistory {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .leave-table-LeaveHistory {
+    font-size: 12px;
+  }
+  
+  .leave-table-LeaveHistory th,
+  .leave-table-LeaveHistory td {
+    padding: 8px 4px;
+  }
+  
+  .action-buttons-LeaveHistory {
+    flex-direction: column;
+  }
+}

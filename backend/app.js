@@ -327,7 +327,7 @@ async function initDb() {
 `)
 
 
-await client.query(`
+    await client.query(`
   CREATE TABLE IF NOT EXISTS project_comments (
     id              BIGSERIAL PRIMARY KEY,
     project_id      BIGINT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -339,12 +339,12 @@ await client.query(`
   );
 `);
 
-await client.query(`
+    await client.query(`
   CREATE INDEX IF NOT EXISTS idx_project_comments_project ON project_comments(project_id);
   CREATE INDEX IF NOT EXISTS idx_project_comments_parent ON project_comments(parent_id);
 `);
 
-await client.query(`
+    await client.query(`
   DROP TRIGGER IF EXISTS trg_project_comments_updated_at ON project_comments;
   CREATE TRIGGER trg_project_comments_updated_at
   BEFORE UPDATE ON project_comments
@@ -352,8 +352,8 @@ await client.query(`
 `);
 
 
-// Add to the DB initialization section (after project_comments)
-await client.query(`
+    // Add to the DB initialization section (after project_comments)
+    await client.query(`
   CREATE TABLE IF NOT EXISTS tickets (
     id              BIGSERIAL PRIMARY KEY,
     title           VARCHAR(200) NOT NULL,
@@ -367,7 +367,7 @@ await client.query(`
   );
 `);
 
-await client.query(`
+    await client.query(`
   CREATE TABLE IF NOT EXISTS ticket_comments (
     id              BIGSERIAL PRIMARY KEY,
     ticket_id       BIGINT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
@@ -378,7 +378,7 @@ await client.query(`
   );
 `);
 
-await client.query(`
+    await client.query(`
   CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
   CREATE INDEX IF NOT EXISTS idx_tickets_priority ON tickets(priority);
   CREATE INDEX IF NOT EXISTS idx_tickets_created_by ON tickets(created_by);
@@ -386,14 +386,14 @@ await client.query(`
   CREATE INDEX IF NOT EXISTS idx_ticket_comments_ticket ON ticket_comments(ticket_id);
 `);
 
-await client.query(`
+    await client.query(`
   DROP TRIGGER IF EXISTS trg_tickets_updated_at ON tickets;
   CREATE TRIGGER trg_tickets_updated_at
   BEFORE UPDATE ON tickets
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
 `);
 
-await client.query(`
+    await client.query(`
   DROP TRIGGER IF EXISTS trg_ticket_comments_updated_at ON ticket_comments;
   CREATE TRIGGER trg_ticket_comments_updated_at
   BEFORE UPDATE ON ticket_comments
@@ -431,22 +431,99 @@ await client.query(`
   );
 `);
 
-await client.query(`
+    await client.query(`
   CREATE INDEX IF NOT EXISTS idx_ticket_views_ticket ON ticket_views(ticket_id);
   CREATE INDEX IF NOT EXISTS idx_ticket_views_user ON ticket_views(user_id);
 `);
 
-// Add last_edited_by to tickets table
-await client.query(`
+    // Add last_edited_by to tickets table
+    await client.query(`
   ALTER TABLE tickets ADD COLUMN IF NOT EXISTS last_edited_by BIGINT REFERENCES admin_users(id);
 `);
 
-await client.query(`
+    await client.query(`
   DROP TRIGGER IF EXISTS trg_tickets_last_edited ON tickets;
   CREATE TRIGGER trg_tickets_last_edited
   BEFORE UPDATE ON tickets
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
 `);
+
+
+    // Add to DB initialization
+    await client.query(`
+  CREATE TABLE IF NOT EXISTS leaves (
+    id BIGSERIAL PRIMARY KEY,
+    employee_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+    approver_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+    leave_type VARCHAR(20) NOT NULL CHECK (leave_type IN ('sick', 'casual', 'annual', 'maternity', 'paternity')),
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    total_days INTEGER NOT NULL CHECK (total_days > 0),
+    reason TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled')),
+    applied_on TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    approved_by BIGINT REFERENCES admin_users(id) ON DELETE SET NULL,
+    approved_on TIMESTAMPTZ,
+    comments TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+`);
+
+    await client.query(`
+  CREATE TABLE IF NOT EXISTS leave_balances (
+    id BIGSERIAL PRIMARY KEY,
+    employee_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+    sick_balance INTEGER NOT NULL DEFAULT 12,
+    casual_balance INTEGER NOT NULL DEFAULT 12,
+    annual_balance INTEGER NOT NULL DEFAULT 21,
+    maternity_balance INTEGER NOT NULL DEFAULT 180,
+    paternity_balance INTEGER NOT NULL DEFAULT 15,
+    sick_carry_forward INTEGER NOT NULL DEFAULT 0,
+    casual_carry_forward INTEGER NOT NULL DEFAULT 0,
+    annual_carry_forward INTEGER NOT NULL DEFAULT 0,
+    last_reset TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(employee_id)
+  );
+`);
+
+    // Create indexes
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leaves_employee_id ON leaves(employee_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leaves_approver_id ON leaves(approver_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leaves_status ON leaves(status);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leaves_start_date ON leaves(start_date);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leaves_end_date ON leaves(end_date);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leave_balances_employee ON leave_balances(employee_id);`);
+
+    // Add triggers for updated_at
+    await client.query(`
+  DROP TRIGGER IF EXISTS trg_leaves_updated_at ON leaves;
+  CREATE TRIGGER trg_leaves_updated_at
+  BEFORE UPDATE ON leaves
+  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+`);
+
+    await client.query(`
+  DROP TRIGGER IF EXISTS trg_leave_balances_updated_at ON leave_balances;
+  CREATE TRIGGER trg_leave_balances_updated_at
+  BEFORE UPDATE ON leave_balances
+  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+`);
+
+    // Initialize leave balances for existing users
+    await client.query(`
+  INSERT INTO leave_balances (employee_id, sick_balance, casual_balance, annual_balance, maternity_balance, paternity_balance)
+  SELECT id, 12, 12, 21, 180, 15
+  FROM admin_users
+  WHERE is_active = TRUE
+  AND NOT EXISTS (SELECT 1 FROM leave_balances WHERE employee_id = admin_users.id)
+`);
+
+    // Add department and position to admin_users
+    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS department VARCHAR(100);`);
+    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS position VARCHAR(100);`);
 
 
     // Seed default admin
@@ -1772,9 +1849,9 @@ app.get('/api/admin/payment-registrations/:id/receipt', requireAdmin, async (req
     const ext = (path.extname(filePath) || '').toLowerCase();
     const mime =
       ext === '.pdf' ? 'application/pdf' :
-      ext === '.png' ? 'image/png' :
-      ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
-      'application/octet-stream';
+        ext === '.png' ? 'image/png' :
+          ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
+            'application/octet-stream';
 
     res.setHeader('Content-Type', mime);
     res.setHeader('Content-Disposition', `attachment; filename="payment-receipt-${id}${ext}"`);
@@ -2146,7 +2223,7 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
       // This is a simple simulation since we don't have actual logout tracking
       const logoutTime = new Date(r.last_login_at);
       logoutTime.setHours(logoutTime.getHours() + 10);
-      
+
       // Only add logout if it's in the past (not future)
       if (logoutTime < new Date()) {
         acts.push({
@@ -2174,7 +2251,7 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
         comments: Number(commentsCount.rows[0]?.c || 0),
         users: Number(usersCount.rows[0]?.c || 0),
       },
-      
+
       statusBreakdowns: {
         projects: projectsByStatus.rows.map((r) => ({
           status: r.status,
@@ -2191,7 +2268,7 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
           })),
         },
       },
-      
+
       trendsLast30: {
         projects: projectsLast30.rows.map((r) => ({
           day: r.day,
@@ -2206,10 +2283,10 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
           count: Number(r.count || 0),
         })),
       },
-      
+
       recentLogins: recentLogins.rows,
       activityFeed,
-      
+
       // Raw recent data for detailed views if needed
       recentData: {
         projects: projectsRecent.rows,
@@ -2442,7 +2519,7 @@ app.get('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
   try {
     const projectId = Number(req.params.projectId)
     if (!Number.isFinite(projectId)) return res.status(400).json({ message: 'Invalid project id' })
-    
+
     // Check if user has access to this project
     if (!isAdmin(req)) {
       const hasAccess = await pool.query(
@@ -2451,7 +2528,7 @@ app.get('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
       )
       if (hasAccess.rows.length === 0) return res.status(403).json({ message: 'Forbidden' })
     }
-    
+
     // Get comments with user info, ordered by creation date (newest first)
     const { rows } = await pool.query(`
       SELECT 
@@ -2464,15 +2541,15 @@ app.get('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
       WHERE c.project_id = $1
       ORDER BY c.created_at DESC
     `, [projectId])
-    
+
     // Structure comments into a tree (parent/child relationships)
     const commentMap = {}
     const rootComments = []
-    
+
     rows.forEach(comment => {
       commentMap[comment.id] = { ...comment, replies: [] }
     })
-    
+
     rows.forEach(comment => {
       if (comment.parent_id) {
         if (commentMap[comment.parent_id]) {
@@ -2482,7 +2559,7 @@ app.get('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
         rootComments.push(commentMap[comment.id])
       }
     })
-    
+
     res.json({ success: true, comments: rootComments })
   } catch (e) {
     console.error(e)
@@ -2495,12 +2572,12 @@ app.post('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
   try {
     const projectId = Number(req.params.projectId)
     if (!Number.isFinite(projectId)) return res.status(400).json({ message: 'Invalid project id' })
-    
+
     const { comment_text, parent_id } = req.body
     if (!comment_text || comment_text.trim().length === 0) {
       return res.status(400).json({ message: 'Comment text is required' })
     }
-    
+
     // Check if user has access to this project
     if (!isAdmin(req)) {
       const hasAccess = await pool.query(
@@ -2509,7 +2586,7 @@ app.post('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
       )
       if (hasAccess.rows.length === 0) return res.status(403).json({ message: 'Forbidden' })
     }
-    
+
     // Validate parent_id if provided
     if (parent_id) {
       const parentComment = await pool.query(
@@ -2520,14 +2597,14 @@ app.post('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
         return res.status(400).json({ message: 'Invalid parent comment' })
       }
     }
-    
+
     // Insert comment
     const { rows } = await pool.query(`
       INSERT INTO project_comments (project_id, user_id, parent_id, comment_text)
       VALUES ($1, $2, $3, $4)
       RETURNING *
     `, [projectId, req.user.sub, parent_id || null, comment_text.trim()])
-    
+
     // Get comment with user info
     const newComment = await pool.query(`
       SELECT 
@@ -2539,7 +2616,7 @@ app.post('/api/projects/:projectId/comments', requireAuth, async (req, res) => {
       JOIN admin_users u ON u.id = c.user_id
       WHERE c.id = $1
     `, [rows[0].id])
-    
+
     res.status(201).json({ success: true, comment: newComment.rows[0] })
   } catch (e) {
     console.error(e)
@@ -2552,21 +2629,21 @@ app.put('/api/comments/:commentId', requireAuth, async (req, res) => {
   try {
     const commentId = Number(req.params.commentId)
     if (!Number.isFinite(commentId)) return res.status(400).json({ message: 'Invalid comment id' })
-    
+
     const { comment_text } = req.body
     if (!comment_text || comment_text.trim().length === 0) {
       return res.status(400).json({ message: 'Comment text is required' })
     }
-    
+
     // Check if user is the author of this comment
     const comment = await pool.query(
       'SELECT * FROM project_comments WHERE id=$1',
       [commentId]
     )
-    
+
     if (comment.rows.length === 0) return res.status(404).json({ message: 'Comment not found' })
     if (comment.rows[0].user_id !== req.user.sub) return res.status(403).json({ message: 'Forbidden' })
-    
+
     // Update comment
     const { rows } = await pool.query(`
       UPDATE project_comments 
@@ -2574,7 +2651,7 @@ app.put('/api/comments/:commentId', requireAuth, async (req, res) => {
       WHERE id = $2
       RETURNING *
     `, [comment_text.trim(), commentId])
-    
+
     res.json({ success: true, comment: rows[0] })
   } catch (e) {
     console.error(e)
@@ -2587,22 +2664,22 @@ app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
   try {
     const commentId = Number(req.params.commentId)
     if (!Number.isFinite(commentId)) return res.status(400).json({ message: 'Invalid comment id' })
-    
+
     // Check if user is the author or an admin
     const comment = await pool.query(
       'SELECT * FROM project_comments WHERE id=$1',
       [commentId]
     )
-    
+
     if (comment.rows.length === 0) return res.status(404).json({ message: 'Comment not found' })
-    
+
     if (comment.rows[0].user_id !== req.user.sub && !isAdmin(req)) {
       return res.status(403).json({ message: 'Forbidden' })
     }
-    
+
     // Delete comment (cascade will delete replies)
     await pool.query('DELETE FROM project_comments WHERE id=$1', [commentId])
-    
+
     res.json({ success: true, message: 'Comment deleted' })
   } catch (e) {
     console.error(e)
@@ -2758,9 +2835,9 @@ app.patch('/api/tickets/:id', requireAuth, async (req, res) => {
     if (description) { params.push(description); sets.push(`description = $${params.length}`); }
     if (status) { params.push(status); sets.push(`status = $${params.length}`); }
     if (priority) { params.push(priority); sets.push(`priority = $${params.length}`); }
-    if (assigned_to !== undefined) { 
-      params.push(assigned_to); 
-      sets.push(`assigned_to = $${params.length}`); 
+    if (assigned_to !== undefined) {
+      params.push(assigned_to);
+      sets.push(`assigned_to = $${params.length}`);
     }
 
     if (sets.length === 0) {
@@ -2803,7 +2880,7 @@ app.post('/api/tickets/:id/comments', requireAuth, async (req, res) => {
     }
 
     const exists = await pool.query('SELECT 1 FROM tickets WHERE id=$1', [id]);
-    if (!exists.rows.length) return res.status(404).json({ success:false, message:'Ticket not found' });
+    if (!exists.rows.length) return res.status(404).json({ success: false, message: 'Ticket not found' });
 
     const ins = await pool.query(
       `INSERT INTO ticket_comments (ticket_id, user_id, comment_text)
@@ -2821,10 +2898,10 @@ app.post('/api/tickets/:id/comments', requireAuth, async (req, res) => {
       [ins.rows[0].id]
     );
 
-    res.status(201).json({ success:true, comment: joined.rows[0] });
+    res.status(201).json({ success: true, comment: joined.rows[0] });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ success:false, message:'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -2843,7 +2920,7 @@ app.patch('/api/ticket-comments/:id', requireAuth, async (req, res) => {
       'SELECT 1 FROM ticket_comments WHERE id=$1 AND user_id=$2',
       [id, req.user.sub]
     );
-    if (!own.rows.length) return res.status(404).json({ success:false, message:'Comment not found or access denied' });
+    if (!own.rows.length) return res.status(404).json({ success: false, message: 'Comment not found or access denied' });
 
     await pool.query(
       `UPDATE ticket_comments SET comment_text=$1, updated_at=NOW() WHERE id=$2`,
@@ -2858,10 +2935,10 @@ app.patch('/api/ticket-comments/:id', requireAuth, async (req, res) => {
       [id]
     );
 
-    res.json({ success:true, comment: joined.rows[0] });
+    res.json({ success: true, comment: joined.rows[0] });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ success:false, message:'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -2921,18 +2998,18 @@ app.delete('/api/tickets/:id', requireAuth, async (req, res) => {
       [id]
     );
     const t = q.rows[0];
-    if (!t) return res.status(404).json({ success:false, message:'Ticket not found' });
+    if (!t) return res.status(404).json({ success: false, message: 'Ticket not found' });
 
     // Only creator or admin
     if (t.created_by !== req.user.sub && !isAdmin(req)) {
-      return res.status(403).json({ success:false, message:'Forbidden' });
+      return res.status(403).json({ success: false, message: 'Forbidden' });
     }
 
     await pool.query(`DELETE FROM tickets WHERE id=$1`, [id]);
-    return res.json({ success:true, message:'Deleted' });
+    return res.json({ success: true, message: 'Deleted' });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ success:false, message:'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -2942,7 +3019,7 @@ app.post('/api/tickets/:id/view', requireAuth, async (req, res) => {
   try {
     const ticketId = Number(req.params.id);
     const userId = req.user.sub;
-    
+
     if (!Number.isFinite(ticketId)) return res.status(400).json({ message: 'Invalid ticket id' });
 
     // Check if user already viewed this ticket
@@ -2983,6 +3060,575 @@ app.get('/api/tickets/:id/viewers', requireAuth, async (req, res) => {
     res.json({ success: true, viewers: viewers.rows });
   } catch (e) {
     console.error(e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+
+app.get('/api/leaves/approvers', requireAuth, async (req, res) => {
+  try {
+    const currentUserId = req.user.sub;
+
+    const result = await pool.query(`
+      SELECT id, name, email, role, department, position
+      FROM admin_users 
+      WHERE is_active = TRUE AND id != $1
+      ORDER BY name ASC
+    `, [currentUserId]);
+
+    res.json({
+      success: true,
+      approvers: result.rows
+    });
+
+  } catch (error) {
+    console.error('Get approvers error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}); app.post('/api/leaves/apply', requireAuth, async (req, res) => {
+  try {
+    const { leaveType, startDate, endDate, reason, approverId } = req.body;
+    const employeeId = req.user.sub;
+
+    // Validation
+    if (!leaveType || !startDate || !endDate || !reason || !approverId) {
+      return res.status(400).json({ success: false, message: 'All fields are required' });
+    }
+
+    const validLeaveTypes = ['sick', 'casual', 'annual', 'maternity', 'paternity'];
+    if (!validLeaveTypes.includes(leaveType)) {
+      return res.status(400).json({ success: false, message: 'Invalid leave type' });
+    }
+
+    // Check if approver exists and is active
+    const approverCheck = await pool.query(
+      'SELECT id, name FROM admin_users WHERE id = $1 AND is_active = TRUE',
+      [approverId]
+    );
+
+    if (approverCheck.rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Selected approver not found or inactive' });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (start < today) {
+      return res.status(400).json({ success: false, message: 'Start date cannot be in the past' });
+    }
+
+    if (end < start) {
+      return res.status(400).json({ success: false, message: 'End date cannot be before start date' });
+    }
+
+    // Calculate total days (excluding weekends)
+    let totalDays = 0;
+    let current = new Date(start);
+    while (current <= end) {
+      const day = current.getDay();
+      if (day !== 0 && day !== 6) { // Skip Sunday (0) and Saturday (6)
+        totalDays++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    if (totalDays <= 0) {
+      return res.status(400).json({ success: false, message: 'No working days in selected period' });
+    }
+
+    // Check leave balance
+    const balanceQuery = await pool.query(
+      'SELECT * FROM leave_balances WHERE employee_id = $1',
+      [employeeId]
+    );
+
+    if (balanceQuery.rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Leave balance not found' });
+    }
+
+    const balance = balanceQuery.rows[0];
+    const availableBalance = balance[`${leaveType}_balance`];
+
+    if (availableBalance < totalDays) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient ${leaveType} leave balance. Available: ${availableBalance}, Required: ${totalDays}`
+      });
+    }
+
+    // Create leave application
+    const result = await pool.query(
+      `INSERT INTO leaves (employee_id, approver_id, leave_type, start_date, end_date, total_days, reason, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
+       RETURNING *`,
+      [employeeId, approverId, leaveType, startDate, endDate, totalDays, reason]
+    );
+
+    // Get leave with employee and approver details
+    const leaveWithDetails = await pool.query(`
+      SELECT l.*, 
+             emp.name as employee_name, emp.email as employee_email, emp.role as employee_role, emp.department as employee_department,
+             appr.name as approver_name, appr.email as approver_email, appr.role as approver_role,
+             approver.name as approved_by_name
+      FROM leaves l
+      JOIN admin_users emp ON emp.id = l.employee_id
+      JOIN admin_users appr ON appr.id = l.approver_id
+      LEFT JOIN admin_users approver ON approver.id = l.approved_by
+      WHERE l.id = $1
+    `, [result.rows[0].id]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Leave application submitted successfully',
+      leave: leaveWithDetails.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Apply leave error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}); app.get('/api/leaves/my-leaves', requireAuth, async (req, res) => {
+  try {
+    const employeeId = req.user.sub;
+    const { status, year, page = 1, limit = 10 } = req.query;
+
+    let whereClause = 'WHERE l.employee_id = $1';
+    let params = [employeeId];
+    let paramCount = 1;
+
+    if (status && status !== 'all') {
+      paramCount++;
+      whereClause += ` AND l.status = $${paramCount}`;
+      params.push(status);
+    }
+
+    if (year) {
+      paramCount++;
+      whereClause += ` AND EXTRACT(YEAR FROM l.start_date) = $${paramCount}`;
+      params.push(year);
+    }
+
+    // Get total count
+    const countQuery = await pool.query(
+      `SELECT COUNT(*) FROM leaves l ${whereClause}`,
+      params
+    );
+    const total = parseInt(countQuery.rows[0].count);
+
+    // Calculate pagination
+    const offset = (page - 1) * limit;
+    paramCount++;
+    params.push(limit);
+    paramCount++;
+    params.push(offset);
+
+    // Get leaves
+    const leavesQuery = await pool.query(`
+      SELECT l.*, 
+             emp.name as employee_name, emp.email as employee_email, emp.role as employee_role, emp.department as employee_department,
+             appr.name as approver_name, appr.email as approver_email, appr.role as approver_role,
+             approver.name as approved_by_name
+      FROM leaves l
+      JOIN admin_users emp ON emp.id = l.employee_id
+      JOIN admin_users appr ON appr.id = l.approver_id
+      LEFT JOIN admin_users approver ON approver.id = l.approved_by
+      ${whereClause}
+      ORDER BY l.applied_on DESC
+      LIMIT $${paramCount - 1} OFFSET $${paramCount}
+    `, params);
+
+    res.json({
+      success: true,
+      leaves: leavesQuery.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Get my leaves error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}); app.get('/api/leaves/for-approval', requireAuth, async (req, res) => {
+  try {
+    const approverId = req.user.sub;
+    const { status, year, page = 1, limit = 10 } = req.query;
+
+    let whereClause = 'WHERE l.approver_id = $1';
+    let params = [approverId];
+    let paramCount = 1;
+
+    if (status && status !== 'all') {
+      paramCount++;
+      whereClause += ` AND l.status = $${paramCount}`;
+      params.push(status);
+    }
+
+    if (year) {
+      paramCount++;
+      whereClause += ` AND EXTRACT(YEAR FROM l.start_date) = $${paramCount}`;
+      params.push(year);
+    }
+
+    // Get total count
+    const countQuery = await pool.query(
+      `SELECT COUNT(*) FROM leaves l ${whereClause}`,
+      params
+    );
+    const total = parseInt(countQuery.rows[0].count);
+
+    // Calculate pagination
+    const offset = (page - 1) * limit;
+    paramCount++;
+    params.push(limit);
+    paramCount++;
+    params.push(offset);
+
+    // Get leaves
+    const leavesQuery = await pool.query(`
+      SELECT l.*, 
+             emp.name as employee_name, emp.email as employee_email, emp.role as employee_role, emp.department as employee_department,
+             appr.name as approver_name, appr.email as approver_email, appr.role as approver_role,
+             approver.name as approved_by_name
+      FROM leaves l
+      JOIN admin_users emp ON emp.id = l.employee_id
+      JOIN admin_users appr ON appr.id = l.approver_id
+      LEFT JOIN admin_users approver ON approver.id = l.approved_by
+      ${whereClause}
+      ORDER BY l.applied_on DESC
+      LIMIT $${paramCount - 1} OFFSET $${paramCount}
+    `, params);
+
+    res.json({
+      success: true,
+      leaves: leavesQuery.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Get leaves for approval error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}); 
+
+app.get('/api/admin/leaves', requireAuth, async (req, res) => {
+  try {
+    const { status, department, year, page = 1, limit = 10 } = req.query;
+
+    let whereClause = 'WHERE 1=1';
+    let params = [];
+    let paramCount = 0;
+
+    if (status && status !== 'all') {
+      paramCount++;
+      whereClause += ` AND l.status = $${paramCount}`;
+      params.push(status);
+    }
+
+    if (department && department !== 'all') {
+      paramCount++;
+      whereClause += ` AND emp.department = $${paramCount}`;
+      params.push(department);
+    }
+
+    if (year && year !== 'all') {
+      paramCount++;
+      whereClause += ` AND EXTRACT(YEAR FROM l.start_date) = $${paramCount}`;
+      params.push(parseInt(year));
+    }
+
+    // Get total count
+    const countQuery = await pool.query(
+      `SELECT COUNT(*) FROM leaves l 
+       JOIN admin_users emp ON emp.id = l.employee_id 
+       ${whereClause}`,
+      params
+    );
+    const total = parseInt(countQuery.rows[0].count);
+
+    // Calculate pagination
+    const offset = (page - 1) * limit;
+    paramCount++;
+    params.push(parseInt(limit));
+    paramCount++;
+    params.push(parseInt(offset));
+
+    // Get leaves
+    const leavesQuery = await pool.query(`
+      SELECT l.*, 
+             emp.name as employee_name, emp.email as employee_email, emp.role as employee_role, emp.department as employee_department,
+             appr.name as approver_name, appr.email as approver_email, appr.role as approver_role,
+             approver.name as approved_by_name
+      FROM leaves l
+      JOIN admin_users emp ON emp.id = l.employee_id
+      JOIN admin_users appr ON appr.id = l.approver_id
+      LEFT JOIN admin_users approver ON approver.id = l.approved_by
+      ${whereClause}
+      ORDER BY l.applied_on DESC
+      LIMIT $${paramCount - 1} OFFSET $${paramCount}
+    `, params);
+
+    res.json({
+      success: true,
+      leaves: leavesQuery.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Get all leaves error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+
+
+app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
+  try {
+    const leaveId = Number(req.params.id);
+    const { status, comments } = req.body;
+    const currentUserId = req.user.sub;
+    const currentUserRole = req.user.role;
+
+    if (!Number.isFinite(leaveId)) {
+      return res.status(400).json({ success: false, message: 'Invalid leave ID' });
+    }
+
+    const validStatuses = ['approved', 'rejected'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    // Get current leave details
+    const leaveQuery = await pool.query(
+      `SELECT l.*, emp.name as employee_name, appr.name as approver_name
+       FROM leaves l
+       JOIN admin_users emp ON emp.id = l.employee_id
+       JOIN admin_users appr ON appr.id = l.approver_id
+       WHERE l.id = $1`,
+      [leaveId]
+    );
+
+    if (leaveQuery.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Leave not found' });
+    }
+
+    const leave = leaveQuery.rows[0];
+
+    // Check permissions: either the assigned approver OR admin can approve/reject
+    const isApprover = leave.approver_id === currentUserId;
+    const isAdmin = currentUserRole === 'admin';
+
+    if (!isApprover && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to approve/reject this leave'
+      });
+    }
+
+    // If approving leave, deduct from balance
+    if (status === 'approved' && leave.status !== 'approved') {
+      const balanceQuery = await pool.query(
+        'SELECT * FROM leave_balances WHERE employee_id = $1',
+        [leave.employee_id]
+      );
+
+      if (balanceQuery.rows.length === 0) {
+        return res.status(400).json({ success: false, message: 'Leave balance not found' });
+      }
+
+      const balance = balanceQuery.rows[0];
+      const availableBalance = balance[`${leave.leave_type}_balance`];
+
+      if (availableBalance < leave.total_days) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient ${leave.leave_type} leave balance. Available: ${availableBalance}, Required: ${leave.total_days}`
+        });
+      }
+
+      // Deduct from balance
+      await pool.query(
+        `UPDATE leave_balances 
+         SET ${leave.leave_type}_balance = ${leave.leave_type}_balance - $1 
+         WHERE employee_id = $2`,
+        [leave.total_days, leave.employee_id]
+      );
+    }
+
+    // If reversing approval, add back to balance
+    if (status !== 'approved' && leave.status === 'approved') {
+      await pool.query(
+        `UPDATE leave_balances 
+         SET ${leave.leave_type}_balance = ${leave.leave_type}_balance + $1 
+         WHERE employee_id = $2`,
+        [leave.total_days, leave.employee_id]
+      );
+    }
+
+    // Update leave status
+    const updateQuery = await pool.query(
+      `UPDATE leaves 
+       SET status = $1, approved_by = $2, approved_on = NOW(), comments = $3
+       WHERE id = $4
+       RETURNING *`,
+      [status, currentUserId, comments, leaveId]
+    );
+
+    // Get updated leave with details
+    const updatedLeave = await pool.query(`
+      SELECT l.*, 
+             emp.name as employee_name, emp.email as employee_email, emp.role as employee_role, emp.department as employee_department,
+             appr.name as approver_name, appr.email as approver_email, appr.role as approver_role,
+             approver.name as approved_by_name
+      FROM leaves l
+      JOIN admin_users emp ON emp.id = l.employee_id
+      JOIN admin_users appr ON appr.id = l.approver_id
+      LEFT JOIN admin_users approver ON approver.id = l.approved_by
+      WHERE l.id = $1
+    `, [leaveId]);
+
+    res.json({
+      success: true,
+      message: `Leave application ${status} successfully`,
+      leave: updatedLeave.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Update leave status error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}); app.get('/api/leaves/balance', requireAuth, async (req, res) => {
+  try {
+    const employeeId = req.user.sub;
+
+    const result = await pool.query(`
+      SELECT lb.*, au.name as employee_name, au.email as employee_email, au.role as employee_role
+      FROM leave_balances lb
+      JOIN admin_users au ON au.id = lb.employee_id
+      WHERE lb.employee_id = $1
+    `, [employeeId]);
+
+    if (result.rows.length === 0) {
+      // Create balance if not exists
+      const insertResult = await pool.query(
+        `INSERT INTO leave_balances (employee_id) VALUES ($1) RETURNING *`,
+        [employeeId]
+      );
+      return res.json({ success: true, balance: insertResult.rows[0] });
+    }
+
+    res.json({ success: true, balance: result.rows[0] });
+
+  } catch (error) {
+    console.error('Get leave balance error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}); app.patch('/api/leaves/:id/cancel', requireAuth, async (req, res) => {
+  try {
+    const leaveId = Number(req.params.id);
+    const employeeId = req.user.sub;
+
+    if (!Number.isFinite(leaveId)) {
+      return res.status(400).json({ success: false, message: 'Invalid leave ID' });
+    }
+
+    // Check if leave exists and belongs to employee
+    const leaveQuery = await pool.query(
+      'SELECT * FROM leaves WHERE id = $1 AND employee_id = $2',
+      [leaveId, employeeId]
+    );
+
+    if (leaveQuery.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Leave not found' });
+    }
+
+    const leave = leaveQuery.rows[0];
+
+    // Only allow cancellation of pending leaves
+    if (leave.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only pending leaves can be cancelled'
+      });
+    }
+
+    // Update leave status to cancelled
+    const updateQuery = await pool.query(
+      'UPDATE leaves SET status = $1 WHERE id = $2 RETURNING *',
+      ['cancelled', leaveId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Leave application cancelled successfully',
+      leave: updateQuery.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Cancel leave error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}); app.post('/api/admin/leaves/carry-forward', requireAdmin, async (req, res) => {
+  try {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    // Get all active employees with leave balances
+    const balancesQuery = await pool.query(`
+      SELECT lb.*, au.name as employee_name
+      FROM leave_balances lb
+      JOIN admin_users au ON au.id = lb.employee_id
+      WHERE au.is_active = TRUE
+    `);
+
+    let updatedCount = 0;
+
+    for (const balance of balancesQuery.rows) {
+      // Carry forward logic
+      const casualCarryForward = Math.min(balance.casual_balance, 5);
+      const sickCarryForward = Math.min(balance.sick_balance, 10);
+      const annualCarryForward = balance.annual_balance; // Annual leaves can be fully carried forward
+
+      // Update balances with carry forwards
+      await pool.query(`
+        UPDATE leave_balances 
+        SET 
+          casual_balance = 12 + $1,
+          sick_balance = 12 + $2,
+          annual_balance = $3,
+          casual_carry_forward = $1,
+          sick_carry_forward = $2,
+          annual_carry_forward = $3,
+          last_reset = NOW()
+        WHERE id = $4
+      `, [casualCarryForward, sickCarryForward, annualCarryForward, balance.id]);
+
+      updatedCount++;
+    }
+
+    res.json({
+      success: true,
+      message: `Leave balances carried forward for ${updatedCount} employees`,
+      updatedCount
+    });
+
+  } catch (error) {
+    console.error('Carry forward leaves error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

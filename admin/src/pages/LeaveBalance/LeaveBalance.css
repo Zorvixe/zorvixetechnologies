@@ -1,0 +1,202 @@
+.leave-balance-card-LeaveBalance {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+}
+
+.leave-title-LeaveBalance {
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 20px;
+}
+
+.leave-item-LeaveBalance {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.leave-item-LeaveBalance:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.leave-header-LeaveBalance {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.leave-info-LeaveBalance {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.leave-icon-LeaveBalance {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.leave-info-LeaveBalance h4 {
+  margin: 0 0 2px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.leave-subtext-LeaveBalance {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.leave-count-LeaveBalance {
+  text-align: right;
+}
+
+.leave-count-LeaveBalance .count {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
+
+.progress-bar-LeaveBalance {
+  height: 6px;
+  background: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.progress-fill-LeaveBalance {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.leave-usage-LeaveBalance {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #666;
+  margin-top: 5px;
+}
+
+.last-updated-LeaveBalance {
+  text-align: center;
+  font-size: 12px;
+  color: #999;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.leave-error-LeaveBalance {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 15px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.center-LeaveBalance {
+  text-align: center;
+  padding: 40px;
+}
+
+.spinner-LeaveBalance {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4a90e2;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin-LeaveBalance 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin-LeaveBalance {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .leave-balance-card-LeaveBalance {
+    margin: 0 10px;
+  }
+  
+  .leave-header-LeaveBalance {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .leave-count-LeaveBalance {
+    text-align: left;
+    width: 100%;
+  }
+}
+
+.leave-name-with-tooltip-LeaveBalance {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tooltip-container-LeaveBalance {
+  position: relative;
+  display: inline-block;
+}
+
+.question-icon-LeaveBalance {
+  background-color: #555;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 12px;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.tooltip-text-LeaveBalance {
+  visibility: hidden;
+  width: 260px;
+  background-color: #333;
+  color: #fff;
+  text-align: left;
+  border-radius: 6px;
+  padding: 8px;
+  position: absolute;
+  z-index: 1;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.tooltip-container-LeaveBalance:hover .tooltip-text-LeaveBalance {
+  visibility: visible;
+  opacity: 1;
+}
+
+.tooltip-text-LeaveBalance::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
+}

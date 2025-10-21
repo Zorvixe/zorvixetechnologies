@@ -15,6 +15,7 @@ import Clients from './pages/Clients';
 import Payments from './pages/Payments';
 import Tickets from './pages/Tickets';
 
+import LeaveManagement from "./pages/LeaveManagement/LeaveManagement"
 
 
 import './App.css';
@@ -96,6 +97,8 @@ function Shell() {
           <Route path="/projects/:id" element={<Clients />} />
 
           <Route path="*" element={<Navigate to="/stats" />} />
+
+          <Route path="/leaves" element={<LeaveManagement />} />
         </Routes>
       </main>
     </div>

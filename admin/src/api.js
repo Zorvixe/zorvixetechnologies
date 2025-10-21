@@ -257,6 +257,39 @@ export const apiGetTicketViewers = (ticketId) =>
   request(`/api/tickets/${ticketId}/viewers`);
 
 
+
+/* --------------------------- Leave Management --------------------------- */
+
+// Get available approvers
+export const apiGetApprovers = () => request('/api/leaves/approvers');
+
+// Apply for leave
+export const apiApplyLeave = (body) => request('/api/leaves/apply', { method: 'POST', body });
+
+// Get my leaves (as applicant)
+export const apiGetMyLeaves = (params) => request('/api/leaves/my-leaves', { params });
+
+// Get leaves for my approval (as approver)
+export const apiGetLeavesForApproval = (params) => request('/api/leaves/for-approval', { params });
+
+// Get all leaves (admin view)
+export const apiGetAllLeaves = (params) => request('/api/admin/leaves', { params });
+
+// Get leave balance
+export const apiGetLeaveBalance = () => request('/api/leaves/balance');
+
+// Update leave status (approve/reject)
+export const apiUpdateLeaveStatus = (id, body) => request(`/api/leaves/${id}/status`, { method: 'PATCH', body });
+
+// Cancel leave
+export const apiCancelLeave = (id) => request(`/api/leaves/${id}/cancel`, { method: 'PATCH' });
+
+// Carry forward leaves (admin only)
+export const apiCarryForwardLeaves = () => request('/api/admin/leaves/carry-forward', { method: 'POST' });
+
+
+
+
 /* --------------------------- Helpers --------------------------- */
 export const formatDate = (d) => {
   if (!d) return "-"

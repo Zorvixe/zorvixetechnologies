@@ -75,6 +75,13 @@
 .pm-link { margin-top: 4px; padding: 0; background: none; border: 0; color: #1a73e8; font-weight: 600; cursor: pointer; }
 
 .pm-actions { border-top: 1px solid #eef2f7; display: flex; flex-direction: column; padding: 6px; }
+
+.pm-item_apply_leave {
+  display: flex; align-items: center; gap: 10px; padding: 10px 8px;
+  border: 0; background: transparent; border-radius: 8px; cursor: pointer; text-align: left;
+}
+.pm-item_apply_leave:hover { background: #6e6d6d10;}
+
 .pm-item {
   display: flex; align-items: center; gap: 10px; padding: 10px 8px;
   border: 0; background: transparent; border-radius: 8px; cursor: pointer; text-align: left;
