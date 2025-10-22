@@ -1,8 +1,7 @@
 .leave-management-container-LeaveManagement {
-  padding: 20px;
   height: 100%;
-width: 100%;  
-margin: 0 auto;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .page-title-LeaveManagement {
@@ -11,27 +10,13 @@ margin: 0 auto;
   font-size: 28px;
 }
 
-.leave-management-grid-LeaveManagement {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 20px;
-  align-items: start;
-   height: 100%;
-width: 100%;  
-}
-
-.sidebar-LeaveManagement {
-  position: sticky;
-  top: 20px;
-}
-
 .main-content-LeaveManagement {
   background: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-   height: 100%;
-width: 100%;  
+  height: 100%;
+  width: 100%;
+  border: 1px solid #cccccc63;
 }
 
 .tabs-LeaveManagement {
@@ -66,9 +51,41 @@ width: 100%;
 }
 
 .tab-content-LeaveManagement {
-  padding: 0;
+  padding: 20px;
 }
 
+/* ---- Dashboard Layout ---- */
+.leave-dashboard-container {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+}
+
+.leave-balance-section {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 8px;
+}
+
+.calendar-section {
+  flex: 2;
+  background: #ffffff;
+  border-radius: 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+
+.custom-calendar {
+  width: 100%;
+  height: 100% !important; /* Force calendar to fill available space */
+  border-radius: 5px;
+  border: 1px solid #cccccc6c;
+  padding: 10px;
+}
+
+/* ---- Alert ---- */
 .alert-LeaveManagement {
   padding: 10px 15px;
   border-radius: 4px;
@@ -89,24 +106,22 @@ width: 100%;
   color: inherit;
 }
 
+/* ---- Loading ---- */
 .loading-container-LeaveManagement {
   text-align: center;
   padding: 40px;
   color: #666;
 }
 
+/* ---- Responsive ---- */
 @media (max-width: 1024px) {
-  .leave-management-grid-LeaveManagement {
-    grid-template-columns: 1fr;
-    gap: 15px;
+  .leave-dashboard-container {
+    flex-direction: column;
+    height: auto;
   }
-  
-  .sidebar-LeaveManagement {
-    position: static;
-  }
-  
-  .leave-balance-card-LeaveBalance {
-    max-width: 100%;
+
+  .calendar-wrapper {
+    height: 400px;
   }
 }
 
@@ -114,14 +129,15 @@ width: 100%;
   .leave-management-container-LeaveManagement {
     padding: 10px;
   }
-  
-  .tabs-LeaveManagement {
-    flex-wrap: wrap;
-  }
-  
+
   .tab-btn-LeaveManagement {
     flex: 1;
     min-width: 120px;
     text-align: center;
+  }
+
+  .custom-calendar {
+    max-width: 100%;
+    height: 350px !important;
   }
 }

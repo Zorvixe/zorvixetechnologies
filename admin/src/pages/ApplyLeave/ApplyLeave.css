@@ -1,127 +1,268 @@
-.leave-container-ApplyLeave {
-  max-width: 600px;
+.apply-leave-container {
   margin: 0 auto;
-  padding: 20px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-.leave-container-ApplyLeave h2 {
-  color: #333;
-  margin-bottom: 20px;
+.apply-leave-header {
   text-align: center;
+  margin-bottom: 32px;
 }
 
-.leave-form-ApplyLeave {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 8px 0;
+  line-height: 1.2;
 }
 
-.form-group-ApplyLeave {
-  display: flex;
-  flex-direction: column;
+.page-subtitle {
+  font-size: 16px;
+  color: #718096;
+  margin: 0;
+  font-weight: 400;
 }
 
-.form-group-ApplyLeave label {
+.form-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.leave-form {
+  max-width: 100%;
+}
+
+.form-label {
   font-weight: 600;
-  margin-bottom: 5px;
-  color: #555;
-}
-
-.form-group-ApplyLeave select,
-.form-group-ApplyLeave input,
-.form-group-ApplyLeave textarea {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  color: #4a5568;
+  margin-bottom: 8px;
   font-size: 14px;
-  transition: border-color 0.3s;
 }
 
-.form-group-ApplyLeave select:focus,
-.form-group-ApplyLeave input:focus,
-.form-group-ApplyLeave textarea:focus {
-  outline: none;
-  border-color: #4a90e2;
+.form-select, .form-control {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  transition: all 0.2s ease;
 }
 
-.form-row-ApplyLeave {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
+.form-select:focus, .form-control:focus {
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
 }
 
-.form-actions-ApplyLeave {
+.form-text {
+  font-size: 12px;
+  color: #718096;
+  margin-top: 6px;
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Days Display */
+.days-display {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.days-count {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2d3748;
+  line-height: 1;
+}
+
+.days-label {
+  font-size: 14px;
+  color: #718096;
+  font-weight: 500;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: 12px;
   justify-content: flex-end;
-  margin-top: 20px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
 }
 
-.btn-primary-ApplyLeave {
-  background: #4a90e2;
-  color: white;
-  border: none;
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s ease;
   font-size: 14px;
 }
 
-.btn-primary-ApplyLeave:hover:not(:disabled) {
-  background: #357abd;
+.btn-primary {
+  background: #4299e1;
+  border-color: #4299e1;
 }
 
-.btn-primary-ApplyLeave:disabled {
-  background: #ccc;
-  cursor: not-allowed;
+.btn-primary:hover:not(:disabled) {
+  background: #3182ce;
+  border-color: #3182ce;
+  transform: translateY(-1px);
 }
 
-.btn-secondary-ApplyLeave {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
+.btn-primary:disabled {
+  background: #cbd5e0;
+  border-color: #cbd5e0;
+  transform: none;
 }
 
-.btn-secondary-ApplyLeave:hover {
-  background: #545b62;
+.btn-outline-secondary {
+  color: #718096;
+  border-color: #e2e8f0;
 }
 
-.alert-ApplyLeave {
-  padding: 10px 15px;
-  border-radius: 4px;
-  margin-bottom: 20px;
+.btn-outline-secondary:hover:not(:disabled) {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+  color: #4a5568;
+  transform: translateY(-1px);
 }
 
-.alert-ApplyLeave.success {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+/* Invalid feedback styling */
+.invalid-feedback {
+  font-size: 12px;
+  color: #e53e3e;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.alert-ApplyLeave.error {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+.form-select.is-invalid,
+.form-control.is-invalid {
+  border-color: #e53e3e;
 }
 
+.form-select.is-invalid:focus,
+.form-control.is-invalid:focus {
+  border-color: #e53e3e;
+  box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.15);
+}
+
+/* Loading state improvements */
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
-  .leave-container-ApplyLeave {
-    margin: 10px;
-    padding: 15px;
+  .apply-leave-container {
+    padding: 16px;
   }
   
-  .form-row-ApplyLeave {
-    grid-template-columns: 1fr;
+  .form-card {
+    padding: 20px;
   }
   
-  .form-actions-ApplyLeave {
+  .page-title {
+    font-size: 24px;
+  }
+  
+  .form-actions {
     flex-direction: column;
   }
+  
+  .btn {
+    justify-content: center;
+  }
+  
+  .toast-notification {
+    right: 16px;
+    left: 16px;
+    max-width: none;
+  }
+  
+  .row {
+    margin: 0;
+  }
+  
+  .col-md-6 {
+    padding: 0 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .apply-leave-container {
+    padding: 12px;
+  }
+  
+  .form-card {
+    padding: 16px;
+    border-radius: 8px;
+  }
+  
+  .page-title {
+    font-size: 20px;
+  }
+  
+  .days-display {
+    padding: 10px 12px;
+  }
+  
+  .days-count {
+    font-size: 20px;
+  }
+}
+
+/* Animation for form elements */
+.form-select, .form-control, .btn {
+  transition: all 0.2s ease;
+}
+
+/* Hover effects */
+.form-select:hover, .form-control:hover {
+  border-color: #cbd5e0;
+}
+
+/* Focus states for accessibility */
+.form-select:focus-visible, 
+.form-control:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid #4299e1;
+  outline-offset: 2px;
+}
+
+/* Custom styling for textarea */
+textarea.form-control {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Styling for required field asterisk */
+.text-danger {
+  color: #e53e3e;
+}
+
+/* Enhanced select dropdown styling */
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 16px 12px;
+  padding-right: 2.5rem;
+}
+.apply_leave_row_con{
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
 }

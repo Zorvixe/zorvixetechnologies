@@ -479,6 +479,8 @@ async function initDb() {
     annual_balance INTEGER NOT NULL DEFAULT 21,
     maternity_balance INTEGER NOT NULL DEFAULT 180,
     paternity_balance INTEGER NOT NULL DEFAULT 15,
+    sick_used_this_month INTEGER NOT NULL DEFAULT 0,
+    casual_used_this_month INTEGER NOT NULL DEFAULT 0,
     sick_carry_forward INTEGER NOT NULL DEFAULT 0,
     casual_carry_forward INTEGER NOT NULL DEFAULT 0,
     annual_carry_forward INTEGER NOT NULL DEFAULT 0,
@@ -488,6 +490,7 @@ async function initDb() {
     UNIQUE(employee_id)
   );
 `);
+
 
     // Create indexes
     await client.query(`CREATE INDEX IF NOT EXISTS idx_leaves_employee_id ON leaves(employee_id);`);
@@ -556,6 +559,51 @@ async function initDb() {
     client.release()
   }
 }
+
+
+// Add this function to calculate working days (including Saturdays)
+function calculateWorkingDays(startDate, endDate) {
+  let totalDays = 0;
+  const current = new Date(startDate);
+  const end = new Date(endDate);
+  
+  while (current <= end) {
+    const day = current.getDay();
+    // Count all days except Sunday (0)
+    if (day !== 0) {
+      totalDays++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return totalDays;
+}
+
+// Add this function to check monthly limits
+async function checkMonthlyLimit(userId, leaveType, requestedDays) {
+  const balanceQuery = await pool.query(
+    'SELECT * FROM leave_balances WHERE employee_id = $1',
+    [userId]
+  );
+  
+  if (balanceQuery.rows.length === 0) return true;
+  
+  const balance = balanceQuery.rows[0];
+  
+  if (leaveType === 'sick') {
+    const monthlyLimit = 1;
+    const availableThisMonth = monthlyLimit - balance.sick_used_this_month;
+    return requestedDays <= availableThisMonth;
+  }
+  
+  if (leaveType === 'casual') {
+    const monthlyLimit = 2;
+    const availableThisMonth = monthlyLimit - balance.casual_used_this_month;
+    return requestedDays <= availableThisMonth;
+  }
+  
+  return true;
+}
+
 
 /* ------------------------------- Auth Utils ------------------------------- */
 function signAdminToken(admin) {
@@ -3065,6 +3113,8 @@ app.get('/api/tickets/:id/viewers', requireAuth, async (req, res) => {
 });
 
 
+//Leaves Management
+
 app.get('/api/leaves/approvers', requireAuth, async (req, res) => {
   try {
     const currentUserId = req.user.sub;
@@ -3085,111 +3135,11 @@ app.get('/api/leaves/approvers', requireAuth, async (req, res) => {
     console.error('Get approvers error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-}); app.post('/api/leaves/apply', requireAuth, async (req, res) => {
-  try {
-    const { leaveType, startDate, endDate, reason, approverId } = req.body;
-    const employeeId = req.user.sub;
+}); 
 
-    // Validation
-    if (!leaveType || !startDate || !endDate || !reason || !approverId) {
-      return res.status(400).json({ success: false, message: 'All fields are required' });
-    }
+ 
 
-    const validLeaveTypes = ['sick', 'casual', 'annual', 'maternity', 'paternity'];
-    if (!validLeaveTypes.includes(leaveType)) {
-      return res.status(400).json({ success: false, message: 'Invalid leave type' });
-    }
-
-    // Check if approver exists and is active
-    const approverCheck = await pool.query(
-      'SELECT id, name FROM admin_users WHERE id = $1 AND is_active = TRUE',
-      [approverId]
-    );
-
-    if (approverCheck.rows.length === 0) {
-      return res.status(400).json({ success: false, message: 'Selected approver not found or inactive' });
-    }
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (start < today) {
-      return res.status(400).json({ success: false, message: 'Start date cannot be in the past' });
-    }
-
-    if (end < start) {
-      return res.status(400).json({ success: false, message: 'End date cannot be before start date' });
-    }
-
-    // Calculate total days (excluding weekends)
-    let totalDays = 0;
-    let current = new Date(start);
-    while (current <= end) {
-      const day = current.getDay();
-      if (day !== 0 && day !== 6) { // Skip Sunday (0) and Saturday (6)
-        totalDays++;
-      }
-      current.setDate(current.getDate() + 1);
-    }
-
-    if (totalDays <= 0) {
-      return res.status(400).json({ success: false, message: 'No working days in selected period' });
-    }
-
-    // Check leave balance
-    const balanceQuery = await pool.query(
-      'SELECT * FROM leave_balances WHERE employee_id = $1',
-      [employeeId]
-    );
-
-    if (balanceQuery.rows.length === 0) {
-      return res.status(400).json({ success: false, message: 'Leave balance not found' });
-    }
-
-    const balance = balanceQuery.rows[0];
-    const availableBalance = balance[`${leaveType}_balance`];
-
-    if (availableBalance < totalDays) {
-      return res.status(400).json({
-        success: false,
-        message: `Insufficient ${leaveType} leave balance. Available: ${availableBalance}, Required: ${totalDays}`
-      });
-    }
-
-    // Create leave application
-    const result = await pool.query(
-      `INSERT INTO leaves (employee_id, approver_id, leave_type, start_date, end_date, total_days, reason, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
-       RETURNING *`,
-      [employeeId, approverId, leaveType, startDate, endDate, totalDays, reason]
-    );
-
-    // Get leave with employee and approver details
-    const leaveWithDetails = await pool.query(`
-      SELECT l.*, 
-             emp.name as employee_name, emp.email as employee_email, emp.role as employee_role, emp.department as employee_department,
-             appr.name as approver_name, appr.email as approver_email, appr.role as approver_role,
-             approver.name as approved_by_name
-      FROM leaves l
-      JOIN admin_users emp ON emp.id = l.employee_id
-      JOIN admin_users appr ON appr.id = l.approver_id
-      LEFT JOIN admin_users approver ON approver.id = l.approved_by
-      WHERE l.id = $1
-    `, [result.rows[0].id]);
-
-    res.status(201).json({
-      success: true,
-      message: 'Leave application submitted successfully',
-      leave: leaveWithDetails.rows[0]
-    });
-
-  } catch (error) {
-    console.error('Apply leave error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-}); app.get('/api/leaves/my-leaves', requireAuth, async (req, res) => {
+app.get('/api/leaves/my-leaves', requireAuth, async (req, res) => {
   try {
     const employeeId = req.user.sub;
     const { status, year, page = 1, limit = 10 } = req.query;
@@ -3254,7 +3204,9 @@ app.get('/api/leaves/approvers', requireAuth, async (req, res) => {
     console.error('Get my leaves error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-}); app.get('/api/leaves/for-approval', requireAuth, async (req, res) => {
+}); 
+
+app.get('/api/leaves/for-approval', requireAuth, async (req, res) => {
   try {
     const approverId = req.user.sub;
     const { status, year, page = 1, limit = 10 } = req.query;
@@ -3397,10 +3349,123 @@ app.get('/api/admin/leaves', requireAuth, async (req, res) => {
 
 
 
+// Update the leave application endpoint
+app.post('/api/leaves/apply', requireAuth, async (req, res) => {
+  try {
+    const { leaveType, startDate, endDate, reason, approverId } = req.body;
+    const employeeId = req.user.sub;
+
+    // Validation
+    if (!leaveType || !startDate || !endDate || !reason || !approverId) {
+      return res.status(400).json({ success: false, message: 'All fields are required' });
+    }
+
+    const validLeaveTypes = ['sick', 'casual', 'annual', 'maternity', 'paternity'];
+    if (!validLeaveTypes.includes(leaveType)) {
+      return res.status(400).json({ success: false, message: 'Invalid leave type' });
+    }
+
+    // Check if approver exists and is active
+    const approverCheck = await pool.query(
+      'SELECT id, name FROM admin_users WHERE id = $1 AND is_active = TRUE',
+      [approverId]
+    );
+
+    if (approverCheck.rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Selected approver not found or inactive' });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (start < today) {
+      return res.status(400).json({ success: false, message: 'Start date cannot be in the past' });
+    }
+
+    if (end < start) {
+      return res.status(400).json({ success: false, message: 'End date cannot be before start date' });
+    }
+
+    // Calculate total days (including Saturdays, excluding Sundays)
+    const totalDays = calculateWorkingDays(start, end);
+
+    if (totalDays <= 0) {
+      return res.status(400).json({ success: false, message: 'No working days in selected period' });
+    }
+
+    // Check leave balance and monthly limits
+    const balanceQuery = await pool.query(
+      'SELECT * FROM leave_balances WHERE employee_id = $1',
+      [employeeId]
+    );
+
+    if (balanceQuery.rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Leave balance not found' });
+    }
+
+    const balance = balanceQuery.rows[0];
+    const availableBalance = balance[`${leaveType}_balance`];
+    
+    // Check monthly limits for sick and casual leaves
+    if (leaveType === 'sick' || leaveType === 'casual') {
+      const withinMonthlyLimit = await checkMonthlyLimit(employeeId, leaveType, totalDays);
+      if (!withinMonthlyLimit) {
+        const monthlyLimit = leaveType === 'sick' ? 1 : 2;
+        const usedThisMonth = leaveType === 'sick' ? balance.sick_used_this_month : balance.casual_used_this_month;
+        return res.status(400).json({
+          success: false,
+          message: `Monthly ${leaveType} leave limit exceeded. Available this month: ${monthlyLimit - usedThisMonth}, Requested: ${totalDays}`
+        });
+      }
+    }
+
+    if (availableBalance < totalDays) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient ${leaveType} leave balance. Available: ${availableBalance}, Required: ${totalDays}`
+      });
+    }
+
+    // Create leave application
+    const result = await pool.query(
+      `INSERT INTO leaves (employee_id, approver_id, leave_type, start_date, end_date, total_days, reason, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
+       RETURNING *`,
+      [employeeId, approverId, leaveType, startDate, endDate, totalDays, reason]
+    );
+
+    // Get leave with employee and approver details
+    const leaveWithDetails = await pool.query(`
+      SELECT l.*, 
+             emp.name as employee_name, emp.email as employee_email, emp.role as employee_role, emp.department as employee_department,
+             appr.name as approver_name, appr.email as approver_email, appr.role as approver_role,
+             approver.name as approved_by_name
+      FROM leaves l
+      JOIN admin_users emp ON emp.id = l.employee_id
+      JOIN admin_users appr ON appr.id = l.approver_id
+      LEFT JOIN admin_users approver ON approver.id = l.approved_by
+      WHERE l.id = $1
+    `, [result.rows[0].id]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Leave application submitted successfully',
+      leave: leaveWithDetails.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Apply leave error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Update leave status approval with day modification capability
 app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
   try {
     const leaveId = Number(req.params.id);
-    const { status, comments } = req.body;
+    const { status, comments, approvedDays, approvedStartDate, approvedEndDate } = req.body;
     const currentUserId = req.user.sub;
     const currentUserRole = req.user.role;
 
@@ -3440,6 +3505,17 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
       });
     }
 
+    let finalDays = leave.total_days;
+    let finalStartDate = leave.start_date;
+    let finalEndDate = leave.end_date;
+
+    // If approver modified the days/dates
+    if (approvedDays && approvedStartDate && approvedEndDate) {
+      finalDays = Number(approvedDays);
+      finalStartDate = new Date(approvedStartDate);
+      finalEndDate = new Date(approvedEndDate);
+    }
+
     // If approving leave, deduct from balance
     if (status === 'approved' && leave.status !== 'approved') {
       const balanceQuery = await pool.query(
@@ -3454,47 +3530,63 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
       const balance = balanceQuery.rows[0];
       const availableBalance = balance[`${leave.leave_type}_balance`];
 
-      if (availableBalance < leave.total_days) {
+      if (availableBalance < finalDays) {
         return res.status(400).json({
           success: false,
-          message: `Insufficient ${leave.leave_type} leave balance. Available: ${availableBalance}, Required: ${leave.total_days}`
+          message: `Insufficient ${leave.leave_type} leave balance. Available: ${availableBalance}, Required: ${finalDays}`
         });
       }
 
-      // Deduct from balance
+      // Update monthly usage for sick and casual leaves
+      let monthlyUpdate = '';
+      if (leave.leave_type === 'sick') {
+        monthlyUpdate = `, sick_used_this_month = sick_used_this_month + ${finalDays}`;
+      } else if (leave.leave_type === 'casual') {
+        monthlyUpdate = `, casual_used_this_month = casual_used_this_month + ${finalDays}`;
+      }
+
+      // Deduct from balance and update monthly usage
       await pool.query(
         `UPDATE leave_balances 
-         SET ${leave.leave_type}_balance = ${leave.leave_type}_balance - $1 
+         SET ${leave.leave_type}_balance = ${leave.leave_type}_balance - $1 ${monthlyUpdate}
          WHERE employee_id = $2`,
-        [leave.total_days, leave.employee_id]
+        [finalDays, leave.employee_id]
       );
     }
 
     // If reversing approval, add back to balance
     if (status !== 'approved' && leave.status === 'approved') {
+      let monthlyUpdate = '';
+      if (leave.leave_type === 'sick') {
+        monthlyUpdate = `, sick_used_this_month = GREATEST(0, sick_used_this_month - ${finalDays})`;
+      } else if (leave.leave_type === 'casual') {
+        monthlyUpdate = `, casual_used_this_month = GREATEST(0, casual_used_this_month - ${finalDays})`;
+      }
+
       await pool.query(
         `UPDATE leave_balances 
-         SET ${leave.leave_type}_balance = ${leave.leave_type}_balance + $1 
+         SET ${leave.leave_type}_balance = ${leave.leave_type}_balance + $1 ${monthlyUpdate}
          WHERE employee_id = $2`,
-        [leave.total_days, leave.employee_id]
+        [finalDays, leave.employee_id]
       );
     }
 
-    // Update leave status
+    // Update leave status with possible date modifications
     const updateQuery = await pool.query(
       `UPDATE leaves 
-       SET status = $1, approved_by = $2, approved_on = NOW(), comments = $3
-       WHERE id = $4
+       SET status = $1, approved_by = $2, approved_on = NOW(), comments = $3,
+           total_days = $4, start_date = $5, end_date = $6
+       WHERE id = $7
        RETURNING *`,
-      [status, currentUserId, comments, leaveId]
+      [status, currentUserId, comments, finalDays, finalStartDate, finalEndDate, leaveId]
     );
 
-    // Get updated leave with details
+    // Get updated leave with details including approver comments
     const updatedLeave = await pool.query(`
       SELECT l.*, 
              emp.name as employee_name, emp.email as employee_email, emp.role as employee_role, emp.department as employee_department,
              appr.name as approver_name, appr.email as approver_email, appr.role as approver_role,
-             approver.name as approved_by_name
+             approver.name as approved_by_name, approver.email as approved_by_email
       FROM leaves l
       JOIN admin_users emp ON emp.id = l.employee_id
       JOIN admin_users appr ON appr.id = l.approver_id
@@ -3512,7 +3604,30 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
     console.error('Update leave status error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-}); app.get('/api/leaves/balance', requireAuth, async (req, res) => {
+});
+
+// Add monthly reset function
+app.post('/api/admin/leaves/monthly-reset', requireAdmin, async (req, res) => {
+  try {
+    await pool.query(`
+      UPDATE leave_balances 
+      SET sick_used_this_month = 0, casual_used_this_month = 0,
+          last_reset = NOW()
+      WHERE employee_id IN (SELECT id FROM admin_users WHERE is_active = TRUE)
+    `);
+
+    res.json({
+      success: true,
+      message: 'Monthly leave usage reset successfully'
+    });
+
+  } catch (error) {
+    console.error('Monthly reset error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}); 
+
+app.get('/api/leaves/balance', requireAuth, async (req, res) => {
   try {
     const employeeId = req.user.sub;
 
@@ -3538,7 +3653,9 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
     console.error('Get leave balance error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-}); app.patch('/api/leaves/:id/cancel', requireAuth, async (req, res) => {
+}); 
+
+app.patch('/api/leaves/:id/cancel', requireAuth, async (req, res) => {
   try {
     const leaveId = Number(req.params.id);
     const employeeId = req.user.sub;
@@ -3583,7 +3700,9 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
     console.error('Cancel leave error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-}); app.post('/api/admin/leaves/carry-forward', requireAdmin, async (req, res) => {
+}); 
+
+app.post('/api/admin/leaves/carry-forward', requireAdmin, async (req, res) => {
   try {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();

@@ -16,7 +16,7 @@
 }
 .sidebar.collapsed { width: 80px; }
 
-.user { margin-bottom: 24px; font-size: 1.05rem; color: #0b0f19; white-space: nowrap; overflow: hidden; }
+.user {margin-top: 50px; margin-bottom: 24px; font-size: 1.05rem; color: #0b0f19; white-space: nowrap; overflow: hidden; }
 .badge { background: #1a73e8; padding: 2px 8px; border-radius: 12px; margin-left: 6px; font-size: 0.75rem; color: #fff; }
 
 .sidebar-nav { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; overflow-y: auto; overflow-x: visible; -webkit-overflow-scrolling: touch; }
@@ -49,7 +49,7 @@
   .sidebar:not(.collapsed) + .content { margin-left: 240px; }
 }
 
-.avatar_button_sidebar { margin: 0px 0px 25px 0px; }
+.avatar_button_sidebar { margin: 50px 0px 25px 0px; }
 .avatar-btn { background: transparent; border: 0; padding: 0; cursor: pointer; }
 .avatar {
   height: 28px; width: 28px; border-radius: 999px; display: grid; place-items: center;

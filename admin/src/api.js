@@ -279,14 +279,17 @@ export const apiGetAllLeaves = (params) => request('/api/admin/leaves', { params
 export const apiGetLeaveBalance = () => request('/api/leaves/balance');
 
 // Update leave status (approve/reject)
-export const apiUpdateLeaveStatus = (id, body) => request(`/api/leaves/${id}/status`, { method: 'PATCH', body });
-
+// Update the leave status API call to handle day modifications
+export const apiUpdateLeaveStatus = (id, body) => 
+  request(`/api/leaves/${id}/status`, { method: 'PATCH', body });
 // Cancel leave
 export const apiCancelLeave = (id) => request(`/api/leaves/${id}/cancel`, { method: 'PATCH' });
 
 // Carry forward leaves (admin only)
 export const apiCarryForwardLeaves = () => request('/api/admin/leaves/carry-forward', { method: 'POST' });
 
+export const apiMonthlyReset = () => 
+  request('/api/admin/leaves/monthly-reset', { method: 'POST' });
 
 
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./LeaveBalance.css";
 import { apiGetLeaveBalance } from "../../api";
 
@@ -7,20 +7,34 @@ const LeaveBalance = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Toast system
+  const toastTimer = useRef(null);
+  const [toast, setToast] = useState({ open: false, type: "success", message: "" });
+  const showToast = (message, type = "success") => {
+    setToast({ open: true, type, message });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(t => ({ ...t, open: false })), 3000);
+  };
+  const hideToast = () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(t => ({ ...t, open: false }));
+  };
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, []);
+
   const leaveTypes = {
     sick: {
       name: "Sick Leave",
       color: "#f44336",
       total: 12,
       tooltip:
-        "Granted when employee is genuinely sick. Usually 12 days/year. Doctor’s note may be required. No deduction.",
+        "Granted when employee is genuinely sick. Usually 12 days/year. Doctor's note may be required. No deduction. Monthly limit: 1 day.",
     },
     casual: {
       name: "Casual Leave",
       color: "#2196f3",
       total: 12,
       tooltip:
-        "For short personal matters or emergencies (e.g., family event). Usually 24 days/year (12 days/6 months). No deduction.",
+        "For short personal matters or emergencies (e.g., family event). Usually 24 days/year (12 days/6 months). No deduction. Monthly limit: 2 days.",
     },
     annual: {
       name: "Annual Leave",
@@ -57,11 +71,11 @@ const LeaveBalance = () => {
       if (response.success) {
         setBalance(response.balance);
       } else {
-        setError("Failed to fetch leave balance");
+        showToast("Failed to fetch leave balance", "error");
       }
     } catch (error) {
       console.error("Error fetching leave balance:", error);
-      setError("Error fetching leave balance");
+      showToast("Error fetching leave balance", "error");
     } finally {
       setLoading(false);
     }
@@ -79,6 +93,26 @@ const LeaveBalance = () => {
   const getCarryForward = (type) => {
     if (!balance) return 0;
     return balance[`${type}_carry_forward`] || 0;
+  };
+
+  const getMonthlyUsage = (type) => {
+    if (!balance) return { used: 0, limit: 0 };
+
+    if (type === 'sick') {
+      return { 
+        used: balance.sick_used_this_month || 0, 
+        limit: 1 
+      };
+    }
+
+    if (type === 'casual') {
+      return { 
+        used: balance.casual_used_this_month || 0, 
+        limit: 2 
+      };
+    }
+
+    return { used: 0, limit: 0 };
   };
 
   if (loading) {
@@ -103,6 +137,7 @@ const LeaveBalance = () => {
         const carryForward = getCarryForward(key);
         const totalAllocation = leave.total + carryForward;
         const percentage = calculatePercentage(currentBalance, totalAllocation);
+        const monthlyUsage = getMonthlyUsage(key);
 
         return (
           <div key={key} className="leave-item-LeaveBalance">
@@ -133,6 +168,12 @@ const LeaveBalance = () => {
               </div>
             </div>
 
+            {["sick", "casual"].includes(key) && (
+              <div className="monthly-usage-LeaveBalance">
+                <small>Used this month: {monthlyUsage.used}/{monthlyUsage.limit} days</small>
+              </div>
+            )}
+
             {["sick", "casual", "annual"].includes(key) && (
               <>
                 <div className="progress-bar-LeaveBalance">
@@ -159,6 +200,22 @@ const LeaveBalance = () => {
           Last updated: {new Date(balance.last_reset).toLocaleDateString()}
         </p>
       )}
+
+      {/* Toast */}
+      <div className={`toastx ${toast.type} ${toast.open ? 'show' : ''}`} role="status" aria-live="polite">
+        <div className="toastx-icon">
+          {toast.type === 'success' ? (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          )}
+        </div>
+        <div className="toastx-body">
+          <div className="toastx-title">{toast.type === 'success' ? 'Success' : 'Error'}</div>
+          <div className="toastx-msg">{toast.message}</div>
+        </div>
+        <button className="toastx-close" onClick={hideToast} aria-label="Close">×</button>
+      </div>
     </div>
   );
 };
