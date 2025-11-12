@@ -3475,6 +3475,7 @@ app.post('/api/leaves/apply', requireAuth, async (req, res) => {
 // Update leave status approval with day modification capability
 
 // In app.js - Update the leave status update route
+
 app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
   try {
     const leaveId = Number(req.params.id);
@@ -3491,7 +3492,7 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid status' });
     }
 
-    // Get current leave details
+    // FIXED: Get complete leave details including leave_type
     const leaveQuery = await pool.query(
       `SELECT l.*, emp.name as employee_name, appr.name as approver_name
        FROM leaves l
@@ -3507,7 +3508,7 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
 
     const leave = leaveQuery.rows[0];
 
-    // Check permissions: either the assigned approver OR admin can approve/reject
+    // Check permissions
     const isApprover = leave.approver_id === currentUserId;
     const isAdmin = currentUserRole === 'admin';
 
@@ -3529,93 +3530,129 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
       finalEndDate = new Date(approvedEndDate);
     }
 
-    // If approving leave, deduct from balance
-    if (status === 'approved' && leave.status !== 'approved') {
-      const balanceQuery = await pool.query(
-        'SELECT * FROM leave_balances WHERE employee_id = $1',
-        [leave.employee_id]
-      );
-
-      if (balanceQuery.rows.length === 0) {
-        return res.status(400).json({ success: false, message: 'Leave balance not found' });
-      }
-
-      const balance = balanceQuery.rows[0];
-      const availableBalance = Number(balance[`${leave.leave_type}_balance`]) || 0;
-
-      if (availableBalance < finalDays) {
-        return res.status(400).json({
-          success: false,
-          message: `Insufficient ${leave.leave_type} leave balance. Available: ${availableBalance}, Required: ${finalDays}`
-        });
-      }
-
-      // Update monthly usage for sick and casual leaves
-      let monthlyUpdate = '';
-      if (leave.leave_type === 'sick') {
-        monthlyUpdate = `, sick_used_this_month = sick_used_this_month + ${finalDays}`;
-      } else if (leave.leave_type === 'casual') {
-        monthlyUpdate = `, casual_used_this_month = casual_used_this_month + ${finalDays}`;
-      }
-
-      // Deduct from balance and update monthly usage
-      await pool.query(
-        `UPDATE leave_balances 
-         SET ${leave.leave_type}_balance = ${leave.leave_type}_balance - $1 ${monthlyUpdate}
-         WHERE employee_id = $2`,
-        [finalDays, leave.employee_id]
-      );
+    // Validate final days
+    if (finalDays <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Total days must be greater than 0' 
+      });
     }
 
-    // If reversing approval, add back to balance
-    if (status !== 'approved' && leave.status === 'approved') {
-      let monthlyUpdate = '';
-      if (leave.leave_type === 'sick') {
-        monthlyUpdate = `, sick_used_this_month = GREATEST(0, sick_used_this_month - ${finalDays})`;
-      } else if (leave.leave_type === 'casual') {
-        monthlyUpdate = `, casual_used_this_month = GREATEST(0, casual_used_this_month - ${finalDays})`;
+    // Use transaction for atomic operations
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // If approving leave, deduct from balance
+      if (status === 'approved' && leave.status !== 'approved') {
+        const balanceQuery = await client.query(
+          'SELECT * FROM leave_balances WHERE employee_id = $1',
+          [leave.employee_id]
+        );
+
+        if (balanceQuery.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ success: false, message: 'Leave balance not found' });
+        }
+
+        const balance = balanceQuery.rows[0];
+        const availableBalance = Number(balance[`${leave.leave_type}_balance`]) || 0;
+
+        if (availableBalance < finalDays) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({
+            success: false,
+            message: `Insufficient ${leave.leave_type} leave balance. Available: ${availableBalance}, Required: ${finalDays}`
+          });
+        }
+
+        // Update monthly usage for sick and casual leaves
+        let monthlyUpdate = '';
+        const monthlyParams = [];
+        
+        if (leave.leave_type === 'sick') {
+          monthlyUpdate = `, sick_used_this_month = sick_used_this_month + $${monthlyParams.length + 2}`;
+          monthlyParams.push(finalDays);
+        } else if (leave.leave_type === 'casual') {
+          monthlyUpdate = `, casual_used_this_month = casual_used_this_month + $${monthlyParams.length + 2}`;
+          monthlyParams.push(finalDays);
+        }
+
+        // Deduct from balance and update monthly usage
+        await client.query(
+          `UPDATE leave_balances 
+           SET ${leave.leave_type}_balance = ${leave.leave_type}_balance - $1 ${monthlyUpdate}
+           WHERE employee_id = $${monthlyParams.length + 2}`,
+          [finalDays, ...monthlyParams, leave.employee_id]
+        );
       }
 
-      await pool.query(
-        `UPDATE leave_balances 
-         SET ${leave.leave_type}_balance = ${leave.leave_type}_balance + $1 ${monthlyUpdate}
-         WHERE employee_id = $2`,
-        [finalDays, leave.employee_id]
+      // If reversing approval, add back to balance
+      if (status !== 'approved' && leave.status === 'approved') {
+        let monthlyUpdate = '';
+        const monthlyParams = [];
+        
+        if (leave.leave_type === 'sick') {
+          monthlyUpdate = `, sick_used_this_month = GREATEST(0, sick_used_this_month - $${monthlyParams.length + 2})`;
+          monthlyParams.push(finalDays);
+        } else if (leave.leave_type === 'casual') {
+          monthlyUpdate = `, casual_used_this_month = GREATEST(0, casual_used_this_month - $${monthlyParams.length + 2})`;
+          monthlyParams.push(finalDays);
+        }
+
+        await client.query(
+          `UPDATE leave_balances 
+           SET ${leave.leave_type}_balance = ${leave.leave_type}_balance + $1 ${monthlyUpdate}
+           WHERE employee_id = $${monthlyParams.length + 2}`,
+          [finalDays, ...monthlyParams, leave.employee_id]
+        );
+      }
+
+      // Update leave status with possible date modifications
+      const updateQuery = await client.query(
+        `UPDATE leaves 
+         SET status = $1, approved_by = $2, approved_on = NOW(), comments = $3,
+             total_days = $4, start_date = $5, end_date = $6
+         WHERE id = $7
+         RETURNING *`,
+        [status, currentUserId, comments, finalDays, finalStartDate, finalEndDate, leaveId]
       );
+
+      await client.query('COMMIT');
+
+      // Get updated leave with details
+      const updatedLeave = await pool.query(`
+        SELECT l.*, 
+               emp.name as employee_name, emp.email as employee_email, emp.role as employee_role, emp.department as employee_department,
+               appr.name as approver_name, appr.email as approver_email, appr.role as approver_role,
+               approver.name as approved_by_name, approver.email as approved_by_email
+        FROM leaves l
+        JOIN admin_users emp ON emp.id = l.employee_id
+        JOIN admin_users appr ON appr.id = l.approver_id
+        LEFT JOIN admin_users approver ON approver.id = l.approved_by
+        WHERE l.id = $1
+      `, [leaveId]);
+
+      res.json({
+        success: true,
+        message: `Leave application ${status} successfully`,
+        leave: updatedLeave.rows[0]
+      });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    // Update leave status with possible date modifications
-    const updateQuery = await pool.query(
-      `UPDATE leaves 
-       SET status = $1, approved_by = $2, approved_on = NOW(), comments = $3,
-           total_days = $4, start_date = $5, end_date = $6
-       WHERE id = $7
-       RETURNING *`,
-      [status, currentUserId, comments, finalDays, finalStartDate, finalEndDate, leaveId]
-    );
-
-    // Get updated leave with details including approver comments
-    const updatedLeave = await pool.query(`
-      SELECT l.*, 
-             emp.name as employee_name, emp.email as employee_email, emp.role as employee_role, emp.department as employee_department,
-             appr.name as approver_name, appr.email as approver_email, appr.role as approver_role,
-             approver.name as approved_by_name, approver.email as approved_by_email
-      FROM leaves l
-      JOIN admin_users emp ON emp.id = l.employee_id
-      JOIN admin_users appr ON appr.id = l.approver_id
-      LEFT JOIN admin_users approver ON approver.id = l.approved_by
-      WHERE l.id = $1
-    `, [leaveId]);
-
-    res.json({
-      success: true,
-      message: `Leave application ${status} successfully`,
-      leave: updatedLeave.rows[0]
-    });
 
   } catch (error) {
     console.error('Update leave status error:', error);
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error while updating leave status',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

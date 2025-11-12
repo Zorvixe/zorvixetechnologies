@@ -135,27 +135,45 @@ const LeaveApproval = () => {
   };
 
   const submitAction = async () => {
-    try {
-      const response = await apiUpdateLeaveStatus(selectedLeave.id, {
-        status: actionType,
-        comments,
-        approvedDays: actionType === 'approved' ? approvedDays : selectedLeave.total_days,
-        approvedStartDate: actionType === 'approved' ? approvedStartDate : selectedLeave.start_date,
-        approvedEndDate: actionType === 'approved' ? approvedEndDate : selectedLeave.end_date
-      });
-
-      if (response.success) {
-        showToast(`Leave ${actionType} successfully.`, "success");
-        setActionDialog(false);
-        fetchLeaves();
-      } else {
-        showToast(response.message, "error");
-      }
-    } catch (error) {
-      console.error("Error updating leave:", error);
-      showToast("Failed to update leave status.", "error");
+  try {
+    // Validate inputs
+    if (actionType === 'approved' && approvedDays < 1) {
+      showToast('Approved days must be at least 1', 'error');
+      return;
     }
-  };
+
+    const payload = {
+      status: actionType,
+      comments,
+      approvedDays: actionType === 'approved' ? approvedDays : selectedLeave.total_days,
+      approvedStartDate: actionType === 'approved' ? approvedStartDate : selectedLeave.start_date,
+      approvedEndDate: actionType === 'approved' ? approvedEndDate : selectedLeave.end_date
+    };
+
+    console.log('Sending payload:', payload); // Debug log
+
+    const response = await apiUpdateLeaveStatus(selectedLeave.id, payload);
+
+    if (response.success) {
+      showToast(`Leave ${actionType} successfully.`, "success");
+      setActionDialog(false);
+      fetchLeaves();
+    } else {
+      showToast(response.message || 'Failed to update leave status', "error");
+    }
+  } catch (error) {
+    console.error("Error updating leave:", error);
+    
+    // More specific error messages
+    if (error.message.includes('500')) {
+      showToast('Server error occurred. Please try again later.', 'error');
+    } else if (error.message.includes('Network Error')) {
+      showToast('Network connection failed. Please check your internet.', 'error');
+    } else {
+      showToast('Failed to update leave status: ' + error.message, 'error');
+    }
+  }
+};
 
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString("en-US", {
