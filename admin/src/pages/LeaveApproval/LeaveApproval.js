@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { apiGetLeavesForApproval, apiUpdateLeaveStatus } from "../../api";
 import "./LeaveApproval.css";
 
-
-
 const LeaveApproval = () => {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -91,9 +89,14 @@ const LeaveApproval = () => {
     setActionType(type);
     setActionDialog(true);
     setComments("");
+    
+    // Initialize with original leave dates
+    const startDate = leave.start_date.split('T')[0];
+    const endDate = leave.end_date.split('T')[0];
+    
+    setApprovedStartDate(startDate);
+    setApprovedEndDate(endDate);
     setApprovedDays(leave.total_days);
-    setApprovedStartDate(leave.start_date.split('T')[0]);
-    setApprovedEndDate(leave.end_date.split('T')[0]);
   };
 
   const calculateWorkingDays = (start, end) => {
@@ -121,10 +124,13 @@ const LeaveApproval = () => {
       setApprovedEndDate(value);
     }
 
-    if (approvedStartDate && approvedEndDate) {
-      const newStart = field === 'startDate' ? value : approvedStartDate;
-      const newEnd = field === 'endDate' ? value : approvedEndDate;
-      setApprovedDays(calculateWorkingDays(newStart, newEnd));
+    // Recalculate days when either date changes
+    const newStart = field === 'startDate' ? value : approvedStartDate;
+    const newEnd = field === 'endDate' ? value : approvedEndDate;
+    
+    if (newStart && newEnd) {
+      const newDays = calculateWorkingDays(newStart, newEnd);
+      setApprovedDays(newDays);
     }
   };
 

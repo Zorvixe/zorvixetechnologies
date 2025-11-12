@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import "./ApplyLeave.css";
 import { apiGetApprovers, apiApplyLeave } from "../../api";
 
-
-
 const ApplyLeave = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     leaveType: "",
@@ -154,7 +152,12 @@ const ApplyLeave = ({ onSuccess }) => {
       }
     } catch (error) {
       console.error("Error submitting leave:", error);
-      showToast("Failed to submit leave application", "error");
+      // Check if it's a monthly limit error and show appropriate message
+      if (error.message.includes('Monthly') && error.message.includes('limit exceeded')) {
+        showToast(error.message, "error");
+      } else {
+        showToast("Failed to submit leave application", "error");
+      }
     } finally {
       setLoading(false);
     }

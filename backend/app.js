@@ -579,6 +579,8 @@ function calculateWorkingDays(startDate, endDate) {
 }
 
 // Add this function to check monthly limits
+// In app.js - Update the checkMonthlyLimit function
+
 async function checkMonthlyLimit(userId, leaveType, requestedDays) {
   const balanceQuery = await pool.query(
     'SELECT * FROM leave_balances WHERE employee_id = $1',
@@ -591,18 +593,21 @@ async function checkMonthlyLimit(userId, leaveType, requestedDays) {
   
   if (leaveType === 'sick') {
     const monthlyLimit = 1;
-    const availableThisMonth = monthlyLimit - balance.sick_used_this_month;
+    const usedThisMonth = Number(balance.sick_used_this_month) || 0;
+    const availableThisMonth = monthlyLimit - usedThisMonth;
     return requestedDays <= availableThisMonth;
   }
   
   if (leaveType === 'casual') {
     const monthlyLimit = 2;
-    const availableThisMonth = monthlyLimit - balance.casual_used_this_month;
+    const usedThisMonth = Number(balance.casual_used_this_month) || 0;
+    const availableThisMonth = monthlyLimit - usedThisMonth;
     return requestedDays <= availableThisMonth;
   }
   
   return true;
 }
+
 
 
 /* ------------------------------- Auth Utils ------------------------------- */
@@ -3350,6 +3355,8 @@ app.get('/api/admin/leaves', requireAuth, async (req, res) => {
 
 
 // Update the leave application endpoint
+
+// Also update the leave application route to fix the error message
 app.post('/api/leaves/apply', requireAuth, async (req, res) => {
   try {
     const { leaveType, startDate, endDate, reason, approverId } = req.body;
@@ -3413,10 +3420,14 @@ app.post('/api/leaves/apply', requireAuth, async (req, res) => {
       const withinMonthlyLimit = await checkMonthlyLimit(employeeId, leaveType, totalDays);
       if (!withinMonthlyLimit) {
         const monthlyLimit = leaveType === 'sick' ? 1 : 2;
-        const usedThisMonth = leaveType === 'sick' ? balance.sick_used_this_month : balance.casual_used_this_month;
+        const usedThisMonth = leaveType === 'sick' ? 
+          (Number(balance.sick_used_this_month) || 0) : 
+          (Number(balance.casual_used_this_month) || 0);
+        const availableThisMonth = monthlyLimit - usedThisMonth;
+        
         return res.status(400).json({
           success: false,
-          message: `Monthly ${leaveType} leave limit exceeded. Available this month: ${monthlyLimit - usedThisMonth}, Requested: ${totalDays}`
+          message: `Monthly ${leaveType} leave limit exceeded. Available this month: ${availableThisMonth}, Requested: ${totalDays}`
         });
       }
     }
