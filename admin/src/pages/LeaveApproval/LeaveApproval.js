@@ -1,3 +1,4 @@
+// src/components/LeaveApproval/LeaveApproval.js
 import React, { useState, useEffect, useRef } from "react";
 import { apiGetLeavesForApproval, apiUpdateLeaveStatus } from "../../api";
 import "./LeaveApproval.css";
@@ -164,8 +165,10 @@ const LeaveApproval = () => {
   } catch (error) {
     console.error("Error updating leave:", error);
     
-    // More specific error messages
-    if (error.message.includes('500')) {
+    // More specific error messages with server error details
+    if (error.data && error.data.error) {
+      showToast(`Server error: ${error.data.error}`, 'error');
+    } else if (error.message.includes('500')) {
       showToast('Server error occurred. Please try again later.', 'error');
     } else if (error.message.includes('Network Error')) {
       showToast('Network connection failed. Please check your internet.', 'error');

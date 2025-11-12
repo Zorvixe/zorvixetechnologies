@@ -29,11 +29,15 @@ async function request(path, { method = "GET", body, params, headers } = {}) {
   })
   if (!res.ok) {
     let msg = "Request failed"
+    let errorData = null
     try {
-      const err = await res.json()
-      msg = err.message || msg
+      errorData = await res.json()
+      msg = errorData.message || msg
     } catch {}
-    throw new Error(msg)
+    const error = new Error(msg)
+    error.status = res.status
+    error.data = errorData
+    throw error
   }
   const ct = res.headers.get("content-type") || ""
   if (ct.includes("application/json")) return res.json()
@@ -63,12 +67,10 @@ export async function apiExportContactsCsv(params = {}) {
 
 /* --------------------------- Stats --------------------------- */
 export async function apiStats() {
-  // if you have a request() wrapper that already adds the Bearer token:
   return request("/api/stats/dashboard");
 }
 
 export async function apiStatsNotifications() {
-  // if you have a request() wrapper that already adds the Bearer token:
   return request("/api/stats/notifications");
 }
 
@@ -278,10 +280,10 @@ export const apiGetAllLeaves = (params) => request('/api/admin/leaves', { params
 // Get leave balance
 export const apiGetLeaveBalance = () => request('/api/leaves/balance');
 
-// Update leave status (approve/reject)
-// Update the leave status API call to handle day modifications
+// Update leave status (approve/reject) - FIXED
 export const apiUpdateLeaveStatus = (id, body) => 
   request(`/api/leaves/${id}/status`, { method: 'PATCH', body });
+
 // Cancel leave
 export const apiCancelLeave = (id) => request(`/api/leaves/${id}/cancel`, { method: 'PATCH' });
 

@@ -20,8 +20,6 @@ const crypto = require('crypto')
 const app = express()
 const PORT = process.env.PORT || 5001
 
-
-
 app.use(helmet())
 app.use(express.json())
 app.use(cookieParser())
@@ -67,7 +65,6 @@ const pool = new Pool({
       ? false
       : { rejectUnauthorized: false },
 })
-
 
 /* -------------------- Project & Payment Helpers + RBAC checks -------------------- */
 function genProjectCode() {
@@ -3472,11 +3469,9 @@ app.post('/api/leaves/apply', requireAuth, async (req, res) => {
   }
 });
 
-// Update leave status approval with day modification capability
-
-// In app.js - Update the leave status update route
-
+// Update leave status approval with day modification capability - FIXED VERSION
 app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
+  let client;
   try {
     const leaveId = Number(req.params.id);
     const { status, comments, approvedDays, approvedStartDate, approvedEndDate } = req.body;
@@ -3492,7 +3487,7 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid status' });
     }
 
-    // FIXED: Get complete leave details including leave_type
+    // Get complete leave details including leave_type
     const leaveQuery = await pool.query(
       `SELECT l.*, emp.name as employee_name, appr.name as approver_name
        FROM leaves l
@@ -3539,7 +3534,7 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
     }
 
     // Use transaction for atomic operations
-    const client = await pool.connect();
+    client = await pool.connect();
     try {
       await client.query('BEGIN');
 
@@ -3648,6 +3643,9 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
 
   } catch (error) {
     console.error('Update leave status error:', error);
+    if (client) {
+      client.release();
+    }
     res.status(500).json({ 
       success: false, 
       message: 'Server error while updating leave status',
