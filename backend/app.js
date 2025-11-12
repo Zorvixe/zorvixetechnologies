@@ -488,6 +488,13 @@ async function initDb() {
   );
 `);
 
+    await client.query(`
+  ALTER TABLE leave_balances
+ADD COLUMN IF NOT EXISTS sick_used_this_month INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
+
+  `)
+
 
     // Create indexes
     await client.query(`CREATE INDEX IF NOT EXISTS idx_leaves_employee_id ON leaves(employee_id);`);
@@ -563,7 +570,7 @@ function calculateWorkingDays(startDate, endDate) {
   let totalDays = 0;
   const current = new Date(startDate);
   const end = new Date(endDate);
-  
+
   while (current <= end) {
     const day = current.getDay();
     // Count all days except Sunday (0)
@@ -583,25 +590,25 @@ async function checkMonthlyLimit(userId, leaveType, requestedDays) {
     'SELECT * FROM leave_balances WHERE employee_id = $1',
     [userId]
   );
-  
+
   if (balanceQuery.rows.length === 0) return true;
-  
+
   const balance = balanceQuery.rows[0];
-  
+
   if (leaveType === 'sick') {
     const monthlyLimit = 1;
     const usedThisMonth = Number(balance.sick_used_this_month) || 0;
     const availableThisMonth = monthlyLimit - usedThisMonth;
     return requestedDays <= availableThisMonth;
   }
-  
+
   if (leaveType === 'casual') {
     const monthlyLimit = 2;
     const usedThisMonth = Number(balance.casual_used_this_month) || 0;
     const availableThisMonth = monthlyLimit - usedThisMonth;
     return requestedDays <= availableThisMonth;
   }
-  
+
   return true;
 }
 
@@ -3137,9 +3144,9 @@ app.get('/api/leaves/approvers', requireAuth, async (req, res) => {
     console.error('Get approvers error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-}); 
+});
 
- 
+
 
 app.get('/api/leaves/my-leaves', requireAuth, async (req, res) => {
   try {
@@ -3206,7 +3213,7 @@ app.get('/api/leaves/my-leaves', requireAuth, async (req, res) => {
     console.error('Get my leaves error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-}); 
+});
 
 app.get('/api/leaves/for-approval', requireAuth, async (req, res) => {
   try {
@@ -3273,7 +3280,7 @@ app.get('/api/leaves/for-approval', requireAuth, async (req, res) => {
     console.error('Get leaves for approval error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-}); 
+});
 
 app.get('/api/admin/leaves', requireAuth, async (req, res) => {
   try {
@@ -3411,17 +3418,17 @@ app.post('/api/leaves/apply', requireAuth, async (req, res) => {
 
     const balance = balanceQuery.rows[0];
     const availableBalance = balance[`${leaveType}_balance`];
-    
+
     // Check monthly limits for sick and casual leaves
     if (leaveType === 'sick' || leaveType === 'casual') {
       const withinMonthlyLimit = await checkMonthlyLimit(employeeId, leaveType, totalDays);
       if (!withinMonthlyLimit) {
         const monthlyLimit = leaveType === 'sick' ? 1 : 2;
-        const usedThisMonth = leaveType === 'sick' ? 
-          (Number(balance.sick_used_this_month) || 0) : 
+        const usedThisMonth = leaveType === 'sick' ?
+          (Number(balance.sick_used_this_month) || 0) :
           (Number(balance.casual_used_this_month) || 0);
         const availableThisMonth = monthlyLimit - usedThisMonth;
-        
+
         return res.status(400).json({
           success: false,
           message: `Monthly ${leaveType} leave limit exceeded. Available this month: ${availableThisMonth}, Requested: ${totalDays}`
@@ -3527,9 +3534,9 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
 
     // Validate final days
     if (finalDays <= 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Total days must be greater than 0' 
+      return res.status(400).json({
+        success: false,
+        message: 'Total days must be greater than 0'
       });
     }
 
@@ -3564,7 +3571,7 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
         // Update monthly usage for sick and casual leaves
         let monthlyUpdate = '';
         const monthlyParams = [];
-        
+
         if (leave.leave_type === 'sick') {
           monthlyUpdate = `, sick_used_this_month = sick_used_this_month + $${monthlyParams.length + 2}`;
           monthlyParams.push(finalDays);
@@ -3586,7 +3593,7 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
       if (status !== 'approved' && leave.status === 'approved') {
         let monthlyUpdate = '';
         const monthlyParams = [];
-        
+
         if (leave.leave_type === 'sick') {
           monthlyUpdate = `, sick_used_this_month = GREATEST(0, sick_used_this_month - $${monthlyParams.length + 2})`;
           monthlyParams.push(finalDays);
@@ -3646,8 +3653,8 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
     if (client) {
       client.release();
     }
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Server error while updating leave status',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -3673,7 +3680,7 @@ app.post('/api/admin/leaves/monthly-reset', requireAdmin, async (req, res) => {
     console.error('Monthly reset error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-}); 
+});
 
 app.get('/api/leaves/balance', requireAuth, async (req, res) => {
   try {
@@ -3701,7 +3708,7 @@ app.get('/api/leaves/balance', requireAuth, async (req, res) => {
     console.error('Get leave balance error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-}); 
+});
 
 app.patch('/api/leaves/:id/cancel', requireAuth, async (req, res) => {
   try {
@@ -3748,7 +3755,7 @@ app.patch('/api/leaves/:id/cancel', requireAuth, async (req, res) => {
     console.error('Cancel leave error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-}); 
+});
 
 app.post('/api/admin/leaves/carry-forward', requireAdmin, async (req, res) => {
   try {
