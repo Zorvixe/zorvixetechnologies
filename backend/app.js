@@ -3473,6 +3473,8 @@ app.post('/api/leaves/apply', requireAuth, async (req, res) => {
 });
 
 // Update leave status approval with day modification capability
+
+// In app.js - Update the leave status update route
 app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
   try {
     const leaveId = Number(req.params.id);
@@ -3539,7 +3541,7 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
       }
 
       const balance = balanceQuery.rows[0];
-      const availableBalance = balance[`${leave.leave_type}_balance`];
+      const availableBalance = Number(balance[`${leave.leave_type}_balance`]) || 0;
 
       if (availableBalance < finalDays) {
         return res.status(400).json({
@@ -3613,7 +3615,7 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
 
   } catch (error) {
     console.error('Update leave status error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
