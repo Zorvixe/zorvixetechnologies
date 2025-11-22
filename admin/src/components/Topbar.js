@@ -212,14 +212,18 @@ export default function Topbar({
 
   const handleLeave = () => navigate("/leaves");
 
-  /* ------------------- GLOBAL TOPBAR ------------------- */
+  /* ---------------------- Render ---------------------- */
   if (variant === "global") {
     return (
       <>
+        {/* Fixed header */}
         <header className="topbar topbar--global">
           <div className="tb-left">
-            {/* Sidebar Toggle */}
-            <button className="icon-btn" onClick={onToggleSidebar}>
+            <button
+              className="icon-btn"
+              aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+              onClick={onToggleSidebar}
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -231,20 +235,19 @@ export default function Topbar({
 
             <img
               src={ZorvixeLogo}
-              onError={(e) => (e.currentTarget.src = ZorvixeFavicon)}
+              alt="Zorvixe"
               className="tb-logo"
+              onError={(e) => { e.currentTarget.src = ZorvixeFavicon; }}
             />
 
-            <span className="tb-divider" />
+            <span className="tb-divider" aria-hidden="true" />
 
-            <h1 className="tb-title" title={title}>
-              {title}
-            </h1>
+            <h1 className="tb-title" title={title}>{title}</h1>
 
             {children && <div className="tb-actions">{children}</div>}
           </div>
 
-          {/* ---------------- RIGHT SIDE ---------------- */}
+           {/* ---------------- RIGHT SIDE ---------------- */}
           <div className="tb-right">
 
             {/* MEETINGS DROPDOWN */}
@@ -303,8 +306,12 @@ export default function Topbar({
               </svg>
             </button>
 
-            {/* NOTIFICATIONS */}
-            <button className="icon-btn notif-btn" onClick={handleNotificationClick}>
+            {/* Notifications */}
+            <button
+              className="icon-btn notif-btn"
+              aria-label="Notifications"
+              onClick={handleNotificationClick}
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -316,8 +323,12 @@ export default function Topbar({
               )}
             </button>
 
-            {/* TICKETS */}
-            <button className="icon-btn ticket-btn" onClick={handleTicketClick}>
+            {/* Tickets */}
+            <button
+              className="icon-btn ticket-btn"
+              aria-label="My Tickets"
+              onClick={handleTicketClick}
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -328,6 +339,7 @@ export default function Topbar({
               )}
             </button>
 
+            {/* Render panels */}
             {showNotifications && (
               <Notification
                 isOpen={showNotifications}
@@ -346,55 +358,76 @@ export default function Topbar({
               />
             )}
 
-            {/* PROFILE DROPDOWN */}
+            {/* Avatar + profile dropdown */}
             <div className="profile-anchor">
               <button
                 ref={btnRef}
                 className={`avatar-btn ${menuOpen ? "is-open" : ""}`}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                aria-label="Account"
                 onClick={() => setMenuOpen((v) => !v)}
               >
                 <span className="avatar">{initials}</span>
               </button>
 
               {menuOpen && (
-                <div ref={menuRef} className="profile-menu">
+                <div ref={menuRef} className="profile-menu" role="menu">
                   <div className="pm-header">
                     <span className="pm-avatar">{initials}</span>
                     <div className="pm-user">
                       <div className="pm-name">{user?.name || "User"}</div>
                       <div className="pm-email">{user?.email}</div>
-                      <button className="pm-link">My account</button>
+                      <h1></h1>
+                      <button
+                        className="pm-link"
+                        onClick={() => { /* navigate to account page if present */ }}
+                      >
+                        My account
+                      </button>
                     </div>
                   </div>
 
                   <div className="pm-actions">
                     <button className="pm-item_apply_leave" onClick={handleLeave}>
-                      Apply Leave
+                      <span className="pm-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar-check" viewBox="0 0 16 16">
+                          <path d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0" />
+                          <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z" />
+                        </svg>
+                      </span>
+                      <span>Apply Leave</span>
                     </button>
                   </div>
 
                   <div className="pm-actions">
                     <button className="pm-item" onClick={logout}>
-                      Sign out
+                      <span className="pm-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                          viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                          <polyline points="16 17 21 12 16 7" />
+                          <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                      </span>
+                      <span>Sign out</span>
                     </button>
                   </div>
                 </div>
               )}
             </div>
-
           </div>
         </header>
       </>
     );
   }
 
-  /* ---------------- PAGE VARIANT ---------------- */
+  // "page" variant (unchanged)
   return (
     <div className="topbar topbar--page">
-      <h3 className="page-title" title={title}>
-        {title}
-      </h3>
+      <h3 className="page-title" title={title}>{title}</h3>
       <div className="page-controls">{children}</div>
     </div>
   );
-}
+}  
