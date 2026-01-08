@@ -229,8 +229,27 @@ export const apiDeleteComment = (commentId) =>
   })
 
 /* --------------------------- Tickets --------------------------- */
-export const apiListTickets = (params) => request("/api/tickets", { params });
-export const apiGetTicket = (id) => request(`/api/tickets/${id}`);
+/* --------------------------- Ticket Export --------------------------- */
+export async function apiExportTicketsCsv(params = {}) {
+  const url = `${API_BASE_URL}/api/admin/tickets/export.csv${qs(params)}`;
+  const res = await fetch(url, {
+    headers: { ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) },
+  });
+  if (!res.ok) throw new Error("Export failed");
+  return res.blob();
+}
+
+export const apiListTickets = (params = {}) => {
+  // Ensure dates are formatted correctly
+  const formattedParams = { ...params };
+  if (params.startDate) {
+    formattedParams.startDate = formatDateForAPI(params.startDate);
+  }
+  if (params.endDate) {
+    formattedParams.endDate = formatDateForAPI(params.endDate);
+  }
+  return request("/api/tickets", { params: formattedParams });
+};export const apiGetTicket = (id) => request(`/api/tickets/${id}`);
 export const apiCreateTicket = (body) => request("/api/tickets", { method: "POST", body });
 export const apiUpdateTicket = (id, body) => request(`/api/tickets/${id}`, { method: "PATCH", body });
 export const apiCreateTicketComment = (ticketId, body) =>
@@ -294,6 +313,12 @@ export const apiMonthlyReset = () =>
   request('/api/admin/leaves/monthly-reset', { method: 'POST' });
 
 
+// Helper function to format dates for API
+const formatDateForAPI = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toISOString().split('T')[0]; // YYYY-MM-DD
+};
 
 /* --------------------------- Helpers --------------------------- */
 export const formatDate = (d) => {

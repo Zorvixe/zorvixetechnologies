@@ -207,7 +207,8 @@ export default function Tickets() {
     status: "all",
     priority: "all",
     search: "",
-    date: getTodayDate(),
+    startDate: "",
+    endDate: "",
     assignee: "all"
   });
 
@@ -495,39 +496,102 @@ export default function Tickets() {
 
       {/* Filters */}
       <div className="tickets-filters mt-3">
-        <select
-          value={filters.status}
-          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-        >
-          <option value="all">All Statuses</option>
-          <option value="open">Open</option>
-          <option value="in_progress">In Progress</option>
-          <option value="resolved">Resolved</option>
-          <option value="closed">Closed</option>
-        </select>
+        <div className="filter-group">
+          <label htmlFor="status-filter">Status</label>
+          <select
+            id="status-filter"
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            className="comment-input"
+          >
+            <option value="all">All Statuses</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
 
-        <select
-          value={filters.priority}
-          onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-        >
-          <option value="all">All Priorities</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="urgent">Urgent</option>
-        </select>
+        <div className="filter-group">
+          <label htmlFor="priority-filter">Priority</label>
+          <select
+            id="priority-filter"
+            value={filters.priority}
+            onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+            className="comment-input"
+          >
+            <option value="all">All Priorities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
 
-        <select
-          value={filters.assignee}
-          onChange={(e) => setFilters({ ...filters, assignee: e.target.value })}
-        >
-          <option value="all">All Members</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name} ({u.email})
-            </option>
-          ))}
-        </select>
+        <div className="filter-group">
+          <label htmlFor="assignee-filter">Assignee</label>
+          <select
+            id="assignee-filter"
+            value={filters.assignee}
+            onChange={(e) => setFilters({ ...filters, assignee: e.target.value })}
+            className="comment-input"
+          >
+            <option value="all">All Members</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name} ({u.email})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="start-date">From Date</label>
+          <input
+            id="start-date"
+            type="date"
+            value={filters.startDate}
+            onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+            className="comment-input"
+          />
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="end-date">To Date</label>
+          <input
+            id="end-date"
+            type="date"
+            value={filters.endDate}
+            onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+            className="comment-input"
+          />
+        </div>
+
+        <div className="filter-group full-width">
+          <label htmlFor="search-filter">Search</label>
+          <input
+            id="search-filter"
+            type="text"
+            placeholder="Search tickets..."
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            className="comment-input"
+          />
+        </div>
+
+        {/* Add Export Button - Only for admin */}
+        {user?.role === 'admin' && (
+          <div className="filter-group">
+            <label>&nbsp;</label>
+            <button
+              className="btn btn-secondary"
+              onClick={handleExportTickets}
+              disabled={loading}
+            >
+              Export CSV
+            </button>
+          </div>
+        )}
 
         <input
           type="date"

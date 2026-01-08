@@ -2744,6 +2744,149 @@ app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
   }
 })
 
+/* --------------------------- Ticket Export API --------------------------- */
+app.get('/api/admin/tickets/export.csv', requireAuth, async (req, res) => {
+  try {
+    const { startDate, endDate, status, priority, search } = req.query;
+    
+    let where = [];
+    let params = [];
+    let paramCount = 0;
+
+    // Apply filters
+    if (status && status !== 'all') {
+      paramCount++;
+      where.push(`t.status = $${paramCount}`);
+      params.push(status);
+    }
+
+    if (priority && priority !== 'all') {
+      paramCount++;
+      where.push(`t.priority = $${paramCount}`);
+      params.push(priority);
+    }
+
+    if (search) {
+      paramCount++;
+      where.push(`(t.title ILIKE $${paramCount} OR t.description ILIKE $${paramCount})`);
+      params.push(`%${search}%`);
+    }
+
+    // Date range filtering
+    if (startDate) {
+      paramCount++;
+      where.push(`t.created_at >= $${paramCount}`);
+      params.push(new Date(startDate));
+    }
+
+    if (endDate) {
+      paramCount++;
+      // Add one day to include the end date fully
+      const end = new Date(endDate);
+      end.setDate(end.getDate() + 1);
+      where.push(`t.created_at < $${paramCount}`);
+      params.push(end);
+    }
+
+    // For non-admin users, only show their tickets
+    if (!isAdmin(req)) {
+      paramCount++;
+      where.push(`(t.created_by = $${paramCount} OR t.assigned_to = $${paramCount} 
+                  OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $${paramCount}))`);
+      params.push(req.user.sub);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    // Get tickets with comments for export
+    const ticketsQuery = await pool.query(`
+      SELECT 
+        t.*,
+        creator.name as creator_name,
+        creator.email as creator_email,
+        assignee.name as assignee_name,
+        assignee.email as assignee_email,
+        last_editor.name as last_editor_name,
+        JSON_AGG(
+          JSON_BUILD_OBJECT(
+            'id', tc.id,
+            'comment_text', tc.comment_text,
+            'user_name', commenter.name,
+            'user_email', commenter.email,
+            'created_at', tc.created_at,
+            'updated_at', tc.updated_at
+          ) ORDER BY tc.created_at ASC
+        ) FILTER (WHERE tc.id IS NOT NULL) as comments
+      FROM tickets t
+      LEFT JOIN admin_users creator ON creator.id = t.created_by
+      LEFT JOIN admin_users assignee ON assignee.id = t.assigned_to
+      LEFT JOIN admin_users last_editor ON last_editor.id = t.last_edited_by
+      LEFT JOIN ticket_comments tc ON tc.ticket_id = t.id
+      LEFT JOIN admin_users commenter ON commenter.id = tc.user_id
+      ${whereSql}
+      GROUP BY t.id, creator.id, assignee.id, last_editor.id
+      ORDER BY t.created_at DESC
+    `, params);
+
+    const rows = ticketsQuery.rows || [];
+
+    // Generate CSV
+    const header = [
+      'ID', 'Title', 'Description', 'Status', 'Priority', 
+      'Creator', 'Creator Email', 'Assigned To', 'Assigned To Email',
+      'Created At', 'Updated At', 'Last Editor',
+      'Comments Count', 'Comments'
+    ];
+
+    const csvLines = [header.join(',')];
+    
+    const esc = (v) => {
+      if (v == null) return '';
+      const s = String(v)
+        .replaceAll('"', '""')
+        .replaceAll('\n', ' ')
+        .replaceAll('\r', ' ');
+      return `"${s}"`;
+    };
+
+    rows.forEach(r => {
+      const commentsText = Array.isArray(r.comments) 
+        ? r.comments.map(c => 
+            `[${new Date(c.created_at).toLocaleString()}] ${c.user_name}: ${c.comment_text}`
+          ).join(' | ')
+        : '';
+
+      const row = [
+        r.id,
+        r.title,
+        r.description ? r.description.replace(/<[^>]*>/g, '') : '',
+        r.status,
+        r.priority,
+        r.creator_name,
+        r.creator_email,
+        r.assignee_name,
+        r.assignee_email,
+        new Date(r.created_at).toISOString(),
+        new Date(r.updated_at).toISOString(),
+        r.last_editor_name,
+        Array.isArray(r.comments) ? r.comments.length : 0,
+        commentsText
+      ];
+
+      csvLines.push(row.map(esc).join(','));
+    });
+
+    const csv = csvLines.join('\n');
+    const ts = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+    
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="tickets-${ts}.csv"`);
+    res.send(csv);
+  } catch (e) {
+    console.error('Ticket export error:', e);
+    res.status(500).json({ success: false, message: 'Failed to export tickets' });
+  }
+});
 
 /* --------------------------------- Tickets API --------------------------------- */
 // Get all tickets
@@ -2752,26 +2895,65 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 200);
     const offset = (page - 1) * limit;
-    const status = (req.query.status || '').toString();
-    const priority = (req.query.priority || '').toString();
-    const search = (req.query.search || '').toString().trim();
+    
+    const { 
+      status, 
+      priority, 
+      search, 
+      startDate, 
+      endDate,
+      assignee 
+    } = req.query;
 
     let where = [];
     let params = [];
+    let paramCount = 0;
 
     if (status && status !== 'all') {
+      paramCount++;
+      where.push(`t.status = $${paramCount}`);
       params.push(status);
-      where.push(`t.status = $${params.length}`);
     }
 
     if (priority && priority !== 'all') {
+      paramCount++;
+      where.push(`t.priority = $${paramCount}`);
       params.push(priority);
-      where.push(`t.priority = $${params.length}`);
     }
 
     if (search) {
+      paramCount++;
+      where.push(`(t.title ILIKE $${paramCount} OR t.description ILIKE $${paramCount})`);
       params.push(`%${search}%`);
-      where.push(`(t.title ILIKE $${params.length} OR t.description ILIKE $${params.length})`);
+    }
+
+    if (assignee && assignee !== 'all') {
+      paramCount++;
+      where.push(`t.assigned_to = $${paramCount}`);
+      params.push(assignee);
+    }
+
+    // Date range filtering - FIXED: Tickets never expire, show all by default
+    if (startDate) {
+      paramCount++;
+      where.push(`t.created_at >= $${paramCount}`);
+      params.push(new Date(startDate));
+    }
+
+    if (endDate) {
+      paramCount++;
+      const end = new Date(endDate);
+      end.setDate(end.getDate() + 1);
+      where.push(`t.created_at < $${paramCount}`);
+      params.push(end);
+    }
+
+    // For non-admin users
+    if (!isAdmin(req)) {
+      paramCount++;
+      where.push(`(t.created_by = $${paramCount} OR t.assigned_to = $${paramCount} 
+                  OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $${paramCount}))`);
+      params.push(req.user.sub);
     }
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -2783,7 +2965,10 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
     );
     const total = Number(countQuery.rows[0]?.total || 0);
 
-    // Get tickets with creator and assignee info
+    // Get tickets with pagination
+    params.push(limit);
+    params.push(offset);
+    
     const dataQuery = await pool.query(`
       SELECT 
         t.*,
@@ -2795,8 +2980,8 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
       LEFT JOIN admin_users assignee ON assignee.id = t.assigned_to
       ${whereSql}
       ORDER BY t.updated_at DESC
-      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
-    `, [...params, limit, offset]);
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `, params);
 
     res.json({
       success: true,
@@ -2804,7 +2989,7 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
       pagination: { page, limit, total, total_pages: Math.ceil(total / limit) }
     });
   } catch (e) {
-    console.error(e);
+    console.error('Tickets list error:', e);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
