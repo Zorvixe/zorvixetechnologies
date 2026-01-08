@@ -303,7 +303,7 @@ export default function Tickets() {
     status: "all",
     priority: "all",
     search: "",
-    date: "",
+    date: getTodayDate(),
     assignee: "all",
     startDate: "",
     endDate: ""
@@ -719,35 +719,35 @@ export default function Tickets() {
           </select>
         </div>
 
-         <div className="filter-group">
-              <label htmlFor="Assignee">Assignee</label>
-              <select
-              id="Assignee"
-                value={filters.assignee}
-                onChange={(e) => setFilters({ ...filters, assignee: e.target.value })}
-                className="comment-input"
-              >
-                <option value="all">All Members</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.email})
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div className="filter-group">
+          <label htmlFor="Assignee">Assignee</label>
+          <select
+            id="Assignee"
+            value={filters.assignee}
+            onChange={(e) => setFilters({ ...filters, assignee: e.target.value })}
+            className="comment-input"
+          >
+            <option value="all">All Members</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name} ({u.email})
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="filter-group">
-              <label htmlFor="date-filter">Date Filter</label>
-              <input
-              id=""
-                type="date"
-                value={filters.date}
-                onChange={(e) => setFilters({ ...filters, date: e.target.value })}
-                className="comment-input"
-              />
-          </div>
+          <label htmlFor="date-filter">Date Filter</label>
+          <input
+            id=""
+            type="date"
+            value={filters.date}
+            onChange={(e) => setFilters({ ...filters, date: e.target.value })}
+            className="comment-input"
+          />
+        </div>
 
-           
+
 
         {/* Search with Filter Icon */}
         <div className="filter-group search-with-filter">
@@ -762,18 +762,18 @@ export default function Tickets() {
             />
             {(
               user?.role === 'admin' && (
-              <button
-              className="filter-icon-btn"
-              onClick={() => setShowFilterPopup(true)}
-              title="Advanced filters"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-              </svg>
-            </button>
+                <button
+                  className="filter-icon-btn"
+                  onClick={() => setShowFilterPopup(true)}
+                  title="Advanced filters"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+                  </svg>
+                </button>
               )
             )}
-           
+
           </div>
         </div>
       </div>
