@@ -17,6 +17,7 @@ import {
   apiDeleteTicket,
   apiRecordTicketView,
   apiGetTicketViewers,
+  apiExportTicketsCsv,
 } from "../api";
 import { useAuth } from "../auth";
 import "./Tickets.css";
