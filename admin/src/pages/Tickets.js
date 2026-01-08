@@ -1,4 +1,4 @@
-// src/pages/Tickets.js
+
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import Topbar from '../components/Topbar'
 import RichTextEditor from '../components/RichTextEditor'
@@ -17,7 +17,6 @@ import {
   apiDeleteTicket,
   apiRecordTicketView,
   apiGetTicketViewers,
-  apiExportTicketsCsv,
 } from "../api";
 import { useAuth } from "../auth";
 import "./Tickets.css";
@@ -184,101 +183,6 @@ const UserAvatar = ({ name = "U", size = 25 }) => {
   );
 };
 
-/* -------------------- Filter Popup Component -------------------- */
-function FilterPopup({ open, onClose, filters, setFilters, handleExportTickets, users, user }) {
-  const popupRef = useRef(null);
-
-  // Close popup when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (popupRef.current && !popupRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
-
-    if (open) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  const resetFilters = () => {
-    setFilters({
-      status: "all",
-      priority: "all",
-      search: "",
-      date: "",
-      assignee: "all",
-      startDate: "",
-      endDate: "",
-    });
-  };
-
-  return (
-    <div className="filter-popup-overlay">
-      <div className="filter-popup" ref={popupRef}>
-        <div className="filter-popup-header">
-          <h3>Advanced Filters</h3>
-          <button className="btn-close-popup" onClick={onClose}>×</button>
-        </div>
-
-        <div className="filter-popup-content">
-
-
-          {user?.role === 'admin' && (
-            <>
-              <div className="filter-row">
-                <div className="filter-group">
-                  <label>From Date</label>
-                  <input
-                    type="date"
-                    value={filters.startDate}
-                    onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                    className="comment-input"
-                  />
-                </div>
-
-                <div className="filter-group">
-                  <label>To Date</label>
-                  <input
-                    type="date"
-                    value={filters.endDate}
-                    onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                    className="comment-input"
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="filter-popup-actions">
-            <button
-              className="btn btn-secondary"
-              onClick={resetFilters}
-            >
-              Reset Filters
-            </button>
-
-            {user?.role === 'admin' && (
-              <button
-                className="btn btn-primary"
-                onClick={handleExportTickets}
-              >
-                Export CSV
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* -------------------------------- Tickets --------------------------------- */
 export default function Tickets() {
   const { user } = useAuth();
@@ -304,13 +208,8 @@ export default function Tickets() {
     priority: "all",
     search: "",
     date: getTodayDate(),
-    assignee: "all",
-    startDate: "",
-    endDate: ""
+    assignee: "all"
   });
-
-  // Filter popup state
-  const [showFilterPopup, setShowFilterPopup] = useState(false);
 
   // toast
   const toastTimer = useRef(null);
@@ -439,63 +338,13 @@ export default function Tickets() {
   const fetchTickets = async () => {
     try {
       setLoading(true);
-
-      // Prepare API parameters with date filters
-      const apiParams = {
-        status: filters.status !== 'all' ? filters.status : undefined,
-        priority: filters.priority !== 'all' ? filters.priority : undefined,
-        assignee: filters.assignee !== 'all' ? filters.assignee : undefined,
-        search: filters.search || undefined,
-        date: filters.date || undefined,
-        startDate: filters.startDate || undefined,
-        endDate: filters.endDate || undefined,
-      };
-
-      // Remove undefined values
-      Object.keys(apiParams).forEach(key =>
-        apiParams[key] === undefined && delete apiParams[key]
-      );
-
-      const data = await apiListTickets(apiParams);
+      const data = await apiListTickets();
       setAllTickets(data.tickets || []);
-      // Note: The filtering is now done on the backend, but we keep local filtering for search
     } catch (e) {
       console.error("fetchTickets error", e);
-      showToast("Failed to load tickets", "error");
     } finally {
       setLoading(false);
     }
-  };
-
-  // Update useEffect for filters to refetch data from API
-  useEffect(() => {
-    fetchTickets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.status, filters.priority, filters.assignee, filters.date, filters.startDate, filters.endDate]);
-
-  // Keep local search filtering
-  useEffect(() => {
-    applySearchFilter();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.search, allTickets]);
-
-  const applySearchFilter = () => {
-    if (!filters.search) {
-      setFilteredTickets(allTickets);
-      return;
-    }
-
-    const searchTerm = filters.search.toLowerCase();
-    const results = allTickets.filter(ticket =>
-      (ticket.title || "").toLowerCase().includes(searchTerm) ||
-      (ticket.description || "").toLowerCase().includes(searchTerm) ||
-      (ticket.creator_name || "").toLowerCase().includes(searchTerm) ||
-      (ticket.assignee_name || "").toLowerCase().includes(searchTerm) ||
-      (ticket.status || "").toLowerCase().includes(searchTerm) ||
-      (ticket.priority || "").toLowerCase().includes(searchTerm)
-    );
-
-    setFilteredTickets(results);
   };
 
   const openViewModal = async (id, { pushHistory = true } = {}) => {
@@ -629,47 +478,6 @@ export default function Tickets() {
     }
   };
 
-  const handleExportTickets = async () => {
-    try {
-      showToast("Preparing export...", "info");
-
-      // Prepare export parameters
-      const exportParams = {
-        status: filters.status !== 'all' ? filters.status : undefined,
-        priority: filters.priority !== 'all' ? filters.priority : undefined,
-        assignee: filters.assignee !== 'all' ? filters.assignee : undefined,
-        search: filters.search || undefined,
-        date: filters.date || undefined,
-        startDate: filters.startDate || undefined,
-        endDate: filters.endDate || undefined,
-      };
-
-      // Remove undefined values
-      Object.keys(exportParams).forEach(key =>
-        exportParams[key] === undefined && delete exportParams[key]
-      );
-
-      // Call export API
-      const blob = await apiExportTicketsCsv(exportParams);
-
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
-      a.href = url;
-      a.download = `tickets-export-${timestamp}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
-      showToast("Export completed successfully", "success");
-    } catch (error) {
-      console.error("Export error:", error);
-      showToast("Export failed: " + (error.message || "Unknown error"), "error");
-    }
-  };
-
 
   return (
     <div className="tickets-container">
@@ -687,107 +495,55 @@ export default function Tickets() {
 
       {/* Filters */}
       <div className="tickets-filters mt-3">
-        <div className="filter-group">
-          <label htmlFor="status-filter">Status</label>
-          <select
-            id="status-filter"
-            value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            className="comment-input"
-          >
-            <option value="all">All Statuses</option>
-            <option value="open">Open</option>
-            <option value="in_progress">In Progress</option>
-            <option value="resolved">Resolved</option>
-            <option value="closed">Closed</option>
-          </select>
-        </div>
+        <select
+          value={filters.status}
+          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+        >
+          <option value="all">All Statuses</option>
+          <option value="open">Open</option>
+          <option value="in_progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+          <option value="closed">Closed</option>
+        </select>
 
-        <div className="filter-group">
-          <label htmlFor="priority-filter">Priority</label>
-          <select
-            id="priority-filter"
-            value={filters.priority}
-            onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-            className="comment-input"
-          >
-            <option value="all">All Priorities</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
-        </div>
+        <select
+          value={filters.priority}
+          onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+        >
+          <option value="all">All Priorities</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
 
-        <div className="filter-group">
-          <label htmlFor="Assignee">Assignee</label>
-          <select
-            id="Assignee"
-            value={filters.assignee}
-            onChange={(e) => setFilters({ ...filters, assignee: e.target.value })}
-            className="comment-input"
-          >
-            <option value="all">All Members</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name} ({u.email})
-              </option>
-            ))}
-          </select>
-        </div>
+        <select
+          value={filters.assignee}
+          onChange={(e) => setFilters({ ...filters, assignee: e.target.value })}
+        >
+          <option value="all">All Members</option>
+          {users.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.name} ({u.email})
+            </option>
+          ))}
+        </select>
 
-        <div className="filter-group">
-          <label htmlFor="date-filter">Date Filter</label>
-          <input
-            id=""
-            type="date"
-            value={filters.date}
-            onChange={(e) => setFilters({ ...filters, date: e.target.value })}
-            className="comment-input"
-          />
-        </div>
+        <input
+          type="date"
+          value={filters.date}
+          onChange={(e) => setFilters({ ...filters, date: e.target.value })}
+          className="comment-input"
+        />
 
-
-
-        {/* Search with Filter Icon */}
-        <div className="filter-group search-with-filter">
-          <label htmlFor="filter-search">Search</label>
-          <div className="search-input-wrapper">
-            <input
-              type="text"
-              placeholder="Search tickets (title, description, creator, assignee, status, priority)..."
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="comment-input"
-            />
-            {(
-              user?.role === 'admin' && (
-                <button
-                  className="filter-icon-btn"
-                  onClick={() => setShowFilterPopup(true)}
-                  title="Advanced filters"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-                  </svg>
-                </button>
-              )
-            )}
-
-          </div>
-        </div>
+        <input
+          type="text"
+          placeholder="Search tickets (title, description, creator, assignee, status, priority)..."
+          value={filters.search}
+          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+          className="comment-input"
+        />
       </div>
-
-      {/* Filter Popup */}
-      <FilterPopup
-        open={showFilterPopup}
-        onClose={() => setShowFilterPopup(false)}
-        filters={filters}
-        setFilters={setFilters}
-        handleExportTickets={handleExportTickets}
-        users={users}
-        user={user}
-      />
 
       {/* List */}
       {loading ? (
