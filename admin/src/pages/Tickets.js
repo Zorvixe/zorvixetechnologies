@@ -337,16 +337,65 @@ export default function Tickets() {
   };
 
   const fetchTickets = async () => {
-    try {
-      setLoading(true);
-      const data = await apiListTickets();
-      setAllTickets(data.tickets || []);
-    } catch (e) {
-      console.error("fetchTickets error", e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+    
+    // Prepare API parameters with date filters
+    const apiParams = {
+      status: filters.status !== 'all' ? filters.status : undefined,
+      priority: filters.priority !== 'all' ? filters.priority : undefined,
+      assignee: filters.assignee !== 'all' ? filters.assignee : undefined,
+      search: filters.search || undefined,
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
+    };
+
+    // Remove undefined values
+    Object.keys(apiParams).forEach(key => 
+      apiParams[key] === undefined && delete apiParams[key]
+    );
+
+    const data = await apiListTickets(apiParams);
+    setAllTickets(data.tickets || []);
+    // Note: The filtering is now done on the backend, but we keep local filtering for search
+  } catch (e) {
+    console.error("fetchTickets error", e);
+    showToast("Failed to load tickets", "error");
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Update useEffect for filters to refetch data from API
+useEffect(() => {
+  fetchTickets();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [filters.status, filters.priority, filters.assignee, filters.startDate, filters.endDate]);
+
+// Keep local search filtering
+useEffect(() => {
+  applySearchFilter();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [filters.search, allTickets]);
+
+const applySearchFilter = () => {
+  if (!filters.search) {
+    setFilteredTickets(allTickets);
+    return;
+  }
+
+  const searchTerm = filters.search.toLowerCase();
+  const results = allTickets.filter(ticket =>
+    (ticket.title || "").toLowerCase().includes(searchTerm) ||
+    (ticket.description || "").toLowerCase().includes(searchTerm) ||
+    (ticket.creator_name || "").toLowerCase().includes(searchTerm) ||
+    (ticket.assignee_name || "").toLowerCase().includes(searchTerm) ||
+    (ticket.status || "").toLowerCase().includes(searchTerm) ||
+    (ticket.priority || "").toLowerCase().includes(searchTerm)
+  );
+
+  setFilteredTickets(results);
+};
 
   const openViewModal = async (id, { pushHistory = true } = {}) => {
     if (!id) return;
@@ -478,6 +527,46 @@ export default function Tickets() {
       showToast("Ticket Update Failed", "error");
     }
   };
+
+  const handleExportTickets = async () => {
+  try {
+    showToast("Preparing export...", "info");
+    
+    // Prepare export parameters
+    const exportParams = {
+      status: filters.status !== 'all' ? filters.status : undefined,
+      priority: filters.priority !== 'all' ? filters.priority : undefined,
+      assignee: filters.assignee !== 'all' ? filters.assignee : undefined,
+      search: filters.search || undefined,
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
+    };
+
+    // Remove undefined values
+    Object.keys(exportParams).forEach(key => 
+      exportParams[key] === undefined && delete exportParams[key]
+    );
+
+    // Call export API
+    const blob = await apiExportTicketsCsv(exportParams);
+    
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
+    a.href = url;
+    a.download = `tickets-export-${timestamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showToast("Export completed successfully", "success");
+  } catch (error) {
+    console.error("Export error:", error);
+    showToast("Export failed: " + (error.message || "Unknown error"), "error");
+  }
+};
 
 
   return (
