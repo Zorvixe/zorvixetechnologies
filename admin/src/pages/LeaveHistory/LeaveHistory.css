@@ -38,8 +38,8 @@
 }
 
 .stat-card {
-  background: #2563EB1A;
-  color: #2563EB;
+  background: #2563eb1a;
+  color: #2563eb;
   padding: 5px;
   border-radius: 12px;
   text-align: center;
@@ -161,6 +161,7 @@
 
 .filter-group {
   display: flex;
+  flex-direction: row !important;
   gap: 20px;
   flex-wrap: wrap;
 }
@@ -215,8 +216,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-text {
@@ -571,45 +576,45 @@
   .leave-history-container {
     padding: 16px;
   }
-  
+
   .leave-history-header {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .header-stats {
     justify-content: center;
   }
-  
+
   .filter-group {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .filter-item {
     min-width: auto;
   }
-  
+
   .leaves-table {
     font-size: 12px;
   }
-  
+
   .leaves-table th,
   .leaves-table td {
     padding: 12px 8px;
   }
-  
+
   .pagination {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .toast-notification {
     right: 16px;
     left: 16px;
     max-width: none;
   }
-  
+
   .modal-dialog {
     margin: 20px auto;
   }
@@ -619,16 +624,16 @@
   .page-title {
     font-size: 24px;
   }
-  
+
   .stat-card {
     min-width: 100px;
     padding: 16px;
   }
-  
+
   .stat-number {
     font-size: 24px;
   }
-  
+
   .modal-dialog {
     margin: 10px auto;
   }
