@@ -25,23 +25,23 @@ const LeaveBalance = () => {
     sick: {
       name: "Sick Leave",
       color: "#f44336",
-      total: 12,
+      total: 1,   // monthly accrual, not fixed annual
       tooltip:
-        "Granted when employee is genuinely sick. Usually 12 days/year. Doctor's note may be required. No deduction. Monthly limit: 1 day.",
+        "Granted when employee is genuinely sick. Accrues 1 day per month. Monthly limit: 1 day.",
     },
     casual: {
       name: "Casual Leave",
       color: "#2196f3",
-      total: 12,
+      total: 2,   // monthly accrual
       tooltip:
-        "For short personal matters or emergencies (e.g., family event). Usually 24 days/year (12 days/6 months). No deduction. Monthly limit: 2 days.",
+        "For short personal matters or emergencies. Accrues 2 days per month. Monthly limit: 2 days.",
     },
     annual: {
       name: "Annual Leave",
       color: "#4caf50",
       total: 21,
       tooltip:
-        "For vacations or long personal time off. Usually 21 days/year. Deduction. Often can be carried forward or encashed.",
+        "For vacations or long personal time off. Fixed 21 days per year.",
     },
     maternity: {
       name: "Maternity Leave",
@@ -135,8 +135,8 @@ const LeaveBalance = () => {
       {Object.entries(leaveTypes).map(([key, leave]) => {
         const currentBalance = getBalanceValue(key);
         const carryForward = getCarryForward(key);
-        const totalAllocation = leave.total + carryForward;
-        const percentage = calculatePercentage(currentBalance, totalAllocation);
+        // For sick and casual we show only the balance (no progress bar because they accrue monthly)
+        const showProgress = ['annual', 'maternity', 'paternity'].includes(key);
         const monthlyUsage = getMonthlyUsage(key);
 
         return (
@@ -157,9 +157,11 @@ const LeaveBalance = () => {
                       </span>
                     </span>
                   </h4>
-                  <p className="leave-subtext-LeaveBalance">
-                    {leave.total} days + {carryForward} carried
-                  </p>
+                  {showProgress && (
+                    <p className="leave-subtext-LeaveBalance">
+                      {leave.total} days + {carryForward} carried
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="leave-count-LeaveBalance">
@@ -174,20 +176,20 @@ const LeaveBalance = () => {
               </div>
             )}
 
-            {["sick", "casual", "annual"].includes(key) && (
+            {showProgress && (
               <>
                 <div className="progress-bar-LeaveBalance">
                   <div
                     className="progress-fill-LeaveBalance"
                     style={{
-                      width: `${percentage}%`,
+                      width: `${calculatePercentage(currentBalance, leave.total + carryForward)}%`,
                       backgroundColor: leave.color,
                     }}
                   ></div>
                 </div>
                 <div className="leave-usage-LeaveBalance">
-                  <span>Used: {totalAllocation - currentBalance} days</span>
-                  <span>Total: {totalAllocation} days</span>
+                  <span>Used: {leave.total + carryForward - currentBalance} days</span>
+                  <span>Total: {leave.total + carryForward} days</span>
                 </div>
               </>
             )}

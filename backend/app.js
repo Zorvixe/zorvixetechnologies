@@ -471,8 +471,8 @@ async function initDb() {
   CREATE TABLE IF NOT EXISTS leave_balances (
     id BIGSERIAL PRIMARY KEY,
     employee_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
-    sick_balance INTEGER NOT NULL DEFAULT 12,
-    casual_balance INTEGER NOT NULL DEFAULT 12,
+    sick_balance INTEGER NOT NULL DEFAULT 1,          -- monthly accrual, starts with 1
+    casual_balance INTEGER NOT NULL DEFAULT 2,        -- monthly accrual, starts with 2
     annual_balance INTEGER NOT NULL DEFAULT 21,
     maternity_balance INTEGER NOT NULL DEFAULT 180,
     paternity_balance INTEGER NOT NULL DEFAULT 15,
@@ -522,7 +522,7 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
     // Initialize leave balances for existing users
     await client.query(`
   INSERT INTO leave_balances (employee_id, sick_balance, casual_balance, annual_balance, maternity_balance, paternity_balance)
-  SELECT id, 12, 12, 21, 180, 15
+  SELECT id, 1, 2, 21, 180, 15   -- changed sick from 12 to 1, casual from 12 to 2
   FROM admin_users
   WHERE is_active = TRUE
   AND NOT EXISTS (SELECT 1 FROM leave_balances WHERE employee_id = admin_users.id)
@@ -759,6 +759,14 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
       RETURNING id, email, username, name, role, is_active, created_at, updated_at
     `
     const { rows } = await pool.query(sql, [name, email.toLowerCase(), uname, roleVal, hash])
+
+    // Create leave balance for new user with monthly accrual defaults
+    await pool.query(`
+      INSERT INTO leave_balances (employee_id, sick_balance, casual_balance, annual_balance, maternity_balance, paternity_balance)
+      VALUES ($1, 1, 2, 21, 180, 15)
+      ON CONFLICT (employee_id) DO NOTHING
+    `, [rows[0].id])
+
     res.status(201).json({ message: 'User created', user: rows[0] })
   } catch (e) {
     if (e.code === '23505') return res.status(409).json({ message: 'Email or username already exists' })
@@ -3848,22 +3856,65 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
 
 // Add monthly reset function
 app.post('/api/admin/leaves/monthly-reset', requireAdmin, async (req, res) => {
+  let client;
   try {
-    await pool.query(`
-      UPDATE leave_balances 
-      SET sick_used_this_month = 0, casual_used_this_month = 0,
-          last_reset = NOW()
-      WHERE employee_id IN (SELECT id FROM admin_users WHERE is_active = TRUE)
-    `);
+    client = await pool.connect();
+    await client.query('BEGIN');
+
+    const now = new Date();
+    const currentMonth = now.getMonth(); // 0-11
+    const currentYear = now.getFullYear();
+
+    // Get all active employees
+    const users = await client.query(
+      'SELECT id FROM admin_users WHERE is_active = TRUE'
+    );
+
+    for (const user of users.rows) {
+      const balance = await client.query(
+        'SELECT last_reset FROM leave_balances WHERE employee_id = $1',
+        [user.id]
+      );
+
+      const lastReset = balance.rows[0]?.last_reset;
+      let shouldAdd = false;
+
+      if (!lastReset) {
+        shouldAdd = true;
+      } else {
+        const lastDate = new Date(lastReset);
+        if (lastDate.getMonth() !== currentMonth || lastDate.getFullYear() !== currentYear) {
+          shouldAdd = true;
+        }
+      }
+
+      if (shouldAdd) {
+        // Add monthly accrual
+        await client.query(`
+          UPDATE leave_balances 
+          SET sick_balance = sick_balance + 1,
+              casual_balance = casual_balance + 2,
+              sick_used_this_month = 0,
+              casual_used_this_month = 0,
+              last_reset = NOW()
+          WHERE employee_id = $1
+        `, [user.id]);
+      }
+    }
+
+    await client.query('COMMIT');
 
     res.json({
       success: true,
-      message: 'Monthly leave usage reset successfully'
+      message: 'Monthly leave balances updated successfully'
     });
 
   } catch (error) {
+    if (client) await client.query('ROLLBACK');
     console.error('Monthly reset error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
+  } finally {
+    if (client) client.release();
   }
 });
 
