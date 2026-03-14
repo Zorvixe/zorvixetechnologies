@@ -15,9 +15,10 @@ const ApplyLeave = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState({});
 
+  // In ApplyLeave.js, find the leaveTypes array and change the casual label
   const leaveTypes = [
     { value: "sick", label: "Sick Leave (1 day/month limit)" },
-    { value: "casual", label: "Casual Leave (2 days/month limit)" },
+    { value: "casual", label: "Casual Leave (1 day/month limit)" },  // changed from 2 to 1
     { value: "annual", label: "Annual Leave" },
     { value: "maternity", label: "Maternity Leave" },
     { value: "paternity", label: "Paternity Leave / Loss of Pay (LOP)" },
@@ -26,20 +27,20 @@ const ApplyLeave = ({ onSuccess }) => {
   // Toast system
   const toastTimer = useRef(null);
   const [toast, setToast] = useState({ open: false, type: 'success', message: '' });
-  
+
   const showToast = (message, type = 'success') => {
     setToast({ open: true, type, message });
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(t => ({ ...t, open: false })), 4000);
   };
-  
+
   const hideToast = () => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(t => ({ ...t, open: false }));
   };
-  
-  useEffect(() => () => { 
-    if (toastTimer.current) clearTimeout(toastTimer.current) 
+
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
   }, []);
 
   useEffect(() => {
@@ -87,13 +88,13 @@ const ApplyLeave = ({ onSuccess }) => {
 
   const validateForm = () => {
     const errors = {};
-    
+
     if (!formData.leaveType) errors.leaveType = "Leave type is required";
     if (!formData.approverId) errors.approverId = "Approver is required";
     if (!formData.startDate) errors.startDate = "Start date is required";
     if (!formData.endDate) errors.endDate = "End date is required";
     if (!formData.reason) errors.reason = "Reason is required";
-    
+
     if (formData.startDate && formData.endDate) {
       const start = new Date(formData.startDate);
       const end = new Date(formData.endDate);
@@ -125,7 +126,7 @@ const ApplyLeave = ({ onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       showToast("Please fix the form errors before submitting", "error");
       return;
@@ -176,8 +177,8 @@ const ApplyLeave = ({ onSuccess }) => {
     showToast("Form cleared", "success");
   };
 
-  const isFormValid = formData.leaveType && formData.startDate && formData.endDate && 
-                     formData.reason && formData.approverId && totalDays > 0;
+  const isFormValid = formData.leaveType && formData.startDate && formData.endDate &&
+    formData.reason && formData.approverId && totalDays > 0;
 
   return (
     <div className="apply-leave-container">

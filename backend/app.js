@@ -519,10 +519,10 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
 `);
 
-    // Initialize leave balances for existing users
+    // In initDb() – find this block and change casual_balance from 2 to 1
     await client.query(`
   INSERT INTO leave_balances (employee_id, sick_balance, casual_balance, annual_balance, maternity_balance, paternity_balance)
-  SELECT id, 1, 2, 21, 180, 15   -- changed sick from 12 to 1, casual from 12 to 2
+  SELECT id, 1, 1, 21, 180, 15   -- changed casual from 2 to 1
   FROM admin_users
   WHERE is_active = TRUE
   AND NOT EXISTS (SELECT 1 FROM leave_balances WHERE employee_id = admin_users.id)
@@ -640,15 +640,16 @@ async function updateMonthlyAccruals(userId) {
       if (monthsPassed <= 0) monthsPassed = 1; // Actually if same month, shouldn't update
 
       // Add monthly accruals (sick +1, casual +2 per month)
+      // In updateMonthlyAccruals, change this line:
       await client.query(
         `UPDATE leave_balances
-         SET sick_balance = sick_balance + $1,
-             casual_balance = casual_balance + $2,
-             sick_used_this_month = 0,
-             casual_used_this_month = 0,
-             last_reset = NOW()
-         WHERE employee_id = $3`,
-        [monthsPassed, monthsPassed * 2, userId]
+   SET sick_balance = sick_balance + $1,
+       casual_balance = casual_balance + $2,   // $2 is monthsPassed * 2 → now monthsPassed
+       sick_used_this_month = 0,
+       casual_used_this_month = 0,
+       last_reset = NOW()
+   WHERE employee_id = $3`,
+        [monthsPassed, monthsPassed, userId]  // second parameter changed from monthsPassed * 2 to monthsPassed
       );
     } else {
       // Already in current month – just ensure monthly counters are zero (in case they weren't reset)
@@ -690,12 +691,13 @@ async function checkMonthlyLimit(userId, leaveType, requestedDays) {
     return requestedDays <= availableThisMonth;
   }
 
-  if (leaveType === 'casual') {
-    const monthlyLimit = 2;
-    const usedThisMonth = Number(balance.casual_used_this_month) || 0;
-    const availableThisMonth = monthlyLimit - usedThisMonth;
-    return requestedDays <= availableThisMonth;
-  }
+ // In checkMonthlyLimit, find this block:
+if (leaveType === 'casual') {
+  const monthlyLimit = 1;               // changed from 2 to 1
+  const usedThisMonth = Number(balance.casual_used_this_month) || 0;
+  const availableThisMonth = monthlyLimit - usedThisMonth;
+  return requestedDays <= availableThisMonth;
+}
 
   return true;
 }
@@ -848,12 +850,12 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
     `
     const { rows } = await pool.query(sql, [name, email.toLowerCase(), uname, roleVal, hash])
 
-    // Create leave balance for new user with monthly accrual defaults
+    // In the POST /api/admin/users endpoint, change casual_balance from 2 to 1
     await pool.query(`
-      INSERT INTO leave_balances (employee_id, sick_balance, casual_balance, annual_balance, maternity_balance, paternity_balance)
-      VALUES ($1, 1, 2, 21, 180, 15)
-      ON CONFLICT (employee_id) DO NOTHING
-    `, [rows[0].id])
+  INSERT INTO leave_balances (employee_id, sick_balance, casual_balance, annual_balance, maternity_balance, paternity_balance)
+  VALUES ($1, 1, 1, 21, 180, 15)   // changed casual from 2 to 1
+  ON CONFLICT (employee_id) DO NOTHING
+`, [rows[0].id]);
 
     res.status(201).json({ message: 'User created', user: rows[0] })
   } catch (e) {
@@ -2844,7 +2846,7 @@ app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
 app.get('/api/admin/tickets/export.csv', requireAuth, async (req, res) => {
   try {
     const { startDate, endDate, status, priority, search } = req.query;
-    
+
     let where = [];
     let params = [];
     let paramCount = 0;
@@ -2928,14 +2930,14 @@ app.get('/api/admin/tickets/export.csv', requireAuth, async (req, res) => {
 
     // Generate CSV
     const header = [
-      'ID', 'Title', 'Description', 'Status', 'Priority', 
+      'ID', 'Title', 'Description', 'Status', 'Priority',
       'Creator', 'Creator Email', 'Assigned To', 'Assigned To Email',
       'Created At', 'Updated At', 'Last Editor',
       'Comments Count', 'Comments'
     ];
 
     const csvLines = [header.join(',')];
-    
+
     const esc = (v) => {
       if (v == null) return '';
       const s = String(v)
@@ -2946,10 +2948,10 @@ app.get('/api/admin/tickets/export.csv', requireAuth, async (req, res) => {
     };
 
     rows.forEach(r => {
-      const commentsText = Array.isArray(r.comments) 
-        ? r.comments.map(c => 
-            `[${new Date(c.created_at).toLocaleString()}] ${c.user_name}: ${c.comment_text}`
-          ).join(' | ')
+      const commentsText = Array.isArray(r.comments)
+        ? r.comments.map(c =>
+          `[${new Date(c.created_at).toLocaleString()}] ${c.user_name}: ${c.comment_text}`
+        ).join(' | ')
         : '';
 
       const row = [
@@ -2974,7 +2976,7 @@ app.get('/api/admin/tickets/export.csv', requireAuth, async (req, res) => {
 
     const csv = csvLines.join('\n');
     const ts = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
-    
+
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="tickets-${ts}.csv"`);
     res.send(csv);
@@ -2991,14 +2993,14 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 200);
     const offset = (page - 1) * limit;
-    
-    const { 
-      status, 
-      priority, 
-      search, 
-      startDate, 
+
+    const {
+      status,
+      priority,
+      search,
+      startDate,
       endDate,
-      assignee 
+      assignee
     } = req.query;
 
     let where = [];
@@ -3064,7 +3066,7 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
     // Get tickets with pagination
     params.push(limit);
     params.push(offset);
-    
+
     const dataQuery = await pool.query(`
       SELECT 
         t.*,
