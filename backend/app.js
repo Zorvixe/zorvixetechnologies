@@ -585,7 +585,95 @@ function calculateWorkingDays(startDate, endDate) {
 // Add this function to check monthly limits
 // In app.js - Update the checkMonthlyLimit function
 
+// Add after checkMonthlyLimit function
+
+async function updateMonthlyAccruals(userId) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Fetch current balance
+    const balanceRes = await client.query(
+      'SELECT * FROM leave_balances WHERE employee_id = $1 FOR UPDATE',
+      [userId]
+    );
+
+    if (balanceRes.rows.length === 0) {
+      // Create balance record if it doesn't exist
+      await client.query(
+        `INSERT INTO leave_balances (employee_id) VALUES ($1)`,
+        [userId]
+      );
+      await client.query('COMMIT');
+      return;
+    }
+
+    const balance = balanceRes.rows[0];
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    let lastReset = balance.last_reset;
+    if (!lastReset) {
+      // First time – just set last_reset to now and reset monthly counters
+      await client.query(
+        `UPDATE leave_balances
+         SET last_reset = NOW(),
+             sick_used_this_month = 0,
+             casual_used_this_month = 0
+         WHERE employee_id = $1`,
+        [userId]
+      );
+      await client.query('COMMIT');
+      return;
+    }
+
+    const lastResetDate = new Date(lastReset);
+    const lastResetMonth = lastResetDate.getMonth();
+    const lastResetYear = lastResetDate.getFullYear();
+
+    // If last reset was in a previous month or year
+    if (lastResetYear < currentYear || (lastResetYear === currentYear && lastResetMonth < currentMonth)) {
+      // Calculate number of months passed (simplified: count full months between dates)
+      let monthsPassed = (currentYear - lastResetYear) * 12 + (currentMonth - lastResetMonth);
+      // Ensure at least 1 month passed (if last reset was last month but same year)
+      if (monthsPassed <= 0) monthsPassed = 1; // Actually if same month, shouldn't update
+
+      // Add monthly accruals (sick +1, casual +2 per month)
+      await client.query(
+        `UPDATE leave_balances
+         SET sick_balance = sick_balance + $1,
+             casual_balance = casual_balance + $2,
+             sick_used_this_month = 0,
+             casual_used_this_month = 0,
+             last_reset = NOW()
+         WHERE employee_id = $3`,
+        [monthsPassed, monthsPassed * 2, userId]
+      );
+    } else {
+      // Already in current month – just ensure monthly counters are zero (in case they weren't reset)
+      await client.query(
+        `UPDATE leave_balances
+         SET sick_used_this_month = 0,
+             casual_used_this_month = 0
+         WHERE employee_id = $1`,
+        [userId]
+      );
+    }
+
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
 async function checkMonthlyLimit(userId, leaveType, requestedDays) {
+  // First, update monthly accruals for this user
+  await updateMonthlyAccruals(userId);
+
   const balanceQuery = await pool.query(
     'SELECT * FROM leave_balances WHERE employee_id = $1',
     [userId]
@@ -3921,6 +4009,7 @@ app.post('/api/admin/leaves/monthly-reset', requireAdmin, async (req, res) => {
 app.get('/api/leaves/balance', requireAuth, async (req, res) => {
   try {
     const employeeId = req.user.sub;
+    await updateMonthlyAccruals(employeeId); // 👈 add this line
 
     const result = await pool.query(`
       SELECT lb.*, au.name as employee_name, au.email as employee_email, au.role as employee_role
@@ -3930,7 +4019,6 @@ app.get('/api/leaves/balance', requireAuth, async (req, res) => {
     `, [employeeId]);
 
     if (result.rows.length === 0) {
-      // Create balance if not exists
       const insertResult = await pool.query(
         `INSERT INTO leave_balances (employee_id) VALUES ($1) RETURNING *`,
         [employeeId]
@@ -3939,7 +4027,6 @@ app.get('/api/leaves/balance', requireAuth, async (req, res) => {
     }
 
     res.json({ success: true, balance: result.rows[0] });
-
   } catch (error) {
     console.error('Get leave balance error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
