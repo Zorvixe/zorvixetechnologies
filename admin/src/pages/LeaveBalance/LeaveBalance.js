@@ -108,7 +108,7 @@ const LeaveBalance = () => {
     if (type === 'casual') {
       return { 
         used: balance.casual_used_this_month || 0, 
-        limit: 2 
+        limit: 1
       };
     }
 
