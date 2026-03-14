@@ -65,26 +65,30 @@ const ApplyLeave = ({ onSuccess }) => {
   };
 
   // Calculate working days (including Saturdays, excluding Sundays)
-  const calculateWorkingDays = (start, end) => {
-    if (!start || !end) return 0;
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-    if (endDate < startDate) return 0;
+ const calculateWorkingDays = (start, end) => {
+  if (!start || !end) return 0;
+  // Parse YYYY-MM-DD strings
+  const [sYear, sMonth, sDay] = start.split('-').map(Number);
+  const [eYear, eMonth, eDay] = end.split('-').map(Number);
+  const startDate = new Date(sYear, sMonth - 1, sDay);
+  const endDate = new Date(eYear, eMonth - 1, eDay);
+  // Ensure time is midnight (already true when constructed this way)
+  startDate.setHours(0, 0, 0, 0);
+  endDate.setHours(0, 0, 0, 0);
 
-    let total = 0;
-    const current = new Date(startDate);
-    while (current <= endDate) {
-      const day = current.getDay();
-      // Count all days except Sunday (0)
-      if (day !== 0) {
-        total++;
-      }
-      current.setDate(current.getDate() + 1);
+  if (endDate < startDate) return 0;
+
+  let total = 0;
+  const current = new Date(startDate);
+  while (current <= endDate) {
+    const day = current.getDay(); // 0 = Sunday
+    if (day !== 0) {
+      total++;
     }
-    return total;
-  };
+    current.setDate(current.getDate() + 1);
+  }
+  return total;
+};
 
   const validateForm = () => {
     const errors = {};
