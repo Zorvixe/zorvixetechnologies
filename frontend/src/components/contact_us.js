@@ -362,7 +362,7 @@ const Contact = () => {
                 <div className="container-fluid px-0">
                   <h4 className="text-dark fw-bold mb-3 text-center">Location Map</h4>
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3839.0827534094838!2d78.05315767379028!3d15.799589946602671!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bb5dd5e557536a7%3A0xbe34c8ed86df7365!2sSLV%20Builders%20%26%20Developers%20Kurnool%20City!5e0!3m2!1sen!2sin!4v1749577215363!5m2!1sen!2sin"
+                src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3807.9545710297916!2d78.5193028751644!3d17.365918883517608!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMTfCsDIxJzU3LjMiTiA3OMKwMzEnMTguOCJF!5e0!3m2!1sen!2sin!4v1768194917113!5m2!1sen!2sin"
                     width="100%"
                     height="400"
                     style={{ border: 0 }}
