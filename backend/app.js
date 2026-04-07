@@ -616,16 +616,15 @@ async function updateMonthlyAccruals(userId) {
     let lastReset = balance.last_reset;
     if (!lastReset) {
       // First time – just set last_reset to now and reset monthly counters
+      // No accrual added on first setup (only reset counters)
       await client.query(
-  `UPDATE leave_balances
-   SET sick_balance = sick_balance + $1,
-       casual_balance = casual_balance + $2,
-       sick_used_this_month = 0,
-       casual_used_this_month = 0,
-       last_reset = NOW()
-   WHERE employee_id = $3`,
-  [monthsPassed, monthsPassed, userId]
-);
+        `UPDATE leave_balances
+         SET sick_used_this_month = 0,
+             casual_used_this_month = 0,
+             last_reset = NOW()
+         WHERE employee_id = $1`,
+        [userId]
+      );
       await client.query('COMMIT');
       return;
     }
@@ -636,25 +635,24 @@ async function updateMonthlyAccruals(userId) {
 
     // If last reset was in a previous month or year
     if (lastResetYear < currentYear || (lastResetYear === currentYear && lastResetMonth < currentMonth)) {
-      // Calculate number of months passed (simplified: count full months between dates)
+      // Calculate number of months passed
       let monthsPassed = (currentYear - lastResetYear) * 12 + (currentMonth - lastResetMonth);
-      // Ensure at least 1 month passed (if last reset was last month but same year)
-      if (monthsPassed <= 0) monthsPassed = 1; // Actually if same month, shouldn't update
+      if (monthsPassed <= 0) monthsPassed = 1;
 
-      // Add monthly accruals (sick +1, casual +2 per month)
-      // In updateMonthlyAccruals, change this line:
+      // Add monthly accruals (sick +1, casual +1 per month)
+      // ✅ No inline comments inside the SQL string
       await client.query(
         `UPDATE leave_balances
-   SET sick_balance = sick_balance + $1,
-       casual_balance = casual_balance + $2,   // $2 is monthsPassed * 2 → now monthsPassed
-       sick_used_this_month = 0,
-       casual_used_this_month = 0,
-       last_reset = NOW()
-   WHERE employee_id = $3`,
-        [monthsPassed, monthsPassed, userId]  // second parameter changed from monthsPassed * 2 to monthsPassed
+         SET sick_balance = sick_balance + $1,
+             casual_balance = casual_balance + $2,
+             sick_used_this_month = 0,
+             casual_used_this_month = 0,
+             last_reset = NOW()
+         WHERE employee_id = $3`,
+        [monthsPassed, monthsPassed, userId]
       );
     } else {
-      // Already in current month – just ensure monthly counters are zero (in case they weren't reset)
+      // Already in current month – just ensure monthly counters are zero
       await client.query(
         `UPDATE leave_balances
          SET sick_used_this_month = 0,
