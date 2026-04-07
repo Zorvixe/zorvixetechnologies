@@ -617,13 +617,15 @@ async function updateMonthlyAccruals(userId) {
     if (!lastReset) {
       // First time – just set last_reset to now and reset monthly counters
       await client.query(
-        `UPDATE leave_balances
-         SET last_reset = NOW(),
-             sick_used_this_month = 0,
-             casual_used_this_month = 0
-         WHERE employee_id = $1`,
-        [userId]
-      );
+  `UPDATE leave_balances
+   SET sick_balance = sick_balance + $1,
+       casual_balance = casual_balance + $2,
+       sick_used_this_month = 0,
+       casual_used_this_month = 0,
+       last_reset = NOW()
+   WHERE employee_id = $3`,
+  [monthsPassed, monthsPassed, userId]
+);
       await client.query('COMMIT');
       return;
     }
