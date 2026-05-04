@@ -472,7 +472,7 @@
   }
   
   .filter-group {
-    flex-direction: column;
+    flex-direction: column !important;
     gap: 12px;
   }
   

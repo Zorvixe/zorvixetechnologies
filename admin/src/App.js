@@ -25,7 +25,7 @@ const restricted = ['users', 'candidates', 'payments'];
 
 function Shell() {
   const { user, loading } = useAuth();
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(() => window.innerWidth <= 768);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -66,9 +66,18 @@ function Shell() {
     <div className="app-shell">
       <Sidebar
         current={safePath}
-        onNavigate={(v) => navigate(`/${v}`)}
+        onNavigate={(v) => {
+          navigate(`/${v}`);
+          if (window.innerWidth <= 768) {
+            setSidebarCollapsed(true);
+          }
+        }}
         collapsed={sidebarCollapsed}
+        onClose={() => setSidebarCollapsed(true)}
       />
+      {!sidebarCollapsed && window.innerWidth <= 768 && (
+        <div className="sidebar-overlay" onClick={() => setSidebarCollapsed(true)} />
+      )}
       <main className="content">
         <Topbar
           variant="global"

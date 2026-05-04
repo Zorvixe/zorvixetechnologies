@@ -5,7 +5,7 @@ const VALID_VIEWS = new Set([
   'stats','clients','payments','users','candidates','tickets','contacts'
 ]);
 
-export default function Sidebar({ current, onNavigate, collapsed }) {
+export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
   const { user } = useAuth()
 
   const goto = (key) => (e) => {
@@ -24,10 +24,15 @@ export default function Sidebar({ current, onNavigate, collapsed }) {
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       {!collapsed ? (
         <div className="user">
-          <strong>{user?.name || user?.email}</strong>
-          <span className="badge">
-            ZOR -  {user?.role ? user.role.charAt(0).toUpperCase() : ""}
-          </span>
+          <div className="user-info-wrapper">
+            <strong>{user?.name || user?.email}</strong>
+            <span className="badge">
+              ZOR -  {user?.role ? user.role.charAt(0).toUpperCase() : ""}
+            </span>
+          </div>
+          <button className="sidebar-close-btn" onClick={onClose} aria-label="Close menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
         </div>
       ) : (
         <button className="avatar-btn avatar_button_sidebar" aria-label="Account" title={`${user?.name || ''} (${user?.email || ''})`}>

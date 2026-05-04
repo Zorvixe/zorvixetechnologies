@@ -120,6 +120,13 @@
     height: auto;
   }
 
+  .leave-balance-section,
+  .calendar-section {
+    flex: none;
+    width: 100% !important;
+    max-width: 100%;
+  }
+
   .calendar-wrapper {
     height: 400px;
   }
@@ -128,6 +135,12 @@
 @media (max-width: 768px) {
   .leave-management-container-LeaveManagement {
     padding: 10px;
+  }
+
+  .tabs-LeaveManagement {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .tab-btn-LeaveManagement {

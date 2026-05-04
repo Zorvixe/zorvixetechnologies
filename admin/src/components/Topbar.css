@@ -24,7 +24,15 @@
 /* Layout pieces inside the header */
 .tb-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .tb-right { display: flex; align-items: center; gap: 8px; }
-.tb-logo { height: 40px; width: auto; }
+.tb-logo { height: 20px; width: auto; }
+.tb-logo-full { display: block; }
+.tb-logo-icon { display: none; }
+
+@media (max-width: 768px) {
+  .tb-logo-full { display: none !important; }
+  .tb-logo-icon { display: block !important; height: 25px !important; width: auto !important; }
+}
+
 .tb-divider { width: 1px; height: 24px; background: #e5e7eb; margin: 0 4px; }
 .tb-title {
   font-size: 1.1rem; font-weight: 600; color: #1e293b;
@@ -36,7 +44,7 @@
 .icon-btn {
   background: transparent; border: 0; border-radius: 8px;
   padding: 6px; cursor: pointer; color: #1f2937;
-  position: relative; /* so badges can be placed on it */
+  position: relative; 
 }
 .icon-btn:hover { background: #f3f4f6; }
 
@@ -118,7 +126,10 @@
 
 /* Small screens */
 @media (max-width: 640px) {
-  .tb-title { max-width: 48vw; }
+  .tb-title { max-width: 30vw; font-size: 0.65rem; }
+  .profile-menu { width: calc(100vw - 32px); max-width: 320px; }
+  .tb-left { gap: 6px; }
+  .tb-actions { margin-left: 4px; gap: 4px; }
 }
 
 

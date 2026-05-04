@@ -497,6 +497,135 @@ const Home = () => {
                 </div>
             </section>
 
+            <section id="our-clients" className="our-clients section py-5" style={{ background: '#ffffff', overflow: 'hidden' }}>
+                <div className="container section-title" data-aos="fade-up" style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+                    <h2 style={{ fontSize: '32px', fontWeight: '700', color: '#1a202c', textTransform: 'uppercase', letterSpacing: '1px' }}>Our Clients</h2>
+                    <p style={{ fontSize: '16px', color: '#718096', maxWidth: '600px', margin: '10px auto 0' }}>Trusted by forward-thinking companies worldwide to drive their digital future.</p>
+                </div>
+                <div className="container" data-aos="fade-up" data-aos-delay="100">
+                    <div className="client-logos-marquee" style={{ position: 'relative', width: '100%', overflow: 'hidden', padding: '1.5rem 0' }}>
+                        <div className="marquee-track" style={{ display: 'flex', width: 'max-content', animation: 'marquee-scroll 25s linear infinite' }}>
+                            {/* Original Items */}
+                            <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.95, transition: 'all 0.3s ease' }}>
+                                <img src="/assets/dv.png" alt="Dv" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                            <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                               <img src="/assets/arogya.png" alt="aarogya" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                            <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                                <img src="/assets/shambala.png" alt="shambala" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                            <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                             <img src="/assets/vastrudayam.png" alt="vastrudayam" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                            <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                                <img src="/assets/onesolutions.png" alt="onesolutions" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                              <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                                <img src="/assets/tents.jpg" alt="tents" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                              <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                                <img src="/assets/sheneeds.avif" alt="sheneeds" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                         
+
+                            {/* Duplicate Items for Infinite Effect */}
+                            <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                                <img src="/assets/dv.png" alt="Dv" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                            <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                                <img src="/assets/arogya.png" alt="aarogya" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                            <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                                  <img src="/assets/shambala.png" alt="shambala" style={{ height: '90px', width: 'auto', }} />
+                            </div>
+                            <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                                <img src="/assets/vastrudayam.png" alt="Rhino" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                            <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                                <img src="/assets/onesolutions.png" alt="Google" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                           
+                              <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                                <img src="/assets/tents.jpg" alt="tents" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                              <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                                <img src="/assets/sheneeds.avif" alt="Google" style={{ height: '90px', width: 'auto' }} />
+                            </div>
+                           
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="testimonials" className="testimonials section py-5" style={{ background: '#f8fafc', overflow: 'hidden' }}>
+                <div className="container section-title" data-aos="fade-up" style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+                    <h2 style={{ fontSize: '32px', fontWeight: '700', color: '#1a202c', letterSpacing: '0.5px' }}>What Our Clients Say About Us?</h2>
+                    <p style={{ fontSize: '15px', color: '#64748b', maxWidth: '800px', margin: '10px auto 0' }}>This covers the client testimonials and what our customers have to say about our company and its services to understand the company's market reputation.</p>
+                </div>
+                <div className="container" data-aos="fade-up" data-aos-delay="100">
+                    <div className="testimonial-marquee" style={{ position: 'relative', width: '100%', overflow: 'hidden', padding: '1.5rem 0' }}>
+                        <div className="testimonial-track" style={{ display: 'flex', width: 'max-content' }}>
+                            {/* Original Items */}
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #0056b3', borderBottom: '4px solid #0056b3', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Troy Mauk</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Director of Global Procurement,<br/>Global Interconnect</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"As the supply chain point person, I rest easier knowing that Zorvixe Technologies can bring me completely up to date in short order!"</p>
+                            </div>
+                            
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706', borderBottom: '4px solid #d97706', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>Tina Grow</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>IT Director,<br/>Rocore</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"Zorvixe Technologies has changed everything in the best possible way. The communication and performance were top tier."</p>
+                            </div>
+
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #0056b3', borderBottom: '4px solid #0056b3', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Kenny Zielinski</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Account Representative,<br/>SMC Corporation of America</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"Zorvixe consolidated procurement into a single system that's easy to use. It's the ideal buyer-supplier collaboration tool."</p>
+                            </div>
+
+                            {/* Clone for Infinite Marquee */}
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #0056b3', borderBottom: '4px solid #0056b3', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Troy Mauk</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Director of Global Procurement,<br/>Global Interconnect</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"As the supply chain point person, I rest easier knowing that Zorvixe Technologies can bring me completely up to date in short order!"</p>
+                            </div>
+                            
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706', borderBottom: '4px solid #d97706', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>Tina Grow</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>IT Director,<br/>Rocore</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"Zorvixe Technologies has changed everything in the best possible way. The communication and performance were top tier."</p>
+                            </div>
+
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #0056b3', borderBottom: '4px solid #0056b3', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Kenny Zielinski</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Account Representative,<br/>SMC Corporation of America</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"Zorvixe consolidated procurement into a single system that's easy to use. It's the ideal buyer-supplier collaboration tool."</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section id="faq" className="faq section">
                 <div className="container" data-aos="fade-up" data-aos-delay="100">
                     <div className="row gy-5">

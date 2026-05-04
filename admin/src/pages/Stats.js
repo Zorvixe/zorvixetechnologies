@@ -66,9 +66,11 @@ export default function Stats() {
   return (
     <div>
       <div
+        className="stats-top-banner"
         style={{
           backgroundImage: `url(${selectedBanner})`,
-          height: "150px",
+          minHeight: "150px",
+          height: "auto",
           width: "100%",
           backgroundSize: "cover",
           backgroundPosition: "center",
@@ -78,7 +80,8 @@ export default function Stats() {
           color: "#000",   // text color (adjust if needed)
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between"
+          justifyContent: "space-between",
+          gap: "12px"
         }}
       >
         {/* Top Section - Date + Greeting */}
@@ -92,39 +95,14 @@ export default function Stats() {
           </div>
           <h4 style={{ margin: 0, fontWeight: "bold" }}>Hello, {user?.name || "User"}</h4>
         </div>
-
         {/* Bottom Section - Buttons */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center"
-          }}
-        >
-          <a href="/clients" className="home_banner_style"
-            style={{
-              background: "transparent",
-              border: "1px solid #ccc",
-              borderRadius: "6px",
-              marginTop: "20px",
-              padding: "1px 5px",
-              cursor: "pointer"
-            }}
-          >
+        <div className="home-banner-buttons">
+          <a href="/clients" className="home_banner_style first-btn">
             <img src={projects_logo} alt="projects_logo" style={{ width: 25, height: 22, borderRadius: "5px", marginRight: "5px", marginBottom: "2px" }} />
             Read project updates
           </a>
 
-          <a href="/tickets" className="home_banner_style"
-            style={{
-              background: "#ffffff",
-              border: "1px solid #ccc",
-              borderRadius: "6px",
-              marginTop: "20px",
-              padding: "1px 10px",
-              cursor: "pointer"
-            }}
-          >
+          <a href="/tickets" className="home_banner_style second-btn">
             <img src={jira_logo} alt="Jira" style={{ width: 20, height: 20, borderRadius: "5px", marginRight: "5px", marginBottom: "2px" }} />
             Read new tickets updates
           </a>

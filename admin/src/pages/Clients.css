@@ -607,3 +607,28 @@ button.secondary {
     transform: scaleY(-1) rotate(-135deg)
   }
 }
+
+@media (max-width: 768px) {
+  .controls, .row, .project-form .row, .access_members, .payment_row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .input, .select, textarea, .access_selection_input {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .access_members_admin {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .payment_buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .payment_buttons button {
+    width: 100%;
+  }
+}

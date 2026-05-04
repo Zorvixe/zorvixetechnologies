@@ -93,7 +93,8 @@ const Header = () => {
         <div className="container position-relative d-flex align-items-center justify-content-between">
           {/* Logo */}
           <Link to="/" className="logo d-flex align-items-center me-auto me-xl-0">
-            <img src="/assets/img/zorvixe_logo_main.png" alt="Zorvixe Technologies Logo" />
+            <img src="/assets/img/zorvixe_logo_main.png" alt="Zorvixe Technologies Logo" className="desktop-logo-img" />
+            <img src="/Zorvixe_icon.png" alt="Zorvixe Technologies Logo" className="mobile-logo-img" />
           </Link>
 
           {/* Desktop Nav */}
@@ -215,7 +216,7 @@ const Header = () => {
         {/* Mobile Sidebar */}
         <div className={`mobile-sidebar ${mobileNavOpen ? 'open' : ''}`}>
           <div className="sidebar-header">
-            <img src="/assets/img/zorvixe_logo_main.png" alt="Zorvixe Technologies Logo" className="sidebar-logo" />
+            <img src="/Zorvixe_icon.png" alt="Zorvixe Technologies Logo" className="sidebar-logo" style={{ height: '35px', width: 'auto' }} />
           </div>
 
           <div className="sidebar-body">

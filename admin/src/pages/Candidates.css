@@ -272,3 +272,21 @@
     opacity: 1;
   }
 }
+
+@media (max-width: 768px) {
+  .form-cand {
+    grid-template-columns: 1fr;
+  }
+  .actions-cand {
+    grid-column: span 1;
+    justify-content: stretch;
+  }
+  .actions-cand .btn-cand {
+    width: 100%;
+  }
+  .page-header-cand {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+}

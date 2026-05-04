@@ -544,7 +544,125 @@ body {
   padding-right: 6px;
 }
 
+.home-banner-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .home_banner_style {
   text-decoration: none;
   color: #000000;
+  border-radius: 6px;
+  margin-top: 20px;
+  padding: 4px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+.home_banner_style.first-btn {
+  background: transparent;
+  border: 1px solid #ccc;
+}
+
+.home_banner_style.second-btn {
+  background: #ffffff;
+  border: 1px solid #ccc;
+}
+
+@media (max-width: 768px) {
+  .home-banner-buttons {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .home_banner_style {
+    margin-top: 5px;
+    padding: 6px 10px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .dashboard-grid>.card {
+    grid-column: 1 / -1 !important;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .kpi-card {
+    padding: 10px !important;
+    gap: 8px !important;
+  }
+
+  .kpi-icon {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .kpi-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .kpi-label {
+    font-size: 0.75rem !important;
+  }
+
+  .kpi-value {
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+  }
+
+  .chip-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stats-top-banner {
+    display: flex !important;
+    background-image: linear-gradient(135deg, #1e40af, #3b82f6) !important;
+    color: #ffffff !important;
+    border: none !important;
+    min-height: 120px !important;
+    padding: 20px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important;
+  }
+  
+  .stats-top-banner h4 {
+    font-size: 20px !important;
+    color: #ffffff !important;
+    margin-top: 4px !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .home-banner-buttons {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    margin-top: 12px !important;
+  }
+
+  .home_banner_style {
+    margin-top: 0 !important;
+    padding: 8px 12px !important;
+    justify-content: center !important;
+    width: 100% !important;
+    font-size: 12px !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(4px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+  }
+  
+  .home_banner_style:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+  }
 }

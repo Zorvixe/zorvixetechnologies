@@ -34,10 +34,10 @@ const LeaveManagement = () => {
         label: "Dashboard",
         component: (
           <div className="leave-dashboard-container">
-            <div className="leave-balance-section col-4">
+            <div className="leave-balance-section">
               <LeaveBalance />
             </div>
-            <div className="calendar-section col-8">
+            <div className="calendar-section">
                 <Calendar
                   value={selectedDate}
                   onChange={setSelectedDate}

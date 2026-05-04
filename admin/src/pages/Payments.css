@@ -35,3 +35,11 @@
     transform: rotate(360deg);
   }
 }
+
+@media (max-width: 768px) {
+  .table-links {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+  }
+}

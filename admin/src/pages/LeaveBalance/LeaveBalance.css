@@ -168,6 +168,7 @@
 .tooltip-text-LeaveBalance {
   visibility: hidden;
   width: 260px;
+  max-width: calc(100vw - 32px);
   background-color: #333;
   color: #fff;
   text-align: left;

@@ -138,3 +138,20 @@
 .user_search {
   width: 100%;
 }
+
+@media (max-width: 768px) {
+  .controls {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .form-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pagination {
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+}

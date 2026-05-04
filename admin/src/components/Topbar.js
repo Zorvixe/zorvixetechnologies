@@ -236,8 +236,12 @@ export default function Topbar({
             <img
               src={ZorvixeLogo}
               alt="Zorvixe"
-              className="tb-logo"
-              onError={(e) => { e.currentTarget.src = ZorvixeFavicon; }}
+              className="tb-logo tb-logo-full"
+            />
+            <img
+              src={ZorvixeFavicon}
+              alt="Zorvixe"
+              className="tb-logo tb-logo-icon"
             />
 
             <span className="tb-divider" aria-hidden="true" />

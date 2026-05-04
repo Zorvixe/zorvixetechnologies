@@ -72,9 +72,30 @@
   width: 100%;
   display: flex;
   justify-content: space-between;
-
 }
 
 .top_bar_selects {
   margin-right: 10px;
+}
+
+@media (max-width: 768px) {
+  .contacts_topbar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .contact_search {
+    width: 100% !important;
+  }
+  .top_bar_selects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-right: 0;
+  }
+  .pagination {
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
 }
