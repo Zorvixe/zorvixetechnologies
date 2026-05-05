@@ -180,6 +180,9 @@ const Header = () => {
                 </div>
               </li>
               <li>
+                <Link to="/projects" className={isActive('/projects') ? 'active' : ''}>Projects</Link>
+              </li>
+              <li>
                 <Link to="/contact_us" className={isActive('/contact_us') ? 'active' : ''}>Contact</Link>
               </li>
             </ul>
@@ -273,6 +276,15 @@ const Header = () => {
                     );
                   })}
                 </div>
+              </li>
+              <li className="sidebar-nav-item">
+                <Link
+                  to="/projects"
+                  className={`sidebar-nav-link ${isActive('/projects') ? 'active' : ''}`}
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  Projects
+                </Link>
               </li>
               <li className="sidebar-nav-item">
                 <Link

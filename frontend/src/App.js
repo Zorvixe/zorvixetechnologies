@@ -11,6 +11,7 @@ import TermsAndConditions from "./components/terms_conditions"
 import PrivacyPage from "./components/privacy_policy"
 import Home from "./components/home"
 import AboutUs from "./components/about_us"
+import Projects from "./components/projects"
 import MaintenancePage from "./components/maintainance"
 import SEOServicePage from "./components/seo"
 import UIUX from "./components/ui_ux"
@@ -45,6 +46,7 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/about_us" element={<AboutUs />} />
+          <Route path="/projects" element={<Projects />} />
           <Route path="/contact_us" element={<Contact />} />
           <Route path="/services/mobile_app_solutions" element={<MobileAppSolutions />} />
           <Route path="/services/digitalmarketing" element={<DigitalMarketingService />} />

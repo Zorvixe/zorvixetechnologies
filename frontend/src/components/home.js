@@ -571,27 +571,63 @@ const Home = () => {
                                 <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
                                     <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
                                 </div>
-                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Troy Mauk</h5>
-                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Director of Global Procurement,<br/>Global Interconnect</p>
-                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"As the supply chain point person, I rest easier knowing that Zorvixe Technologies can bring me completely up to date in short order!"</p>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Pavan Kumar</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder & CEO,<br/>Aarogya</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"Zorvixe Technologies completely transformed our online presence. Their web development team delivered a stunning and user-friendly website that perfectly aligns with our brand vision!"</p>
                             </div>
                             
                             <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706', borderBottom: '4px solid #d97706', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
                                 <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
                                     <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
                                 </div>
-                                <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>Tina Grow</h5>
-                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>IT Director,<br/>Rocore</p>
-                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"Zorvixe Technologies has changed everything in the best possible way. The communication and performance were top tier."</p>
+                                <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>Bandari Uday Kumar Goud & Pradnya Metri</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder & Director,<br/>Vastrudayam</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"The digital marketing strategies provided by Zorvixe Technologies have significantly boosted our customer engagement and overall business growth. Highly recommended!"</p>
                             </div>
 
                             <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #0056b3', borderBottom: '4px solid #0056b3', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
                                 <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
                                     <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
                                 </div>
-                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Kenny Zielinski</h5>
-                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Account Representative,<br/>SMC Corporation of America</p>
-                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"Zorvixe consolidated procurement into a single system that's easy to use. It's the ideal buyer-supplier collaboration tool."</p>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Zorvixe Technologies</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Managing Director,<br/>One Solutions</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"We are extremely satisfied with the innovative tech solutions and seamless support from Zorvixe. They truly understand our business needs and deliver exceptional results."</p>
+                            </div>
+
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706', borderBottom: '4px solid #d97706', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>Chandhu</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder & Owner,<br/>Demo Tents</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"Working with Zorvixe Technologies was a game-changer. Their web design perfectly showcases our products, and their marketing has driven fantastic results for us."</p>
+                            </div>
+
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #0056b3', borderBottom: '4px solid #0056b3', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>**</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder,<br/>She Needs</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"The e-commerce platform Zorvixe built for us is incredible. It's fast, secure, and has significantly improved our customers' shopping experience."</p>
+                            </div>
+
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706', borderBottom: '4px solid #d97706', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>Shambala Amma</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder & CEO,<br/>Shambala Coffee Works</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"We are thrilled with the digital strategy provided by Zorvixe. They helped us expand our reach and grow our online coffee sales tremendously."</p>
+                            </div>
+
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #0056b3', borderBottom: '4px solid #0056b3', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Vittal</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder,<br/>DV Shortlinks</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"The custom web application developed by Zorvixe Technologies is robust and highly scalable. Their technical expertise is truly unmatched."</p>
                             </div>
 
                             {/* Clone for Infinite Marquee */}
@@ -599,27 +635,63 @@ const Home = () => {
                                 <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
                                     <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
                                 </div>
-                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Troy Mauk</h5>
-                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Director of Global Procurement,<br/>Global Interconnect</p>
-                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"As the supply chain point person, I rest easier knowing that Zorvixe Technologies can bring me completely up to date in short order!"</p>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Pavan Kumar</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder & CEO,<br/>Aarogya</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"Zorvixe Technologies completely transformed our online presence. Their web development team delivered a stunning and user-friendly website that perfectly aligns with our brand vision!"</p>
                             </div>
                             
                             <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706', borderBottom: '4px solid #d97706', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
                                 <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
                                     <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
                                 </div>
-                                <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>Tina Grow</h5>
-                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>IT Director,<br/>Rocore</p>
-                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"Zorvixe Technologies has changed everything in the best possible way. The communication and performance were top tier."</p>
+                                <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>Bandari Uday Kumar Goud & Pradnya Metri</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder & Director,<br/>Vastrudayam</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"The digital marketing strategies provided by Zorvixe Technologies have significantly boosted our customer engagement and overall business growth. Highly recommended!"</p>
                             </div>
 
                             <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #0056b3', borderBottom: '4px solid #0056b3', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
                                 <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
                                     <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
                                 </div>
-                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Kenny Zielinski</h5>
-                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Account Representative,<br/>SMC Corporation of America</p>
-                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"Zorvixe consolidated procurement into a single system that's easy to use. It's the ideal buyer-supplier collaboration tool."</p>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>zorvixe technologies</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Managing Director,<br/>One Solutions</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"We are extremely satisfied with the innovative tech solutions and seamless support from Zorvixe. They truly understand our business needs and deliver exceptional results."</p>
+                            </div>
+
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706', borderBottom: '4px solid #d97706', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>Chandhu</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder & Owner,<br/>Demo Tents</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"Working with Zorvixe Technologies was a game-changer. Their web design perfectly showcases our products, and their marketing has driven fantastic results for us."</p>
+                            </div>
+
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #0056b3', borderBottom: '4px solid #0056b3', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>**</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder,<br/>She Needs</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"The e-commerce platform Zorvixe built for us is incredible. It's fast, secure, and has significantly improved our customers' shopping experience."</p>
+                            </div>
+
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706', borderBottom: '4px solid #d97706', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>Shambala Amma</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder & CEO,<br/>Shambala Coffee Works</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"We are thrilled with the digital strategy provided by Zorvixe. They helped us expand our reach and grow our online coffee sales tremendously."</p>
+                            </div>
+
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #0056b3', borderBottom: '4px solid #0056b3', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Vittal</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder,<br/>DV Shortlinks</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"The custom web application developed by Zorvixe Technologies is robust and highly scalable. Their technical expertise is truly unmatched."</p>
                             </div>
                         </div>
                     </div>
