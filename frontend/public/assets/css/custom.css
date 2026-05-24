@@ -775,22 +775,3 @@
     line-height: 1.4 !important;
   }
 }
-
-/* Responsive Logo Style */
-.desktop-logo-img {
-  display: block;
-}
-.mobile-logo-img {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .desktop-logo-img {
-    display: none !important;
-  }
-  .mobile-logo-img {
-    display: block !important;
-    height: 40px !important;
-    width: auto !important;
-  }
-}

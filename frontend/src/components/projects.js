@@ -21,7 +21,7 @@ const Projects = () => {
         {
             id: 2,
             clientName: "Vastrudayam",
-            category: "Digital Marketing",
+            category: "Web Development & Digital Marketing",
             description: "Targeted digital marketing campaigns that increased brand awareness and drove significant customer engagement.",
             review: "The digital marketing strategies provided by Zorvixe Technologies have significantly boosted our customer engagement and overall business growth. Highly recommended!",
             color: "#d97706",

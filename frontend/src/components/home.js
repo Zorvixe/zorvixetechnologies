@@ -589,8 +589,8 @@ const Home = () => {
                                 <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
                                     <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
                                 </div>
-                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Zorvixe Technologies</h5>
-                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Managing Director,<br/>One Solutions</p>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Golla Ekambaram</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder & Director<br/>One Solutions</p>
                                 <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"We are extremely satisfied with the innovative tech solutions and seamless support from Zorvixe. They truly understand our business needs and deliver exceptional results."</p>
                             </div>
 
@@ -607,7 +607,7 @@ const Home = () => {
                                 <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
                                     <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
                                 </div>
-                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>**</h5>
+                                <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Gada Ramadevi</h5>
                                 <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder,<br/>She Needs</p>
                                 <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"The e-commerce platform Zorvixe built for us is incredible. It's fast, secure, and has significantly improved our customers' shopping experience."</p>
                             </div>
