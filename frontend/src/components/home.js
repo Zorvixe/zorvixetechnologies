@@ -528,7 +528,7 @@ const Home = () => {
                                 <img src="/assets/sheneeds.avif" alt="sheneeds" style={{ height: '90px', width: 'auto' }} />
                             </div>
                               <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
-                                <img src="/assets/avm_logo.png" alt="Avm Agri Life Science" style={{ height: '90px', width: 'auto' }} />
+                                <img src="/assets/avmlogo.png" alt="Avm Agri Life Science" style={{ height: '90px', width: 'auto' }} />
                             </div>
 
                               {/* Duplicate Items for Infinite Effect */}
@@ -555,7 +555,7 @@ const Home = () => {
                                 <img src="/assets/sheneeds.avif" alt="SheNeeds" style={{ height: '90px', width: 'auto' }} />
                             </div>
                               <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
-                                <img src="/assets/avm_logo.png" alt="Avm Agri Life Science" style={{ height: '90px', width: 'auto' }} />
+                                <img src="/assets/avmlogo.png" alt="Avm Agri Life Science" style={{ height: '90px', width: 'auto' }} />
                             </div>
                         </div>
                     </div>
