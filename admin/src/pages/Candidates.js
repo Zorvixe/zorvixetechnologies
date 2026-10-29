@@ -321,7 +321,7 @@ export default function Candidates() {
                               <div className="row-cand gap-cand">
                                 <button
                                   className="btn-cand xs-cand"
-                                  onClick={() => copy(`https://zorvixetechnologies.com/onboarding/${c.active_token}`)}
+                                  onClick={() => copy(`https://zorvixetechnologies.in/onboarding/${c.active_token}`)}
                                 >
                                   Copy URL
                                 </button>

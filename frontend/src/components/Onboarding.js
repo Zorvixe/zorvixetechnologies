@@ -7,7 +7,7 @@ import {
 } from "lucide-react"
 import "./Onboarding.css"
 
-const API_BASE_URL = "https://api.zorvixetechnologies.com"
+const API_BASE_URL = "https://api.zorvixetechnologies.in"
 
 function normalizeCandidate(raw) {
   if (!raw) return null

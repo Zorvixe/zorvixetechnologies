@@ -1186,7 +1186,7 @@ app.post('/api/admin/candidate-links', requireAdmin, async (req, res) => {
     )
 
     // You can host a public onboarding page at /onboarding/:token in your frontend
-    const onboardingUrl = `https://www.zorvixetechnologies.com/onboarding/${token}`
+    const onboardingUrl = `https://www.zorvixetechnologies.in/onboarding/${token}`
     res.status(201).json({ success: true, link: onboardingUrl, token, expiresAt, candidate: cand.rows[0], linkRow: rows[0] })
   } catch (e) {
     console.error('Generate candidate link error:', e)

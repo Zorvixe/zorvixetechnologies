@@ -71,8 +71,8 @@ const TermsAndConditions = () => {
                                         <li className="mb-3">
                                             <p><strong className="text-dark">Website</strong> refers to Zorvixe Technologies, accessible from
                                                 <a
-                                                    href="https://www.zorvixetechnologies.com/" rel="noopener noreferrer"
-                                                    target="_blank" className="text-decoration-none text-primary">https://www.zorvixetechnologies.com/</a></p>
+                                                    href="https://www.zorvixetechnologies.in/" rel="noopener noreferrer"
+                                                    target="_blank" className="text-decoration-none text-primary">https://www.zorvixetechnologies.in/</a></p>
                                         </li>
                                         <li className="mb-3">
                                             <p><strong className="text-dark">You</strong> means the individual accessing or using the Service, or the

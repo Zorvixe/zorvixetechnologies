@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://zorvixetechnologies.com/sitemap.xml
+Sitemap: https://zorvixetechnologies.in/sitemap.xml

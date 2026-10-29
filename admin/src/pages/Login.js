@@ -38,7 +38,7 @@ export default function Login({ onSuccess }) {
         <form onSubmit={submit}>
           <div style={{ marginTop: 12 }}>
             <label>Email or Username</label>
-            <input className="input" value={identifier} onChange={e => setIdentifier(e.target.value)} placeholder="admin@zorvixetechnologies.com or username" required />
+            <input className="input" value={identifier} onChange={e => setIdentifier(e.target.value)} placeholder="admin@zorvixetechnologies.in or username" required />
           </div>
           <div style={{ marginTop: 12 }}>
             <label>Password</label>
