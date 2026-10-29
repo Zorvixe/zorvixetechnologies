@@ -542,21 +542,21 @@ const Home = () => {
                                   <img src="/assets/shambala.png" alt="shambala" style={{ height: '90px', width: 'auto', }} />
                             </div>
                             <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
-                                <img src="/assets/vastrudayam.png" alt="Rhino" style={{ height: '90px', width: 'auto' }} />
+                                <img src="/assets/vastrudayam.png" alt="Vastrudayam" style={{ height: '90px', width: 'auto' }} />
                             </div>
                             <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
-                                <img src="/assets/onesolutions.png" alt="Google" style={{ height: '90px', width: 'auto' }} />
+                                <img src="/assets/onesolutions.png" alt="Onesolutions" style={{ height: '90px', width: 'auto' }} />
                             </div>
-                           
+        
                               <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
-                                <img src="/assets/tents.jpg" alt="tents" style={{ height: '90px', width: 'auto' }} />
+                                <img src="/assets/tents.jpg" alt="Demo Tents" style={{ height: '90px', width: 'auto' }} />
                             </div>
                               <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
-                                <img src="/assets/sheneeds.avif" alt="Google" style={{ height: '90px', width: 'auto' }} />
+                                <img src="/assets/sheneeds.avif" alt="SheNeeds" style={{ height: '90px', width: 'auto' }} />
                             </div>
-                              <a className="marquee-item" href="https://avmagrilifescience.com/" target="_blank" rel="noopener noreferrer" aria-hidden="true" tabIndex="-1" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', color: '#1a202c', fontSize: '20px', fontWeight: '700', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                                  AVM Agri Life Science
-                              </a>
+                              <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
+                                <img src="/assets/avm_logo.png" alt="Avm Agri Life Science" style={{ height: '90px', width: 'auto' }} />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -634,6 +634,12 @@ const Home = () => {
                                 <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"The custom web application developed by Zorvixe Technologies is robust and highly scalable. Their technical expertise is truly unmatched."</p>
                             </div>
 
+                            <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706', borderBottom: '4px solid #d97706', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>G Sudhakar</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>AVM Agri Life Science</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"We had a great experience working with Ekambaram and the team at Zorvixe Technologies. They built an excellent e-commerce website for our business and supported us with digital marketing. Their work helped us improve our sales and customer engagement. I highly recommend Zorvixe Technologies to anyone looking for website or app development and digital marketing services."</p>
+                            </div>
+
                             {/* Clone for Infinite Marquee */}
                             <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #0056b3', borderBottom: '4px solid #0056b3', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
                                 <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
@@ -696,6 +702,12 @@ const Home = () => {
                                 <h5 style={{ fontWeight: '700', color: '#0056b3', fontSize: '20px', marginBottom: '6px' }}>Vittal</h5>
                                 <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Founder,<br/>DV Shortlinks</p>
                                 <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"The custom web application developed by Zorvixe Technologies is robust and highly scalable. Their technical expertise is truly unmatched."</p>
+                            </div>
+
+                            <div className="testimonial-card" aria-hidden="true" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706', borderBottom: '4px solid #d97706', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>G Sudhakar</h5>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>AVM Agri Life Science</p>
+                                <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"We had a great experience working with Ekambaram and the team at Zorvixe Technologies. They built an excellent e-commerce website for our business and supported us with digital marketing. Their work helped us improve our sales and customer engagement. I highly recommend Zorvixe Technologies to anyone looking for website or app development and digital marketing services."</p>
                             </div>
                         </div>
                     </div>

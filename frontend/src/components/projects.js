@@ -78,8 +78,10 @@ const Projects = () => {
         {
             id: 8,
             clientName: "AVM Agri Life Science",
-            category: "Web Development",
-            description: "A website for AVM Agri Life Science.",
+            category: "E-Commerce Development & Digital Marketing",
+            description: "An e-commerce website supported by digital marketing to help improve sales and customer engagement.",
+            review: "We had a great experience working with Ekambaram and the team at Zorvixe Technologies. They built an excellent e-commerce website for our business and supported us with digital marketing. Their work helped us improve our sales and customer engagement. I highly recommend Zorvixe Technologies to anyone looking for website or app development and digital marketing services.",
+            showRating: true,
             color: "#d97706",
             websiteLink: "https://avmagrilifescience.com/"
         }
@@ -145,13 +147,15 @@ const Projects = () => {
                                                 
                                                 {project.review && (
                                                     <div className="mt-auto review-box p-3 rounded-3" style={{ backgroundColor: '#f1f5f9', borderLeft: `3px solid ${project.color}` }}>
-                                                        <div className="stars mb-2" style={{ color: '#ffb900', fontSize: '14px' }}>
-                                                            <i className="bi bi-star-fill me-1"></i>
-                                                            <i className="bi bi-star-fill me-1"></i>
-                                                            <i className="bi bi-star-fill me-1"></i>
-                                                            <i className="bi bi-star-fill me-1"></i>
-                                                            <i className="bi bi-star-fill"></i>
-                                                        </div>
+                                                        {project.showRating !== false && (
+                                                            <div className="stars mb-2" style={{ color: '#ffb900', fontSize: '14px' }}>
+                                                                <i className="bi bi-star-fill me-1"></i>
+                                                                <i className="bi bi-star-fill me-1"></i>
+                                                                <i className="bi bi-star-fill me-1"></i>
+                                                                <i className="bi bi-star-fill me-1"></i>
+                                                                <i className="bi bi-star-fill"></i>
+                                                            </div>
+                                                        )}
                                                         <p className="fst-italic mb-0" style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>"{project.review}"</p>
                                                     </div>
                                                 )}
