@@ -635,8 +635,11 @@ const Home = () => {
                             </div>
 
                             <div className="testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706', borderBottom: '4px solid #d97706', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
                                 <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>G Sudhakar</h5>
-                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>AVM Agri Life Science</p>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Managing Director,<br/>AVM Agri Life Science</p>
                                 <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"We had a great experience working with Ekambaram and the team at Zorvixe Technologies. They built an excellent e-commerce website for our business and supported us with digital marketing. Their work helped us improve our sales and customer engagement. I highly recommend Zorvixe Technologies to anyone looking for website or app development and digital marketing services."</p>
                             </div>
 
@@ -705,8 +708,11 @@ const Home = () => {
                             </div>
 
                             <div className="testimonial-card" aria-hidden="true" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706', borderBottom: '4px solid #d97706', padding: '32px 24px', width: '380px', margin: '0 25px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', minHeight: '340px' }}>
+                                <div className="stars" style={{ color: '#ffb900', marginBottom: '12px', fontSize: '16px' }}>
+                                    <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i> <i className="bi bi-star-fill"></i>
+                                </div>
                                 <h5 style={{ fontWeight: '700', color: '#d97706', fontSize: '20px', marginBottom: '6px' }}>G Sudhakar</h5>
-                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>AVM Agri Life Science</p>
+                                <p style={{ color: '#475569', fontSize: '13px', fontWeight: '500', marginBottom: '24px', lineHeight: '1.4' }}>Managing Director,<br/>AVM Agri Life Science</p>
                                 <p style={{ color: '#1e293b', fontSize: '14px', lineHeight: '1.6', margin: 0, fontStyle: 'normal' }}>"We had a great experience working with Ekambaram and the team at Zorvixe Technologies. They built an excellent e-commerce website for our business and supported us with digital marketing. Their work helped us improve our sales and customer engagement. I highly recommend Zorvixe Technologies to anyone looking for website or app development and digital marketing services."</p>
                             </div>
                         </div>
