@@ -527,9 +527,11 @@ const Home = () => {
                               <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
                                 <img src="/assets/sheneeds.avif" alt="sheneeds" style={{ height: '90px', width: 'auto' }} />
                             </div>
-                         
+                              <a className="marquee-item" href="https://avmagrilifescience.com/" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', color: '#1a202c', fontSize: '20px', fontWeight: '700', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                                  AVM Agri Life Science
+                              </a>
 
-                            {/* Duplicate Items for Infinite Effect */}
+                              {/* Duplicate Items for Infinite Effect */}
                             <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
                                 <img src="/assets/dv.png" alt="Dv" style={{ height: '90px', width: 'auto' }} />
                             </div>
@@ -552,7 +554,9 @@ const Home = () => {
                               <div className="marquee-item" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', opacity: 0.75, transition: 'all 0.3s ease' }}>
                                 <img src="/assets/sheneeds.avif" alt="Google" style={{ height: '90px', width: 'auto' }} />
                             </div>
-                           
+                              <a className="marquee-item" href="https://avmagrilifescience.com/" target="_blank" rel="noopener noreferrer" aria-hidden="true" tabIndex="-1" style={{ display: 'inline-flex', alignItems: 'center', margin: '0 40px', color: '#1a202c', fontSize: '20px', fontWeight: '700', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                                  AVM Agri Life Science
+                              </a>
                         </div>
                     </div>
                 </div>

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 
-const API_BASE_URL = process.env.API_BACKEND_URL || "http://localhost:5001"
+const API_BASE_URL = "https://api.zorvixetechnologies.in"
 
 
 const Contact = () => {

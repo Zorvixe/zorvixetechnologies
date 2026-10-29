@@ -47,16 +47,16 @@ const Projects = () => {
             color: "#d97706",
             websiteLink: "https://demotents.com/"
         },
-        // {
-        //     id: 5,
-        //     clientName: "She Needs",
+        {
+            id: 5,
+            clientName: "She Needs",
        
-        //     category: "E-Commerce Development",
-        //     description: "A secure, fast, and feature-rich online shopping platform built specifically for modern retail needs.",
-        //     review: "The e-commerce platform Zorvixe built for us is incredible. It's fast, secure, and has significantly improved our customers' shopping experience.",
-        //     color: "#0056b3",
-        //     websiteLink: "https://sheneedsjewellery.in/"
-        // },
+            category: "E-Commerce Development",
+            description: "A secure, fast, and feature-rich online shopping platform built specifically for modern retail needs.",
+            review: "The e-commerce platform Zorvixe built for us is incredible. It's fast, secure, and has significantly improved our customers' shopping experience.",
+            color: "#0056b3",
+            websiteLink: "https://sheneedsjewellery.in/"
+        },
         {
             id: 6,
             clientName: "Shambala Coffee Works",
@@ -74,6 +74,14 @@ const Projects = () => {
             review: "The custom web application developed by Zorvixe Technologies is robust and highly scalable. Their technical expertise is truly unmatched.",
             color: "#0056b3",
             websiteLink: "https://dvshortylinks.com/"
+        },
+        {
+            id: 8,
+            clientName: "AVM Agri Life Science",
+            category: "Web Development",
+            description: "A website for AVM Agri Life Science.",
+            color: "#d97706",
+            websiteLink: "https://avmagrilifescience.com/"
         }
     ];
 
@@ -135,16 +143,18 @@ const Projects = () => {
                                                 </div>
                                                 <p className="card-text text-secondary mb-4" style={{ fontSize: '15px' }}>{project.description}</p>
                                                 
-                                                <div className="mt-auto review-box p-3 rounded-3" style={{ backgroundColor: '#f1f5f9', borderLeft: `3px solid ${project.color}` }}>
-                                                    <div className="stars mb-2" style={{ color: '#ffb900', fontSize: '14px' }}>
-                                                        <i className="bi bi-star-fill me-1"></i>
-                                                        <i className="bi bi-star-fill me-1"></i>
-                                                        <i className="bi bi-star-fill me-1"></i>
-                                                        <i className="bi bi-star-fill me-1"></i>
-                                                        <i className="bi bi-star-fill"></i>
+                                                {project.review && (
+                                                    <div className="mt-auto review-box p-3 rounded-3" style={{ backgroundColor: '#f1f5f9', borderLeft: `3px solid ${project.color}` }}>
+                                                        <div className="stars mb-2" style={{ color: '#ffb900', fontSize: '14px' }}>
+                                                            <i className="bi bi-star-fill me-1"></i>
+                                                            <i className="bi bi-star-fill me-1"></i>
+                                                            <i className="bi bi-star-fill me-1"></i>
+                                                            <i className="bi bi-star-fill me-1"></i>
+                                                            <i className="bi bi-star-fill"></i>
+                                                        </div>
+                                                        <p className="fst-italic mb-0" style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>"{project.review}"</p>
                                                     </div>
-                                                    <p className="fst-italic mb-0" style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>"{project.review}"</p>
-                                                </div>
+                                                )}
                                                 <div className="mt-3 text-end">
                                                     <span className="fw-bold" style={{ color: project.color, fontSize: '14px' }}>
                                                         Visit Website <i className="bi bi-box-arrow-up-right ms-1"></i>
