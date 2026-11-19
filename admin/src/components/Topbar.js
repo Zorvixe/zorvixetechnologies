@@ -22,7 +22,7 @@ export default function Topbar({
   title,
   children,
   variant = "page",
-  onToggleSidebar = () => {},
+  onToggleSidebar = () => { },
   sidebarCollapsed = false,
 }) {
   const { user, logout } = useAuth();
@@ -109,7 +109,7 @@ export default function Topbar({
       );
       setShowNotifications(true);
       await apiResetNotificationCount();
-    } catch {}
+    } catch { }
   };
 
   /* ------------------- TICKETS ------------------- */
@@ -211,6 +211,8 @@ export default function Topbar({
   }, [menuOpen]);
 
   const handleLeave = () => navigate("/leaves");
+  const handleLogin = () => navigate("/login-history");
+
 
   /* ---------------------- Render ---------------------- */
   if (variant === "global") {
@@ -251,7 +253,7 @@ export default function Topbar({
             {children && <div className="tb-actions">{children}</div>}
           </div>
 
-           {/* ---------------- RIGHT SIDE ---------------- */}
+          {/* ---------------- RIGHT SIDE ---------------- */}
           <div className="tb-right">
 
             {/* MEETINGS DROPDOWN */}
@@ -269,33 +271,33 @@ export default function Topbar({
                 )}
               </button>
 
-            {meetOpen && (
-  <div
-    ref={meetMenuRef}
-    className="profile-menu meetings-anchor"
-    style={{ width: "200px" }}
-  >
-    <h3>Join your Meet</h3>
+              {meetOpen && (
+                <div
+                  ref={meetMenuRef}
+                  className="profile-menu meetings-anchor"
+                  style={{ width: "200px" }}
+                >
+                  <h3>Join your Meet</h3>
 
-    <div className="pm-actions">
-      <a href="https://meet.google.com/wpb-epnm-mwy" target="_blank" rel="noopener noreferrer">
-        <button className="pm-item_meet">All</button>
-      </a>
-    </div>
+                  <div className="pm-actions">
+                    <a href="https://meet.google.com/wpb-epnm-mwy" target="_blank" rel="noopener noreferrer">
+                      <button className="pm-item_meet">All</button>
+                    </a>
+                  </div>
 
-    <div className="pm-actions">
-      <a href="https://meet.google.com/wpb-epnm-mwy" target="_blank" rel="noopener noreferrer">
-        <button className="pm-item_meet">Web Development</button>
-      </a>
-    </div>
+                  <div className="pm-actions">
+                    <a href="https://meet.google.com/wpb-epnm-mwy" target="_blank" rel="noopener noreferrer">
+                      <button className="pm-item_meet">Web Development</button>
+                    </a>
+                  </div>
 
-    <div className="pm-actions">
-      <a href="https://meet.google.com/rvf-mwig-fdi" target="_blank" rel="noopener noreferrer">
-        <button className="pm-item_meet">Digital Marketing</button>
-      </a>
-    </div>
-  </div>
-)}
+                  <div className="pm-actions">
+                    <a href="https://meet.google.com/rvf-mwig-fdi" target="_blank" rel="noopener noreferrer">
+                      <button className="pm-item_meet">Digital Marketing</button>
+                    </a>
+                  </div>
+                </div>
+              )}
 
             </div>
 
@@ -403,6 +405,20 @@ export default function Topbar({
                       <span>Apply Leave</span>
                     </button>
                   </div>
+                  <div className="pm-actions">
+                    <button className="pm-item_apply_leave" onClick={handleLogin}>
+                      <span className="pm-icon">
+
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                      </span>
+                      <span>Login History</span>
+                    </button>
+                  </div>
+
+
 
                   <div className="pm-actions">
                     <button className="pm-item" onClick={logout}>

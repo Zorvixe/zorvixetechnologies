@@ -99,7 +99,7 @@ export default function LoginHistory() {
         .then((data) => {
           if (data?.success) setUsers(data.users || []);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [isAdmin]);
 
@@ -215,21 +215,9 @@ export default function LoginHistory() {
 
   return (
     <div className="login-history-container">
-      <Topbar title="Login & Logout Timings">
+      <Topbar title="History">
         <div className="login-history-topbar-actions">
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={fetchLogs}
-            disabled={loading}
-            title="Refresh logs"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M23 4v6h-6M1 20v-6h6" />
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-            </svg>
-            Refresh
-          </button>
+
           <button
             type="button"
             className="btn btn-primary btn-sm"
@@ -400,7 +388,7 @@ export default function LoginHistory() {
                 setFilters({ ...filters, search: e.target.value });
                 setPage(1);
               }}
-              className="filter-input search-input"
+              className="filter-input search-input search-filter-input"
             />
           </div>
 
