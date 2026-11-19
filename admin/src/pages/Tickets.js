@@ -207,7 +207,7 @@ export default function Tickets() {
     status: "all",
     priority: "all",
     search: "",
-    date: getTodayDate(),
+    date: "",
     assignee: "all"
   });
 
@@ -310,9 +310,10 @@ export default function Tickets() {
     // Apply date filter
     if (filters.date) {
       results = results.filter(ticket => {
-        const ticketDate = new Date(ticket.created_at).toLocaleDateString();
-        const filterDate = new Date(filters.date).toLocaleDateString();
-        return ticketDate === filterDate;
+        if (!ticket.created_at) return false;
+        const d = new Date(ticket.created_at);
+        const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return ymd === filters.date;
       });
     }
 
@@ -529,12 +530,36 @@ export default function Tickets() {
           ))}
         </select>
 
-        <input
-          type="date"
-          value={filters.date}
-          onChange={(e) => setFilters({ ...filters, date: e.target.value })}
-          className="comment-input"
-        />
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <input
+            type="date"
+            value={filters.date}
+            onChange={(e) => setFilters({ ...filters, date: e.target.value })}
+            className="comment-input"
+            title="Filter by creation date (leave blank for all tickets)"
+            style={{ paddingRight: filters.date ? '28px' : undefined }}
+          />
+          {filters.date && (
+            <button
+              type="button"
+              onClick={() => setFilters({ ...filters, date: "" })}
+              title="Clear date filter"
+              style={{
+                position: 'absolute',
+                right: '8px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '18px',
+                color: '#666',
+                lineHeight: 1,
+                padding: 0
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
 
         <input
           type="text"
@@ -543,6 +568,24 @@ export default function Tickets() {
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           className="comment-input"
         />
+
+        {(filters.status !== "all" || filters.priority !== "all" || filters.assignee !== "all" || filters.date || filters.search) && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setFilters({
+              status: "all",
+              priority: "all",
+              assignee: "all",
+              date: "",
+              search: ""
+            })}
+            title="Reset all filters"
+            style={{ whiteSpace: 'nowrap', padding: '6px 14px', fontSize: '13px' }}
+          >
+            Clear Filters
+          </button>
+        )}
       </div>
 
       {/* List */}
@@ -555,7 +598,7 @@ export default function Tickets() {
         <div className="tickets-list">
           {filteredTickets.length === 0 ? (
             <div className="no-comments">
-              <p>No tickets found. {filters.search ? "Try a different search." : "Create the first one!"}</p>
+              <p>No tickets found. {filters.search || filters.date || filters.status !== "all" || filters.priority !== "all" || filters.assignee !== "all" ? "Try clearing your filters." : "Create the first one!"}</p>
             </div>
           ) : (
             filteredTickets.map((ticket) => {
@@ -570,20 +613,20 @@ export default function Tickets() {
                   onKeyDown={(e) => (e.key === "Enter" ? openViewModal(ticket.id) : null)}
                 >
                   {/* Hover action buttons (edit/delete) */}
-                  {manageable && (
-                    <div className="ticket-action-buttons">
-                      <button
-                        className="btn-link edit-btn"
-                        title="Edit ticket"
-                        onClick={(e) => openEditFromCard(ticket.id, e)}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path
-                            d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 000-1.77l-2.34-2.34a1.25 1.25 0 00-1.77 0l-1.83 1.83 3.75 3.75 2.19-2.19z"
-                            fill="currentColor"
-                          />
-                        </svg>
-                      </button>
+                  <div className="ticket-action-buttons">
+                    <button
+                      className="btn-link edit-btn"
+                      title="Edit ticket"
+                      onClick={(e) => openEditFromCard(ticket.id, e)}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 000-1.77l-2.34-2.34a1.25 1.25 0 00-1.77 0l-1.83 1.83 3.75 3.75 2.19-2.19z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </button>
+                    {manageable && (
                       <button
                         className="btn-link delete-btn"
                         title="Delete ticket"
@@ -596,8 +639,8 @@ export default function Tickets() {
                           />
                         </svg>
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   {/* Header: Left + Right */}
                   <div className="ticket-header">
@@ -1033,14 +1076,16 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
               />
             </svg>
           </button>
-          <button className="btn-link delete-btn" title="Delete ticket" onClick={onDelete}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
-                fill="currentColor"
-              />
-            </svg>
-          </button>
+          {canManage && (
+            <button className="btn-link delete-btn" title="Delete ticket" onClick={onDelete}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
+          )}
         </div>
 
         <div className="ticket_detail_view">

@@ -14,6 +14,7 @@ import Candidates from './pages/Candidates';
 import Clients from './pages/Clients';
 import Payments from './pages/Payments';
 import Tickets from './pages/Tickets';
+import LoginHistory from './pages/LoginHistory';
 
 import LeaveManagement from "./pages/LeaveManagement/LeaveManagement"
 
@@ -59,6 +60,9 @@ function Shell() {
     clients: 'Clients',
     payments: 'Payments',
     tickets: 'Tickets',
+    leaves: 'Leaves',
+    'login-history': 'Login Timings',
+    logins: 'Login Timings',
   };
   const currentTitle = titleMap[safePath] || 'Dashboard';
 
@@ -108,6 +112,8 @@ function Shell() {
           <Route path="*" element={<Navigate to="/stats" />} />
 
           <Route path="/leaves" element={<LeaveManagement />} />
+          <Route path="/login-history" element={<LoginHistory />} />
+          <Route path="/logins" element={<Navigate to="/login-history" replace />} />
         </Routes>
       </main>
     </div>

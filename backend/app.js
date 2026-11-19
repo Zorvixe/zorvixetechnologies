@@ -532,6 +532,31 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
     await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS department VARCHAR(100);`);
     await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS position VARCHAR(100);`);
 
+    // Table for tracking user login and logout timings
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_login_logs (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+        login_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        logout_at TIMESTAMPTZ,
+        session_duration_minutes INTEGER,
+        ip_address VARCHAR(100),
+        user_agent TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_user_login_logs_user_id ON user_login_logs(user_id);
+      CREATE INDEX IF NOT EXISTS idx_user_login_logs_login_at ON user_login_logs(login_at);
+    `);
+
+    // Backfill login records from existing users if table is empty
+    await client.query(`
+      INSERT INTO user_login_logs (user_id, login_at)
+      SELECT id, last_login_at
+      FROM admin_users
+      WHERE last_login_at IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM user_login_logs WHERE user_login_logs.user_id = admin_users.id);
+    `);
+
 
     // Seed default admin
     if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
@@ -772,6 +797,31 @@ app.post('/api/admin/login', async (req, res) => {
 
     await pool.query('UPDATE admin_users SET last_login_at=NOW() WHERE id=$1', [admin.id])
 
+    // Close any previous open session for this user if it was left open
+    await pool.query(
+      `UPDATE user_login_logs
+       SET logout_at = NOW(),
+           session_duration_minutes = GREATEST(1, ROUND(EXTRACT(EPOCH FROM (NOW() - login_at)) / 60))
+       WHERE user_id = $1 AND logout_at IS NULL`,
+      [admin.id]
+    ).catch(err => console.error('Error closing prior session:', err));
+
+    // Record new login log
+    let sessionId = null;
+    try {
+      const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || '').toString().split(',')[0].trim();
+      const userAgent = (req.headers['user-agent'] || '').toString();
+      const logRes = await pool.query(
+        `INSERT INTO user_login_logs (user_id, login_at, ip_address, user_agent)
+         VALUES ($1, NOW(), $2, $3)
+         RETURNING id`,
+        [admin.id, ip, userAgent]
+      );
+      sessionId = logRes.rows[0]?.id;
+    } catch (logErr) {
+      console.error('Error creating login log:', logErr);
+    }
+
     const token = signAdminToken(admin)
     const cookieOpts = {
       httpOnly: true,
@@ -782,6 +832,7 @@ app.post('/api/admin/login', async (req, res) => {
     res.cookie('admin_token', token, cookieOpts)
     res.json({
       token,
+      sessionId,
       admin: {
         id: admin.id, email: admin.email, username: admin.username, name: admin.name,
         role: admin.role, is_active: admin.is_active, last_login_at: admin.last_login_at
@@ -792,13 +843,305 @@ app.post('/api/admin/login', async (req, res) => {
     res.status(500).json({ message: 'Server error' })
   }
 })
-app.post('/api/admin/logout', (req, res) => {
+app.post('/api/admin/logout', async (req, res) => {
+  try {
+    let userId = null;
+    const authHeader = req.headers.authorization;
+    let token = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.slice(7);
+    } else if (req.cookies && req.cookies.admin_token) {
+      token = req.cookies.admin_token;
+    }
+    if (token) {
+      try {
+        const payload = jwt.verify(token, process.env.JWT_SECRET);
+        userId = payload.sub;
+      } catch (err) {}
+    }
+    if (!userId && req.body && req.body.userId) {
+      userId = req.body.userId;
+    }
+    const sessionId = req.body && req.body.sessionId ? Number(req.body.sessionId) : null;
+
+    if (sessionId) {
+      await pool.query(
+        `UPDATE user_login_logs
+         SET logout_at = NOW(),
+             session_duration_minutes = GREATEST(1, ROUND(EXTRACT(EPOCH FROM (NOW() - login_at)) / 60))
+         WHERE id = $1 AND logout_at IS NULL`,
+        [sessionId]
+      );
+    } else if (userId) {
+      await pool.query(
+        `UPDATE user_login_logs
+         SET logout_at = NOW(),
+             session_duration_minutes = GREATEST(1, ROUND(EXTRACT(EPOCH FROM (NOW() - login_at)) / 60))
+         WHERE id = (
+           SELECT id FROM user_login_logs
+           WHERE user_id = $1 AND logout_at IS NULL
+           ORDER BY login_at DESC
+           LIMIT 1
+         )`,
+        [userId]
+      );
+    }
+  } catch (err) {
+    console.error('Error recording logout:', err);
+  }
+
   res.clearCookie('admin_token', { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' })
   res.json({ message: 'Logged out' })
 })
 app.get('/api/admin/me', requireAuth, (req, res) => {
   res.json({ me: req.user })
 })
+
+/* ------------------------- User Login/Logout Logs API --------------------- */
+// List login/logout logs with date, user, search filters and pagination
+app.get('/api/admin/login-logs', requireAuth, async (req, res) => {
+  try {
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 25, 1), 500);
+    const offset = (page - 1) * limit;
+
+    const { date, userId, search } = req.query;
+
+    let where = [];
+    let params = [];
+    let paramCount = 0;
+
+    // Permissions: Admins can see all users or filter by specific user.
+    // Non-admins can only see their own login/logout history.
+    if (!isAdmin(req)) {
+      paramCount++;
+      where.push(`l.user_id = $${paramCount}`);
+      params.push(req.user.sub);
+    } else if (userId && userId !== 'all') {
+      paramCount++;
+      where.push(`l.user_id = $${paramCount}`);
+      params.push(Number(userId));
+    }
+
+    // Date filtering (YYYY-MM-DD)
+    if (date) {
+      paramCount++;
+      const dStart = new Date(date);
+      dStart.setHours(0, 0, 0, 0);
+      where.push(`l.login_at >= $${paramCount}`);
+      params.push(dStart);
+
+      paramCount++;
+      const dEnd = new Date(date);
+      dEnd.setDate(dEnd.getDate() + 1);
+      dEnd.setHours(0, 0, 0, 0);
+      where.push(`l.login_at < $${paramCount}`);
+      params.push(dEnd);
+    }
+
+    // Search filtering (name, email, username, ip)
+    if (search && search.trim()) {
+      paramCount++;
+      const term = `%${search.trim().toLowerCase()}%`;
+      where.push(`(LOWER(u.name) LIKE $${paramCount} OR LOWER(u.email) LIKE $${paramCount} OR LOWER(u.username) LIKE $${paramCount} OR LOWER(COALESCE(l.ip_address, '')) LIKE $${paramCount})`);
+      params.push(term);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    // Total count
+    const countRes = await pool.query(
+      `SELECT COUNT(*)::BIGINT AS total
+       FROM user_login_logs l
+       JOIN admin_users u ON u.id = l.user_id
+       ${whereSql}`,
+      params
+    );
+    const total = Number(countRes.rows[0]?.total || 0);
+
+    // Get logs with user details
+    const dataParams = [...params, limit, offset];
+    const dataRes = await pool.query(
+      `SELECT 
+        l.id,
+        l.user_id,
+        u.name AS user_name,
+        u.email AS user_email,
+        u.username AS user_username,
+        u.role AS user_role,
+        u.department AS user_department,
+        l.login_at,
+        l.logout_at,
+        l.session_duration_minutes,
+        l.ip_address,
+        l.user_agent,
+        CASE 
+          WHEN l.logout_at IS NULL AND l.login_at >= NOW() - INTERVAL '24 hours' THEN 'active'
+          WHEN l.logout_at IS NULL THEN 'expired'
+          ELSE 'completed'
+        END AS session_status
+       FROM user_login_logs l
+       JOIN admin_users u ON u.id = l.user_id
+       ${whereSql}
+       ORDER BY l.login_at DESC
+       LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
+      dataParams
+    );
+
+    // Compute stats for today
+    const currentUserId = req.user.sub;
+    const isUserAdmin = isAdmin(req);
+    const statsUserFilter = (!isUserAdmin || (userId && userId !== 'all'))
+      ? `AND l.user_id = ${Number(!isUserAdmin ? currentUserId : userId)}`
+      : '';
+
+    const statsRes = await pool.query(`
+      SELECT 
+        COUNT(*)::INT AS total_logins_today,
+        COUNT(CASE WHEN l.logout_at IS NULL AND l.login_at >= NOW() - INTERVAL '24 hours' THEN 1 END)::INT AS currently_active,
+        MIN(l.login_at) FILTER (WHERE l.login_at >= CURRENT_DATE) AS first_login_today,
+        MAX(l.logout_at) FILTER (WHERE l.logout_at >= CURRENT_DATE) AS last_logout_today
+      FROM user_login_logs l
+      WHERE l.login_at >= CURRENT_DATE ${statsUserFilter}
+    `).catch(() => ({ rows: [{}] }));
+
+    const stats = statsRes.rows[0] || {
+      total_logins_today: 0,
+      currently_active: 0,
+      first_login_today: null,
+      last_logout_today: null
+    };
+
+    res.json({
+      success: true,
+      logs: dataRes.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        total_pages: Math.ceil(total / limit)
+      },
+      stats
+    });
+  } catch (e) {
+    console.error('List login logs error:', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Export login/logout logs to CSV
+app.get('/api/admin/login-logs/export.csv', requireAuth, async (req, res) => {
+  try {
+    const { date, userId, search } = req.query;
+
+    let where = [];
+    let params = [];
+    let paramCount = 0;
+
+    if (!isAdmin(req)) {
+      paramCount++;
+      where.push(`l.user_id = $${paramCount}`);
+      params.push(req.user.sub);
+    } else if (userId && userId !== 'all') {
+      paramCount++;
+      where.push(`l.user_id = $${paramCount}`);
+      params.push(Number(userId));
+    }
+
+    if (date) {
+      paramCount++;
+      const dStart = new Date(date);
+      dStart.setHours(0, 0, 0, 0);
+      where.push(`l.login_at >= $${paramCount}`);
+      params.push(dStart);
+
+      paramCount++;
+      const dEnd = new Date(date);
+      dEnd.setDate(dEnd.getDate() + 1);
+      dEnd.setHours(0, 0, 0, 0);
+      where.push(`l.login_at < $${paramCount}`);
+      params.push(dEnd);
+    }
+
+    if (search && search.trim()) {
+      paramCount++;
+      const term = `%${search.trim().toLowerCase()}%`;
+      where.push(`(LOWER(u.name) LIKE $${paramCount} OR LOWER(u.email) LIKE $${paramCount} OR LOWER(u.username) LIKE $${paramCount} OR LOWER(COALESCE(l.ip_address, '')) LIKE $${paramCount})`);
+      params.push(term);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const { rows } = await pool.query(
+      `SELECT 
+        l.id,
+        u.name AS user_name,
+        u.email AS user_email,
+        u.role AS user_role,
+        u.department AS user_department,
+        l.login_at,
+        l.logout_at,
+        l.session_duration_minutes,
+        l.ip_address,
+        CASE 
+          WHEN l.logout_at IS NULL AND l.login_at >= NOW() - INTERVAL '24 hours' THEN 'Active'
+          WHEN l.logout_at IS NULL THEN 'Auto-Closed'
+          ELSE 'Logged Out'
+        END AS status
+       FROM user_login_logs l
+       JOIN admin_users u ON u.id = l.user_id
+       ${whereSql}
+       ORDER BY l.login_at DESC
+       LIMIT 5000`,
+      params
+    );
+
+    const header = [
+      'Log ID',
+      'User Name',
+      'Email',
+      'Role',
+      'Department',
+      'Login Date & Time',
+      'Logout Date & Time',
+      'Duration (Minutes)',
+      'Status',
+      'IP Address'
+    ];
+
+    const esc = (v) => {
+      if (v == null) return '';
+      const s = String(v).replaceAll('"', '""').replaceAll('\n', ' ').replaceAll('\r', ' ');
+      return `"${s}"`;
+    };
+
+    const csvLines = [header.join(',')];
+    rows.forEach((r) => {
+      const row = [
+        r.id,
+        r.user_name,
+        r.user_email,
+        r.user_role,
+        r.user_department || '',
+        r.login_at ? new Date(r.login_at).toLocaleString() : '',
+        r.logout_at ? new Date(r.logout_at).toLocaleString() : (r.status === 'Active' ? 'Still Logged In' : 'None'),
+        r.session_duration_minutes ?? (r.status === 'Active' ? 'Ongoing' : ''),
+        r.status,
+        r.ip_address || ''
+      ];
+      csvLines.push(row.map(esc).join(','));
+    });
+
+    const csv = csvLines.join('\n');
+    const ts = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="login-timings-${ts}.csv"`);
+    res.send(csv);
+  } catch (e) {
+    console.error('Export login logs error:', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 /* ------------------------- Admin Users Management API --------------------- */
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
@@ -2460,145 +2803,58 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
 app.get("/api/stats/tickets", requireAuth, async (req, res) => {
   try {
     const authUser = req.user || {};
-    // DEBUG: log req.user so we can see what's coming in
     console.log("[stats/tickets] req.user:", JSON.stringify(authUser));
 
-    const role = String((authUser.role || "")).toLowerCase();
-    const isAdmin = role === "admin";
-    const uid = isAdmin ? null : Number(req.user.sub); // Convert to number
-
-    console.log(`[stats/tickets] isAdmin=${isAdmin} uid=${uid}`);
-
-    // If non-admin and no uid, return empty safe response
-    if (!isAdmin && !uid) {
-      console.warn("[stats/tickets] non-admin request but no uid present — returning empty result");
-      return res.json({
-        totals: { tickets: 0 },
-        statusBreakdowns: { byStatus: [], byPriority: [] },
-        trendsLast30: { tickets: [], comments: [] },
-        activityFeed: [],
-        recentData: { tickets: [], ticketComments: [] },
-      });
-    }
-
-    // Build queries separately for admin / non-admin to avoid string manipulation errors
-    const params = isAdmin ? [] : [uid];
-
-    // 1) tickets count
-    const qTicketsCount = isAdmin
-      ? `SELECT COUNT(*)::BIGINT AS c FROM tickets`
-      : `SELECT COUNT(*)::BIGINT AS c FROM tickets t
-         WHERE (t.created_by = $1 OR t.assigned_to = $1
-                OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $1))`;
+    // 1) tickets count - visible to all authenticated users
+    const qTicketsCount = `SELECT COUNT(*)::BIGINT AS c FROM tickets`;
 
     // 2) recent tickets
-    const qTicketsRecent = isAdmin
-      ? `
-        SELECT t.id, t.title, t.status, t.priority, t.created_at, t.updated_at,
-               au.name AS assigned_to_name, au.email AS assigned_to_email,
-               creator.name AS created_by_name
-        FROM tickets t
-        LEFT JOIN admin_users au ON au.id = t.assigned_to
-        LEFT JOIN admin_users creator ON creator.id = t.created_by
-        ORDER BY t.created_at DESC
-        LIMIT 10
-      `
-      : `
-        SELECT t.id, t.title, t.status, t.priority, t.created_at, t.updated_at,
-               au.name AS assigned_to_name, au.email AS assigned_to_email,
-               creator.name AS created_by_name
-        FROM tickets t
-        LEFT JOIN admin_users au ON au.id = t.assigned_to
-        LEFT JOIN admin_users creator ON creator.id = t.created_by
-        WHERE (t.created_by = $1 OR t.assigned_to = $1
-               OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $1))
-        ORDER BY t.created_at DESC
-        LIMIT 10
-      `;
+    const qTicketsRecent = `
+      SELECT t.id, t.title, t.status, t.priority, t.created_at, t.updated_at,
+             au.name AS assigned_to_name, au.email AS assigned_to_email,
+             creator.name AS created_by_name
+      FROM tickets t
+      LEFT JOIN admin_users au ON au.id = t.assigned_to
+      LEFT JOIN admin_users creator ON creator.id = t.created_by
+      ORDER BY t.created_at DESC
+      LIMIT 20
+    `;
 
-    // 3) recent ticket comments (limit 10): show comments either on visible tickets or comments authored by the user
-    const qTicketCommentsRecent = isAdmin
-      ? `
-        SELECT tc.id, tc.ticket_id, tc.comment_text, tc.created_at,
-               t.title AS ticket_title, t.status AS ticket_status,
-               u.name AS user_name, u.email AS user_email
-        FROM ticket_comments tc
-        JOIN tickets t ON t.id = tc.ticket_id
-        JOIN admin_users u ON u.id = tc.user_id
-        ORDER BY tc.created_at DESC
-        LIMIT 10
-      `
-      : `
-        SELECT tc.id, tc.ticket_id, tc.comment_text, tc.created_at,
-               t.title AS ticket_title, t.status AS ticket_status,
-               u.name AS user_name, u.email AS user_email
-        FROM ticket_comments tc
-        JOIN tickets t ON t.id = tc.ticket_id
-        JOIN admin_users u ON u.id = tc.user_id
-        WHERE (t.created_by = $1 OR t.assigned_to = $1 OR tc.user_id = $1)
-        ORDER BY tc.created_at DESC
-        LIMIT 10
-      `;
+    // 3) recent ticket comments (limit 20): show comments across all tickets
+    const qTicketCommentsRecent = `
+      SELECT tc.id, tc.ticket_id, tc.comment_text, tc.created_at,
+             t.title AS ticket_title, t.status AS ticket_status,
+             u.name AS user_name, u.email AS user_email
+      FROM ticket_comments tc
+      JOIN tickets t ON t.id = tc.ticket_id
+      JOIN admin_users u ON u.id = tc.user_id
+      ORDER BY tc.created_at DESC
+      LIMIT 20
+    `;
 
     // 4) tickets by status
-    const qTicketsByStatus = isAdmin
-      ? `SELECT status, COUNT(*)::BIGINT AS count FROM tickets GROUP BY status`
-      : `
-        SELECT status, COUNT(*)::BIGINT AS count
-        FROM tickets t
-        WHERE (t.created_by = $1 OR t.assigned_to = $1
-               OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $1))
-        GROUP BY status
-      `;
+    const qTicketsByStatus = `SELECT status, COUNT(*)::BIGINT AS count FROM tickets GROUP BY status`;
 
     // 5) tickets by priority
-    const qTicketsByPriority = isAdmin
-      ? `SELECT priority, COUNT(*)::BIGINT AS count FROM tickets GROUP BY priority`
-      : `
-        SELECT priority, COUNT(*)::BIGINT AS count
-        FROM tickets t
-        WHERE (t.created_by = $1 OR t.assigned_to = $1
-               OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $1))
-        GROUP BY priority
-      `;
+    const qTicketsByPriority = `SELECT priority, COUNT(*)::BIGINT AS count FROM tickets GROUP BY priority`;
 
     // 6) tickets last 30 days
-    const qTicketsLast30 = isAdmin
-      ? `
-        SELECT date_trunc('day', created_at) AS day, COUNT(*)::BIGINT AS count
-        FROM tickets
-        WHERE created_at >= NOW() - INTERVAL '30 days'
-        GROUP BY day
-        ORDER BY day ASC
-      `
-      : `
-        SELECT date_trunc('day', t.created_at) AS day, COUNT(*)::BIGINT AS count
-        FROM tickets t
-        WHERE (t.created_by = $1 OR t.assigned_to = $1
-               OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $1))
-          AND t.created_at >= NOW() - INTERVAL '30 days'
-        GROUP BY day
-        ORDER BY day ASC
-      `;
+    const qTicketsLast30 = `
+      SELECT date_trunc('day', created_at) AS day, COUNT(*)::BIGINT AS count
+      FROM tickets
+      WHERE created_at >= NOW() - INTERVAL '30 days'
+      GROUP BY day
+      ORDER BY day ASC
+    `;
 
     // 7) comments last 30 days
-    const qCommentsLast30 = isAdmin
-      ? `
-        SELECT date_trunc('day', created_at) AS day, COUNT(*)::BIGINT AS count
-        FROM ticket_comments
-        WHERE created_at >= NOW() - INTERVAL '30 days'
-        GROUP BY day
-        ORDER BY day ASC
-      `
-      : `
-        SELECT date_trunc('day', tc.created_at) AS day, COUNT(*)::BIGINT AS count
-        FROM ticket_comments tc
-        JOIN tickets t ON t.id = tc.ticket_id
-        WHERE (t.created_by = $1 OR t.assigned_to = $1 OR tc.user_id = $1)
-          AND tc.created_at >= NOW() - INTERVAL '30 days'
-        GROUP BY day
-        ORDER BY day ASC
-      `;
+    const qCommentsLast30 = `
+      SELECT date_trunc('day', created_at) AS day, COUNT(*)::BIGINT AS count
+      FROM ticket_comments
+      WHERE created_at >= NOW() - INTERVAL '30 days'
+      GROUP BY day
+      ORDER BY day ASC
+    `;
 
     // Execute all
     const [
@@ -2610,13 +2866,13 @@ app.get("/api/stats/tickets", requireAuth, async (req, res) => {
       ticketsLast30Q,
       commentsLast30Q,
     ] = await Promise.all([
-      pool.query(qTicketsCount, params),
-      pool.query(qTicketsRecent, params),
-      pool.query(qTicketCommentsRecent, params),
-      pool.query(qTicketsByStatus, params),
-      pool.query(qTicketsByPriority, params),
-      pool.query(qTicketsLast30, params),
-      pool.query(qCommentsLast30, params),
+      pool.query(qTicketsCount),
+      pool.query(qTicketsRecent),
+      pool.query(qTicketCommentsRecent),
+      pool.query(qTicketsByStatus),
+      pool.query(qTicketsByPriority),
+      pool.query(qTicketsLast30),
+      pool.query(qCommentsLast30),
     ]);
 
     console.log("[stats/tickets] rows recent:", ticketsRecentQ.rows.length, "commentsRecent:", ticketCommentsRecentQ.rows.length);
@@ -2886,13 +3142,7 @@ app.get('/api/admin/tickets/export.csv', requireAuth, async (req, res) => {
       params.push(end);
     }
 
-    // For non-admin users, only show their tickets
-    if (!isAdmin(req)) {
-      paramCount++;
-      where.push(`(t.created_by = $${paramCount} OR t.assigned_to = $${paramCount} 
-                  OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $${paramCount}))`);
-      params.push(req.user.sub);
-    }
+    // Tickets are visible to everyone in the admin panel
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
@@ -2991,7 +3241,8 @@ app.get('/api/admin/tickets/export.csv', requireAuth, async (req, res) => {
 app.get('/api/tickets', requireAuth, async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 200);
+    const hasLimit = req.query.limit !== undefined && req.query.limit !== null && req.query.limit !== '';
+    const limit = hasLimit ? Math.max(parseInt(req.query.limit) || 20, 1) : 1000;
     const offset = (page - 1) * limit;
 
     const {
@@ -3046,13 +3297,7 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
       params.push(end);
     }
 
-    // For non-admin users
-    if (!isAdmin(req)) {
-      paramCount++;
-      where.push(`(t.created_by = $${paramCount} OR t.assigned_to = $${paramCount} 
-                  OR EXISTS (SELECT 1 FROM ticket_comments tc2 WHERE tc2.ticket_id = t.id AND tc2.user_id = $${paramCount}))`);
-      params.push(req.user.sub);
-    }
+    // All tickets are visible to everyone in the admin panel
 
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 

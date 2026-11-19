@@ -60,7 +60,7 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
 
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(localYMD());
+  const [selectedDate, setSelectedDate] = useState("");
 
   const modalRef = useRef(null);
 

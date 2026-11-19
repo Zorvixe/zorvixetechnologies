@@ -50,7 +50,7 @@ export const apiLogin = (identifier, password) =>
 
 export const apiMe = () => request("/api/admin/me")
 
-export const apiLogout = () => request("/api/admin/logout", { method: "POST" })
+export const apiLogout = (body = {}) => request("/api/admin/logout", { method: "POST", body })
 
 /* --------------------------- Contacts --------------------------- */
 export const apiListContacts = (params) => request("/api/contacts", { params })
@@ -240,8 +240,8 @@ export async function apiExportTicketsCsv(params = {}) {
 }
 
 export const apiListTickets = (params = {}) => {
-  // Ensure dates are formatted correctly
-  const formattedParams = { ...params };
+  // Ensure dates are formatted correctly and default limit is large so tickets don't get truncated
+  const formattedParams = { limit: 1000, ...params };
   if (params.startDate) {
     formattedParams.startDate = formatDateForAPI(params.startDate);
   }
@@ -312,6 +312,27 @@ export const apiCarryForwardLeaves = () => request('/api/admin/leaves/carry-forw
 export const apiMonthlyReset = () => 
   request('/api/admin/leaves/monthly-reset', { method: 'POST' });
 
+
+/* --------------------------- Login / Logout Timings --------------------------- */
+export const apiListLoginLogs = (params = {}) =>
+  request("/api/admin/login-logs", { params });
+
+export async function apiExportLoginLogsCsv(params = {}) {
+  const url = `${API_BASE_URL}/api/admin/login-logs/export.csv${qs(params)}`;
+  const res = await fetch(url, {
+    headers: { ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) },
+  });
+  if (!res.ok) throw new Error("Failed to export login logs");
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = `login-timings-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(downloadUrl);
+}
 
 // Helper function to format dates for API
 const formatDateForAPI = (dateString) => {

@@ -2,7 +2,7 @@ import { useAuth } from '../auth'
 import "./Sidebar.css"
 
 const VALID_VIEWS = new Set([
-  'stats','clients','payments','users','candidates','tickets','contacts'
+  'stats','clients','payments','users','candidates','tickets','contacts','login-history'
 ]);
 
 export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
@@ -81,6 +81,14 @@ export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
         <a href="#tickets" className={`navlink ${current === 'tickets' ? 'active' : ''}`} onClick={goto('tickets')} title="Tickets">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path><path d="M13 5v2"></path><path d="M13 17v2"></path><path d="M13 11v2"></path></svg>
           {!collapsed && <span>Jira</span>}
+        </a>
+
+        <a href="#login-history" className={`navlink ${current === 'login-history' ? 'active' : ''}`} onClick={goto('login-history')} title="Login Timings">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          {!collapsed && <span>Login Timings</span>}
         </a>
 
         <a href="#contacts" className={`navlink ${current === 'contacts' ? 'active' : ''}`} onClick={goto('contacts')} title="Contacts">

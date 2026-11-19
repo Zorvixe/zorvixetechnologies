@@ -53,6 +53,9 @@ export function AuthProvider({ children }) {
   const login = async (identifier, password) => {
     const data = await apiLogin(identifier, password)
     setToken(data.token)
+    if (data.sessionId) {
+      localStorage.setItem('login_session_id', String(data.sessionId))
+    }
     const me = await apiMe()
     setUser(me.me)
     scheduleMidnightLogout() // reschedule after login
@@ -61,8 +64,10 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      await apiLogout()
+      const sessionId = localStorage.getItem('login_session_id')
+      await apiLogout(sessionId ? { sessionId: Number(sessionId), userId: user?.id } : { userId: user?.id })
     } catch { }
+    localStorage.removeItem('login_session_id')
     clearToken()
     setUser(null)
   }
