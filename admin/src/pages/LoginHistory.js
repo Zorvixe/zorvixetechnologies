@@ -510,7 +510,7 @@ export default function LoginHistory() {
                           {logoutDateObj ? (
                             <>
                               <span className="time-primary">
-                                {logoutDateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "—"}
+                                {logoutDateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                               </span>
                               <span className="date-secondary">
                                 {logoutDateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
