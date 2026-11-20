@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiStats } from "../api";
-import { useAuth } from "../auth";   // <-- add this
+import { useAuth } from "../auth";
 
 // Import banners with unique names
 import banner1 from "../assets/home_banner_1.png";
@@ -13,7 +13,6 @@ import jira_logo from "../assets/jira_logo.png";
 import projects_logo from "../assets/projects_logo.png";
 
 import "./Stats.css";
-
 
 export default function Stats() {
   const [data, setData] = useState(null);
@@ -32,7 +31,6 @@ export default function Stats() {
   );
   const selectedBanner = banners[dayOfYear % banners.length];
 
-
   async function load() {
     try {
       setLoading(true);
@@ -46,7 +44,9 @@ export default function Stats() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const fmtDate = (v) => new Date(v).toLocaleDateString();
   const fmtDateTime = (v) => new Date(v).toLocaleString();
@@ -64,7 +64,7 @@ export default function Stats() {
   );
 
   return (
-    <div>
+    <div className="stats-container">
       <div
         className="stats-top-banner"
         style={{
@@ -76,12 +76,12 @@ export default function Stats() {
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
           borderRadius: "12px",
-          padding: "16px", // space inside
-          color: "#000",   // text color (adjust if needed)
+          padding: "16px",
+          color: "#000",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          gap: "12px"
+          gap: "12px",
         }}
       >
         {/* Top Section - Date + Greeting */}
@@ -90,31 +90,41 @@ export default function Stats() {
             {new Date().toLocaleDateString("en-US", {
               weekday: "long",
               month: "long",
-              day: "numeric"
+              day: "numeric",
             })}
           </div>
           <h4 style={{ margin: 0, fontWeight: "bold" }}>Hello, {user?.name || "User"}</h4>
         </div>
+
         {/* Bottom Section - Buttons */}
-        <div className="home-banner-buttons">
-          <a href="/clients" className="home_banner_style first-btn">
-            <img src={projects_logo} alt="projects_logo" style={{ width: 25, height: 22, borderRadius: "5px", marginRight: "5px", marginBottom: "2px" }} />
+        <div className="stats-home-banner-buttons">
+          <a href="/clients" className="stats-home-banner-style stats-first-btn">
+            <img
+              src={projects_logo}
+              alt="projects_logo"
+              style={{ width: 25, height: 22, borderRadius: "5px", marginRight: "5px", marginBottom: "2px" }}
+            />
             Read project updates
           </a>
 
-          <a href="/tickets" className="home_banner_style second-btn">
-            <img src={jira_logo} alt="Jira" style={{ width: 20, height: 20, borderRadius: "5px", marginRight: "5px", marginBottom: "2px" }} />
+          <a href="/tickets" className="stats-home-banner-style stats-second-btn">
+            <img
+              src={jira_logo}
+              alt="Jira"
+              style={{ width: 20, height: 20, borderRadius: "5px", marginRight: "5px", marginBottom: "2px" }}
+            />
             Read new tickets updates
           </a>
         </div>
       </div>
 
-
       {err && (
-        <div className="card error" role="alert">
-          <div className="err-title">Couldn’t load</div>
-          <div className="err-msg">{err}</div>
-          <button className="button" onClick={load}>Retry</button>
+        <div className="stats-card stats-error" role="alert">
+          <div className="stats-err-title">Couldn’t load</div>
+          <div className="stats-err-msg">{err}</div>
+          <button className="stats-button" onClick={load}>
+            Retry
+          </button>
         </div>
       )}
 
@@ -122,58 +132,58 @@ export default function Stats() {
       {loading && !data ? (
         <DashboardSkeleton />
       ) : data ? (
-        <div className="dashboard-grid">
+        <div className="stats-dashboard-grid">
           {/* KPIs */}
-          <section className="card kpis" aria-labelledby="kpi-heading">
-            <h2 id="kpi-heading" className="sr-only">Key metrics</h2>
-            <div className="kpi-grid">
+          <section className="stats-card stats-kpis" aria-labelledby="kpi-heading">
+            <h2 id="kpi-heading" className="stats-sr-only">
+              Key metrics
+            </h2>
+            <div className="stats-kpi-grid">
               <KPI icon="users" label="Clients" value={num(data.totals.clients)} />
               <KPI icon="brief" label="Projects" value={num(data.totals.projects)} />
               <KPI icon="inbox" label="Contacts" value={num(data.totals.contacts)} />
               {isAdmin && (
                 <KPI icon="link" label="Payment Links" value={num(data.totals.payment_links)} />
-
               )}
               {isAdmin && (
                 <KPI icon="rupee" label="Payments" value={num(data.totals.payments)} />
-
               )}
               <KPI icon="id" label="Candidates" value={num(data.totals.candidates)} />
             </div>
           </section>
 
           {/* Status + Contacts trend */}
-          <section className="card" aria-labelledby="status-heading">
+          <section className="stats-card" aria-labelledby="status-heading">
             <h3 id="status-heading">Contacts by Status</h3>
-            {(!data.contactsByStatus || !data.contactsByStatus.length) ? (
+            {!data.contactsByStatus || !data.contactsByStatus.length ? (
               <Empty message="No status data yet" />
             ) : (
-              <div className="chip-grid">
+              <div className="stats-chip-grid">
                 {data.contactsByStatus.map((s) => (
-                  <div className="chip" key={s.status}>
-                    <span className="chip-dot" data-variant={s.status.toLowerCase()} />
-                    <span className="chip-label">{s.status}</span>
-                    <span className="chip-value">{num(s.count)}</span>
+                  <div className="stats-chip" key={s.status}>
+                    <span className="stats-chip-dot" data-variant={s.status.toLowerCase()} />
+                    <span className="stats-chip-label">{s.status}</span>
+                    <span className="stats-chip-value">{num(s.count)}</span>
                   </div>
                 ))}
               </div>
             )}
-            <div className="divider" />
-            <h6 className="subtle">Last 30 Days — Contacts</h6>
-            {(!data.contactsLast30 || !data.contactsLast30.length) ? (
+            <div className="stats-divider" />
+            <h6 className="stats-subtle">Last 30 Days — Contacts</h6>
+            {!data.contactsLast30 || !data.contactsLast30.length ? (
               <Empty message="No contacts in the last 30 days" />
             ) : (
-              <ul className="bar-list" role="list">
+              <ul className="stats-bar-list" role="list">
                 {data.contactsLast30.map((d) => {
                   const c = Number(d.count || 0);
                   const w = Math.round((c / contactsMax) * 100);
                   return (
-                    <li className="bar-row" key={String(d.day)}>
-                      <span className="bar-label">{fmtDate(d.day)}</span>
-                      <span className="bar-track" aria-hidden>
-                        <span className="bar-fill" style={{ width: `${w}%` }} />
+                    <li className="stats-bar-row" key={String(d.day)}>
+                      <span className="stats-bar-label">{fmtDate(d.day)}</span>
+                      <span className="stats-bar-track" aria-hidden>
+                        <span className="stats-bar-fill" style={{ width: `${w}%` }} />
                       </span>
-                      <span className="bar-value">{num(c)}</span>
+                      <span className="stats-bar-value">{num(c)}</span>
                     </li>
                   );
                 })}
@@ -182,22 +192,22 @@ export default function Stats() {
           </section>
 
           {isAdmin && (
-            <section className="card" aria-labelledby="payments-heading">
+            <section className="stats-card" aria-labelledby="payments-heading">
               <h3 id="payments-heading">Last 30 Days — Payments</h3>
-              {(!data.paymentsLast30 || !data.paymentsLast30.length) ? (
+              {!data.paymentsLast30 || !data.paymentsLast30.length ? (
                 <Empty message="No payments in the last 30 days" />
               ) : (
-                <ul className="bar-list" role="list">
+                <ul className="stats-bar-list" role="list">
                   {data.paymentsLast30.map((d) => {
                     const c = Number(d.count || 0);
                     const w = Math.round((c / paymentsMax) * 100);
                     return (
-                      <li className="bar-row" key={String(d.day)}>
-                        <span className="bar-label">{fmtDate(d.day)}</span>
-                        <span className="bar-track" aria-hidden>
-                          <span className="bar-fill pay" style={{ width: `${w}%` }} />
+                      <li className="stats-bar-row" key={String(d.day)}>
+                        <span className="stats-bar-label">{fmtDate(d.day)}</span>
+                        <span className="stats-bar-track" aria-hidden>
+                          <span className="stats-bar-fill stats-pay" style={{ width: `${w}%` }} />
                         </span>
-                        <span className="bar-value">
+                        <span className="stats-bar-value">
                           {num(c)} • {money(d.total_amount)}
                         </span>
                       </li>
@@ -208,25 +218,24 @@ export default function Stats() {
             </section>
           )}
 
-
           {/* Recent logins */}
-          <section className="card" aria-labelledby="logins-heading">
+          <section className="stats-card" aria-labelledby="logins-heading">
             <h3 id="logins-heading">Recent Logins</h3>
-            {(!data.recentLogins || !data.recentLogins.length) ? (
+            {!data.recentLogins || !data.recentLogins.length ? (
               <Empty message="No recent logins" />
             ) : (
-              <ul className="people" role="list">
+              <ul className="stats-people" role="list">
                 {data.recentLogins.map((u) => (
-                  <li className="person" key={u.id}>
+                  <li className="stats-person" key={u.id}>
                     <Avatar name={u.name} />
-                    <div className="person-info">
-                      <div className="person-top">
+                    <div className="stats-person-info">
+                      <div className="stats-person-top">
                         <strong>{u.name}</strong>
-                        <span className="role">ZOR - {u.role ? u.role.charAt(0).toUpperCase() : ""}</span>
+                        <span className="stats-role">ZOR - {u.role ? u.role.charAt(0).toUpperCase() : ""}</span>
                       </div>
-                      <div className="person-sub">
+                      <div className="stats-person-sub">
                         {u.email}
-                        <span className="dot" /> {fmtDateTime(u.last_login_at)}
+                        <span className="stats-dot" /> {fmtDateTime(u.last_login_at)}
                       </div>
                     </div>
                   </li>
@@ -234,32 +243,32 @@ export default function Stats() {
               </ul>
             )}
           </section>
-          {isAdmin && (
-            <section className="card recent_activity" aria-labelledby="activity-heading">
-              <h3 id="activity-heading">Recent Activity</h3>
-              {data.activityFeed
-                .filter((a) => {
-                  // hide payment activities if not admin
-                  if (!isAdmin && a.type === "payment") return false;
-                  return true;
-                })
-                .map((a, i) => (
-                  <li className="timeline-item" key={`${a.type}-${i}`}>
-                    <span className="tl-dot" data-type={a.type} />
-                    <div className="tl-body">
-                      <div className="tl-text">
-                        <span className={`tag ${`tag-${a.type}`}`}>{a.type}</span>
-                        <span>{a.text}</span>
-                      </div>
-                      <div className="tl-time">{fmtDateTime(a.at)}</div>
-                    </div>
-                  </li>
-                ))}
 
+          {isAdmin && (
+            <section className="stats-card stats-recent-activity" aria-labelledby="activity-heading">
+              <h3 id="activity-heading">Recent Activity</h3>
+              <ul className="stats-timeline" role="list">
+                {data.activityFeed
+                  .filter((a) => {
+                    // hide payment activities if not admin
+                    if (!isAdmin && a.type === "payment") return false;
+                    return true;
+                  })
+                  .map((a, i) => (
+                    <li className="stats-timeline-item" key={`${a.type}-${i}`}>
+                      <span className="stats-tl-dot" data-type={a.type} />
+                      <div className="stats-tl-body">
+                        <div className="stats-tl-text">
+                          <span className={`stats-tag stats-tag-${a.type}`}>{a.type}</span>
+                          <span>{a.text}</span>
+                        </div>
+                        <div className="stats-tl-time">{fmtDateTime(a.at)}</div>
+                      </div>
+                    </li>
+                  ))}
+              </ul>
             </section>
           )}
-          {/* Activity timeline */}
-
         </div>
       ) : null}
     </div>
@@ -270,11 +279,11 @@ export default function Stats() {
 
 function KPI({ icon, label, value }) {
   return (
-    <div className="kpi-card" role="status" aria-label={`${label} ${value}`}>
-      <div className="kpi-icon">{getIcon(icon)}</div>
-      <div className="kpi-content">
-        <div className="kpi-label">{label}</div>
-        <div className="kpi-value">{value}</div>
+    <div className="stats-kpi-card" role="status" aria-label={`${label} ${value}`}>
+      <div className="stats-kpi-icon">{getIcon(icon)}</div>
+      <div className="stats-kpi-content">
+        <div className="stats-kpi-label">{label}</div>
+        <div className="stats-kpi-value">{value}</div>
       </div>
     </div>
   );
@@ -287,36 +296,40 @@ function Avatar({ name = "" }) {
     .map((s) => s[0])
     .join("")
     .toUpperCase();
-  return <div className="avatar" aria-hidden>{initials || "U"}</div>;
+  return (
+    <div className="stats-avatar" aria-hidden>
+      {initials || "U"}
+    </div>
+  );
 }
 
 function Empty({ message }) {
-  return <div className="empty">{message}</div>;
+  return <div className="stats-empty">{message}</div>;
 }
 
 function DashboardSkeleton() {
   return (
     <>
-      <div className="card kpis">
-        <div className="kpi-grid">
+      <div className="stats-card stats-kpis">
+        <div className="stats-kpi-grid">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div className="kpi-card skeleton" key={i}>
-              <div className="kpi-icon" />
-              <div className="kpi-content">
-                <div className="s-bar w60" />
-                <div className="s-bar w40" />
+            <div className="stats-kpi-card stats-skeleton" key={i}>
+              <div className="stats-kpi-icon" />
+              <div className="stats-kpi-content">
+                <div className="stats-s-bar stats-w60" />
+                <div className="stats-s-bar stats-w40" />
               </div>
             </div>
           ))}
         </div>
       </div>
-      <div className="dashboard-grid">
+      <div className="stats-dashboard-grid">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div className="card skeleton-block" key={i}>
-            <div className="s-bar w30" />
-            <div className="s-bar w90" />
-            <div className="s-bar w80" />
-            <div className="s-bar w70" />
+          <div className="stats-card stats-skeleton-block" key={i}>
+            <div className="stats-s-bar stats-w30" />
+            <div className="stats-s-bar stats-w90" />
+            <div className="stats-s-bar stats-w80" />
+            <div className="stats-s-bar stats-w70" />
           </div>
         ))}
       </div>

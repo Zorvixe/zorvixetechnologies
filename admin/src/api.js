@@ -351,6 +351,15 @@ export const apiGetChatUsers = () => request("/api/chat/users");
 export const apiGetChatUnreadCount = () => request("/api/chat/unread-count");
 export const apiGetChatMessages = (otherUserId) => request(`/api/chat/messages/${otherUserId}`);
 export const apiSendChatMessage = (body) => request("/api/chat/messages", { method: "POST", body });
+export const apiEditChatMessage = (messageId, messageText) =>
+  request(`/api/chat/messages/${messageId}`, {
+    method: "PUT",
+    body: { message_text: messageText },
+  });
+export const apiDeleteChatMessage = (messageId) =>
+  request(`/api/chat/messages/${messageId}`, {
+    method: "DELETE",
+  });
 export const apiMarkChatRead = (senderId) => request(`/api/chat/read/${senderId}`, { method: "PATCH" });
 
 /* --------------------------- Helpers --------------------------- */

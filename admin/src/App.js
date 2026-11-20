@@ -18,6 +18,7 @@ import LoginHistory from './pages/LoginHistory';
 import Discussions from './pages/Discussions';
 import Account from './pages/Account';
 import LinkedInChatWidget from './components/LinkedInChatWidget';
+import MobileBottomNav from './components/MobileBottomNav';
 
 import LeaveManagement from "./pages/LeaveManagement/LeaveManagement"
 
@@ -129,6 +130,12 @@ function Shell() {
 
       {/* LinkedIn-style floating messaging widget docked at bottom-right */}
       <LinkedInChatWidget />
+
+      {/* Native-feel Mobile Bottom Navigation Bar */}
+      <MobileBottomNav
+        sidebarOpen={!sidebarCollapsed}
+        onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
+      />
     </div>
   );
 }

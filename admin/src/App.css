@@ -39,9 +39,155 @@
 
 .center { text-align: center; margin: 24px 0; }
 
+/* Universal border-box to prevent mobile padding/border blowout */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
 /* Space for page sections below the global header */
 .content > *:not(.topbar--global) {
   display: block;
   padding: 16px;
-  margin: 50px 0px 0px 0px;
+  margin: 56px 0px 0px 0px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Premium Card Design System */
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 4px 14px rgba(15, 23, 42, 0.02);
+  padding: 20px;
+  margin-top: 16px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Modern Pill Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Modern Buttons */
+.button, .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.button:active, .btn:active {
+  transform: scale(0.97);
+}
+
+/* Responsive Table Scroll Containers (Used globally across all pages) */
+.table-wrap-cand,
+.table-responsive,
+.table-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  scrollbar-width: thin;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+}
+
+.table-cand,
+.table,
+.leaves-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-cand th, .table th, .leaves-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table-cand td, .table td, .leaves-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  font-size: 13.5px;
+  vertical-align: middle;
+}
+
+.table-cand tr:hover td, .table tbody tr:hover td, .leaves-table tr:hover td {
+  background: #f8fafc;
+}
+
+/* Sleek Thin Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Mobile global shell adjustments */
+@media (max-width: 768px) {
+  .content > *:not(.topbar--global) {
+    padding: 14px 12px calc(76px + env(safe-area-inset-bottom, 0px)) 12px;
+    margin: 56px 0px 0px 0px;
+    max-width: 100vw;
+  }
+
+  .card {
+    padding: 14px;
+    border-radius: 14px;
+    margin-top: 12px;
+  }
+
+  /* Prevent iOS Safari from auto-zooming into inputs */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  .table-cand {
+    min-width: 580px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content > *:not(.topbar--global) {
+    padding: 12px 10px calc(76px + env(safe-area-inset-bottom, 0px)) 10px;
+  }
 }

@@ -12,10 +12,10 @@
 
 .card-cand {
   background: #fff;
-  border: 1px solid #e6e6e6;
-  border-radius: 12px;
+  border: 1px solid #eef2f6;
+  border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 4px 14px rgba(15, 23, 42, 0.02);
 }
 
 .mb-cand {
@@ -274,6 +274,9 @@
 }
 
 @media (max-width: 768px) {
+  .card-cand {
+    padding: 12px;
+  }
   .form-cand {
     grid-template-columns: 1fr;
   }
@@ -288,5 +291,17 @@
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
+  }
+  .modal-card-cand {
+    width: calc(100% - 24px) !important;
+    margin: 12px !important;
+  }
+  .modal-dialog {
+    margin: 10px auto !important;
+    width: calc(100% - 20px) !important;
+    max-width: 100% !important;
+  }
+  .table-cand {
+    min-width: 650px;
   }
 }

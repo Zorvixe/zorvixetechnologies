@@ -1148,4 +1148,40 @@
     padding-left: 0 !important;
     margin-top: 15px;
   }
+
+  .ticket_create_rows {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .ticket_create_rows .col-5,
+  .ticket_create_rows .col-3,
+  .ticket_create_rows .col-4,
+  .ticket_create_rows .form-group {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+
+  .ticket-title-section {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+
+  .ticket-body {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .ticket-meta {
+    flex-wrap: wrap !important;
+  }
+
+  .ticket-id-badge {
+    transform: none !important;
+    margin-top: 6px;
+    align-self: flex-start;
+  }
 }

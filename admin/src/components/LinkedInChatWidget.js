@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "../auth";
 import {
   apiGetChatUsers,
   apiGetChatMessages,
   apiSendChatMessage,
+  apiEditChatMessage,
+  apiDeleteChatMessage,
   apiMarkChatRead,
   apiGetChatUnreadCount,
 } from "../api";
+import { playNotificationSound } from "../utils/notificationSound";
 import "./LinkedInChatWidget.css";
 
 // Helper: generate consistent avatar color from string
@@ -112,11 +116,24 @@ export default function LinkedInChatWidget() {
   const [inputMessage, setInputMessage] = useState("");
   const [sending, setSending] = useState(false);
 
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
+
   const messagesEndRef = useRef(null);
   const chatInputRef = useRef(null);
   const lastMsgCountRef = useRef(0);
+  const lastUnreadTotalRef = useRef(null);
 
   const currentUserId = user?.sub || user?.id;
+
+  // Close context menu on outside click
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      setActiveMenuMsgId(null);
+    };
+    window.addEventListener("click", handleGlobalClick);
+    return () => window.removeEventListener("click", handleGlobalClick);
+  }, []);
 
   // 1. Fetch user list and unread count
   const fetchChatUsers = useCallback(async () => {
@@ -128,6 +145,13 @@ export default function LinkedInChatWidget() {
       }
       const unreadRes = await apiGetChatUnreadCount();
       if (unreadRes && typeof unreadRes.total_unread === "number") {
+        if (
+          lastUnreadTotalRef.current !== null &&
+          unreadRes.total_unread > lastUnreadTotalRef.current
+        ) {
+          playNotificationSound();
+        }
+        lastUnreadTotalRef.current = unreadRes.total_unread;
         setUnreadTotal(unreadRes.total_unread);
       }
     } catch (err) {
@@ -143,8 +167,14 @@ export default function LinkedInChatWidget() {
       const res = await apiGetChatMessages(colleagueId);
       if (res && res.messages) {
         setMessages(res.messages);
-        // If message count increased, scroll down
+        // If message count increased, scroll down and play sound if incoming
         if (res.messages.length > lastMsgCountRef.current) {
+          if (silent && lastMsgCountRef.current > 0) {
+            const lastMsg = res.messages[res.messages.length - 1];
+            if (lastMsg && Number(lastMsg.sender_id) !== Number(currentUserId)) {
+              playNotificationSound();
+            }
+          }
           lastMsgCountRef.current = res.messages.length;
           setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -192,6 +222,7 @@ export default function LinkedInChatWidget() {
   const handleSelectColleague = (colleague) => {
     setActiveColleague(colleague);
     setIsChatMinimized(false);
+    setEditingMessage(null);
     lastMsgCountRef.current = 0;
     fetchActiveMessages(colleague.id);
 
@@ -208,6 +239,7 @@ export default function LinkedInChatWidget() {
   // Close active conversation
   const handleCloseChat = () => {
     setActiveColleague(null);
+    setEditingMessage(null);
     setMessages([]);
     lastMsgCountRef.current = 0;
   };
@@ -217,11 +249,89 @@ export default function LinkedInChatWidget() {
     setIsChatMinimized((prev) => !prev);
   };
 
+  const handleStartEdit = (msg) => {
+    setActiveMenuMsgId(null);
+    setEditingMessage(msg);
+    setInputMessage(msg.message_text || "");
+    setTimeout(() => {
+      chatInputRef.current?.focus();
+    }, 50);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setInputMessage("");
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    setActiveMenuMsgId(null);
+    const confirmed = window.confirm("Delete message for everyone?");
+    if (!confirmed) return;
+
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? { ...m, is_deleted: true, message_text: "This message was deleted" }
+          : m
+      )
+    );
+
+    try {
+      await apiDeleteChatMessage(messageId);
+      fetchChatUsers();
+    } catch (err) {
+      console.error("Failed to delete message:", err);
+      alert("Failed to delete message.");
+      if (activeColleague) {
+        fetchActiveMessages(activeColleague.id, true);
+      }
+    }
+  };
+
+  const handleCopyMessage = (text) => {
+    setActiveMenuMsgId(null);
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+    }
+  };
+
   // Send message
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
     const text = inputMessage.trim();
     if (!text || !activeColleague || sending) return;
+
+    if (editingMessage) {
+      const targetId = editingMessage.id;
+      setEditingMessage(null);
+      setInputMessage("");
+      setSending(true);
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === targetId
+            ? { ...m, message_text: text, is_edited: true, edited_at: new Date().toISOString() }
+            : m
+        )
+      );
+
+      try {
+        const res = await apiEditChatMessage(targetId, text);
+        if (res && res.message) {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === targetId ? res.message : m))
+          );
+        }
+        fetchChatUsers();
+      } catch (err) {
+        console.error("Failed to edit message:", err);
+        alert("Failed to edit message.");
+        fetchActiveMessages(activeColleague.id, true);
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
 
     // Optimistic message
     const tempId = "temp-" + Date.now();
@@ -231,6 +341,8 @@ export default function LinkedInChatWidget() {
       receiver_id: activeColleague.id,
       message_text: text,
       is_read: false,
+      is_edited: false,
+      is_deleted: false,
       created_at: new Date().toISOString(),
       sender_name: user?.name || "You",
     };
@@ -270,13 +382,18 @@ export default function LinkedInChatWidget() {
 
   // Handle Enter key for quick sending
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Escape" && editingMessage) {
+      e.preventDefault();
+      handleCancelEdit();
+    } else if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
 
-  if (!user) return null;
+  const location = useLocation();
+
+  if (!user || location.pathname === "/discussions" || location.pathname === "/chat") return null;
 
   // Filtered users
   const filteredUsers = users.filter((u) => {
@@ -368,24 +485,7 @@ export default function LinkedInChatWidget() {
           {!isChatMinimized && (
             <>
               <div className="chat-messages-body">
-                {/* Intro banner */}
-                <div className="chat-intro-banner">
-                  <div
-                    className="chat-intro-avatar"
-                    style={{
-                      backgroundColor: getAvatarColor(activeColleague.email || activeColleague.name).bg,
-                      color: getAvatarColor(activeColleague.email || activeColleague.name).text,
-                    }}
-                  >
-                    {getInitials(activeColleague.name)}
-                  </div>
-                  <h4 className="chat-intro-name">{activeColleague.name}</h4>
-                  <p className="chat-intro-role">
-                    {activeColleague.position || activeColleague.role || "Team Member"}
-                    {activeColleague.department ? ` • ${activeColleague.department}` : ""}
-                  </p>
 
-                </div>
 
                 {loadingMessages && messages.length === 0 ? (
                   <div className="chat-loading-state">
@@ -401,6 +501,9 @@ export default function LinkedInChatWidget() {
                 ) : (
                   messages.map((msg, idx) => {
                     const isMe = Number(msg.sender_id) === Number(currentUserId);
+                    const isDeleted = Boolean(msg.is_deleted);
+                    const isEdited = Boolean(msg.is_edited);
+
                     return (
                       <div
                         key={msg.id || idx}
@@ -419,14 +522,92 @@ export default function LinkedInChatWidget() {
                           </div>
                         )}
                         <div className="chat-bubble-wrapper">
-                          <div className={`chat-bubble ${isMe ? "bubble-outgoing" : "bubble-incoming"}`}>
-                            {renderMessageWithLinks(msg.message_text)}
+                          <div className="chat-bubble-container">
+                            {isDeleted ? (
+                              <div className={`chat-bubble deleted ${isMe ? "bubble-outgoing" : "bubble-incoming"}`}>
+                                <svg className="chat-deleted-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10" />
+                                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                                </svg>
+                                <span>{isMe ? "You deleted this message" : "This message was deleted"}</span>
+                              </div>
+                            ) : (
+                              <>
+                                <div className={`chat-bubble ${isMe ? "bubble-outgoing" : "bubble-incoming"}`}>
+                                  {renderMessageWithLinks(msg.message_text)}
+                                </div>
+                                <button
+                                  type="button"
+                                  className={`chat-bubble-action-btn ${activeMenuMsgId === msg.id ? "active" : ""}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuMsgId(activeMenuMsgId === msg.id ? null : msg.id);
+                                  }}
+                                  title="Message options"
+                                  aria-label="Message options"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="6 9 12 15 18 9" />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
+
+                            {/* Dropdown Menu (WhatsApp style) */}
+                            {activeMenuMsgId === msg.id && !isDeleted && (
+                              <div
+                                className={`chat-context-menu ${isMe ? "outgoing" : "incoming"}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {isMe && (
+                                  <button
+                                    type="button"
+                                    className="chat-context-item"
+                                    onClick={() => handleStartEdit(msg)}
+                                  >
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                    <span>Edit</span>
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  className="chat-context-item"
+                                  onClick={() => handleCopyMessage(msg.message_text)}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                  </svg>
+                                  <span>Copy</span>
+                                </button>
+                                {(isMe || user?.role === "admin") && (
+                                  <button
+                                    type="button"
+                                    className="chat-context-item danger"
+                                    onClick={() => handleDeleteMessage(msg.id)}
+                                  >
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <polyline points="3 6 5 6 21 6" />
+                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                    </svg>
+                                    <span>Delete for everyone</span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
+
                           <div className="chat-bubble-meta">
                             <span className="chat-bubble-time">
                               {formatMessageTimestamp(msg.created_at)}
                             </span>
-                            {isMe && (
+                            {isEdited && !isDeleted && (
+                              <span className="chat-edited-label">• edited</span>
+                            )}
+                            {isMe && !isDeleted && (
                               <span className="chat-read-tick" title={msg.is_read ? "Read" : "Sent"}>
                                 {msg.is_read ? "✓✓" : "✓"}
                               </span>
@@ -441,29 +622,59 @@ export default function LinkedInChatWidget() {
               </div>
 
               {/* Message Composer Footer */}
-              <form className="chat-composer" onSubmit={handleSendMessage}>
-                <textarea
-                  ref={chatInputRef}
-                  className="chat-composer-input"
-                  placeholder={`Message ${activeColleague.name.split(" ")[0]}...`}
-                  rows={1}
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                />
-                <button
-                  type="submit"
-                  className={`chat-send-btn ${inputMessage.trim() ? "active" : ""}`}
-                  disabled={!inputMessage.trim() || sending}
-                  title="Send (Enter)"
-                  aria-label="Send message"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13" />
-                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                  </svg>
-                </button>
-              </form>
+              <div className="chat-composer-container">
+                {editingMessage && (
+                  <div className="chat-widget-edit-bar">
+                    <div className="chat-widget-edit-bar-left">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                      <div className="chat-widget-edit-text">
+                        <span className="chat-widget-edit-title">Editing</span>
+                        <span className="chat-widget-edit-snippet">{editingMessage.message_text}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="chat-widget-edit-close"
+                      onClick={handleCancelEdit}
+                      title="Cancel editing (Esc)"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                <form className="chat-composer" onSubmit={handleSendMessage}>
+                  <textarea
+                    ref={chatInputRef}
+                    className="chat-composer-input"
+                    placeholder={editingMessage ? "Edit message..." : `Message ${activeColleague.name.split(" ")[0]}...`}
+                    rows={1}
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                  />
+                  <button
+                    type="submit"
+                    className={`chat-send-btn ${inputMessage.trim() ? "active" : ""}`}
+                    disabled={!inputMessage.trim() || sending}
+                    title={editingMessage ? "Save edit (Enter)" : "Send (Enter)"}
+                    aria-label={editingMessage ? "Save edit" : "Send message"}
+                  >
+                    {editingMessage ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13" />
+                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                      </svg>
+                    )}
+                  </button>
+                </form>
+              </div>
             </>
           )}
         </div>

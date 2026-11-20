@@ -568,6 +568,10 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
         is_read BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+      ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_edited BOOLEAN DEFAULT FALSE;
+      ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
+      ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
+      ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
       CREATE INDEX IF NOT EXISTS idx_chat_messages_sender ON chat_messages(sender_id);
       CREATE INDEX IF NOT EXISTS idx_chat_messages_receiver ON chat_messages(receiver_id);
       CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at);
@@ -4556,12 +4560,15 @@ app.get('/api/chat/users', requireAuth, async (req, res) => {
         u.position,
         u.last_login_at,
         COALESCE(unread.count, 0) AS unread_count,
-        lm.message_text AS last_message,
+        CASE 
+          WHEN lm.is_deleted = TRUE THEN 'This message was deleted'
+          ELSE lm.message_text
+        END AS last_message,
         lm.created_at AS last_message_at,
         lm.sender_id AS last_message_sender_id
       FROM admin_users u
       LEFT JOIN LATERAL (
-        SELECT cm.message_text, cm.created_at, cm.sender_id
+        SELECT cm.message_text, cm.created_at, cm.sender_id, cm.is_deleted
         FROM chat_messages cm
         WHERE (cm.sender_id = $1 AND cm.receiver_id = u.id)
            OR (cm.sender_id = u.id AND cm.receiver_id = $1)
@@ -4625,6 +4632,10 @@ app.get('/api/chat/messages/:otherUserId', requireAuth, async (req, res) => {
         cm.message_text,
         cm.is_read,
         cm.created_at,
+        cm.is_edited,
+        cm.edited_at,
+        cm.is_deleted,
+        cm.deleted_at,
         s.name AS sender_name,
         r.name AS receiver_name
       FROM chat_messages cm
@@ -4680,7 +4691,93 @@ app.post('/api/chat/messages', requireAuth, async (req, res) => {
   }
 });
 
-// 5. Explicitly mark messages from a specific sender as read
+// 5. Edit a message (sender only)
+app.put('/api/chat/messages/:id', requireAuth, async (req, res) => {
+  try {
+    const currentUserId = req.user.sub;
+    const messageId = Number(req.params.id);
+    const { message_text } = req.body || {};
+    const text = typeof message_text === 'string' ? message_text.trim() : '';
+
+    if (!Number.isFinite(messageId)) {
+      return res.status(400).json({ success: false, message: 'Invalid message ID' });
+    }
+    if (!text) {
+      return res.status(400).json({ success: false, message: 'Message text cannot be empty' });
+    }
+
+    const checkMsg = await pool.query(
+      `SELECT id, sender_id, is_deleted FROM chat_messages WHERE id = $1`,
+      [messageId]
+    );
+    if (checkMsg.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Message not found' });
+    }
+
+    const msg = checkMsg.rows[0];
+    if (Number(msg.sender_id) !== Number(currentUserId)) {
+      return res.status(403).json({ success: false, message: 'You can only edit your own messages' });
+    }
+    if (msg.is_deleted) {
+      return res.status(400).json({ success: false, message: 'Deleted messages cannot be edited' });
+    }
+
+    const updateQuery = `
+      UPDATE chat_messages
+      SET message_text = $1, is_edited = TRUE, edited_at = NOW()
+      WHERE id = $2 AND sender_id = $3
+      RETURNING *
+    `;
+    const { rows } = await pool.query(updateQuery, [text, messageId, currentUserId]);
+    res.json({ success: true, message: rows[0] });
+  } catch (error) {
+    console.error('Edit chat message error:', error);
+    res.status(500).json({ success: false, message: 'Server error editing message' });
+  }
+});
+
+// 6. Delete a message (WhatsApp style - sender or admin)
+app.delete('/api/chat/messages/:id', requireAuth, async (req, res) => {
+  try {
+    const currentUserId = req.user.sub;
+    const userRole = req.user.role;
+    const messageId = Number(req.params.id);
+
+    if (!Number.isFinite(messageId)) {
+      return res.status(400).json({ success: false, message: 'Invalid message ID' });
+    }
+
+    const checkMsg = await pool.query(
+      `SELECT id, sender_id, is_deleted FROM chat_messages WHERE id = $1`,
+      [messageId]
+    );
+    if (checkMsg.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Message not found' });
+    }
+
+    const msg = checkMsg.rows[0];
+    const isOwner = Number(msg.sender_id) === Number(currentUserId);
+    const isAdmin = userRole === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ success: false, message: 'You can only delete your own messages' });
+    }
+
+    const deleteQuery = `
+      UPDATE chat_messages
+      SET is_deleted = TRUE, deleted_at = NOW(), message_text = 'This message was deleted'
+      WHERE id = $1
+      RETURNING *
+    `;
+    const { rows } = await pool.query(deleteQuery, [messageId]);
+    res.json({ success: true, message: rows[0] });
+  } catch (error) {
+    console.error('Delete chat message error:', error);
+    res.status(500).json({ success: false, message: 'Server error deleting message' });
+  }
+});
+
+// 7. Explicitly mark messages from a specific sender as read
 app.patch('/api/chat/read/:senderId', requireAuth, async (req, res) => {
   try {
     const currentUserId = req.user.sub;

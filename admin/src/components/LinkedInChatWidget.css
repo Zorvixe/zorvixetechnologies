@@ -11,7 +11,8 @@
   align-items: flex-end;
   gap: 16px;
   z-index: 9999;
-  pointer-events: none; /* children enable pointer events */
+  pointer-events: none;
+  /* children enable pointer events */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -111,8 +112,15 @@
 }
 
 @keyframes pulse-badge {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.08);
+  }
 }
 
 .dock-header-right {
@@ -342,7 +350,8 @@
 
 .colleague-info {
   flex: 1;
-  min-width: 0; /* truncate ellipsis */
+  min-width: 0;
+  /* truncate ellipsis */
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -684,12 +693,151 @@
   align-items: flex-start;
 }
 
+.chat-bubble-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+}
+
 .chat-bubble {
   padding: 9px 13px;
   font-size: 13px;
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.chat-bubble.deleted {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-style: italic;
+  font-size: 12px;
+  opacity: 0.85;
+  user-select: none;
+}
+
+.chat-bubble.deleted.bubble-outgoing {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px dashed #cbd5e1;
+  box-shadow: none;
+}
+
+.chat-bubble.deleted.bubble-incoming {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px dashed #e2e8f0;
+}
+
+.chat-deleted-icon {
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+
+/* Hover Action Button (WhatsApp chevron) */
+.chat-bubble-action-btn {
+  position: absolute;
+  top: 4px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.15s ease;
+  z-index: 5;
+}
+
+.chat-bubble-container:hover .chat-bubble-action-btn,
+.chat-bubble-action-btn.active {
+  display: flex;
+}
+
+.chat-bubble-row.outgoing .chat-bubble-action-btn {
+  left: -26px;
+}
+
+.chat-bubble-row.incoming .chat-bubble-action-btn {
+  right: -26px;
+}
+
+.chat-bubble-action-btn:hover {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  transform: scale(1.08);
+}
+
+/* Dropdown Context Menu */
+.chat-context-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+  min-width: 140px;
+  padding: 4px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: chatMenuPop 0.15s ease-out;
+}
+
+@keyframes chatMenuPop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.chat-context-menu.outgoing {
+  right: 0;
+}
+
+.chat-context-menu.incoming {
+  left: 0;
+}
+
+.chat-context-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.chat-context-item:hover {
+  background: #f1f5f9;
+}
+
+.chat-context-item.danger {
+  color: #ef4444;
+}
+
+.chat-context-item.danger:hover {
+  background: #fee2e2;
 }
 
 .bubble-outgoing {
@@ -732,11 +880,94 @@
   color: #94a3b8;
 }
 
+.chat-edited-label {
+  font-size: 9.5px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
 .chat-read-tick {
   font-size: 11px;
   color: #0a66c2;
   font-weight: 700;
   line-height: 1;
+}
+
+/* Chat Composer Container & Edit Bar */
+.chat-composer-container {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+}
+
+.chat-widget-edit-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #f0fdf4;
+  border-bottom: 1px solid #bbf7d0;
+  font-size: 11.5px;
+  color: #15803d;
+  animation: chatEditSlide 0.15s ease-out;
+}
+
+@keyframes chatEditSlide {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 40px;
+    opacity: 1;
+  }
+}
+
+.chat-widget-edit-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 1;
+}
+
+.chat-widget-edit-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.chat-widget-edit-title {
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #166534;
+}
+
+.chat-widget-edit-snippet {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #4b5563;
+  font-size: 11px;
+}
+
+.chat-widget-edit-close {
+  background: none;
+  border: none;
+  color: #166534;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.chat-widget-edit-close:hover {
+  background: #dcfce7;
 }
 
 /* Chat Composer Footer */
@@ -745,7 +976,7 @@
   align-items: center;
   padding: 8px 10px;
   background: #ffffff;
-  border-top: 1px solid #f1f5f9;
+  border-top: none;
   gap: 8px;
 }
 
@@ -808,7 +1039,9 @@
 }
 
 @keyframes chat-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -816,12 +1049,14 @@
    -------------------------------------------------------------------------- */
 @media (max-width: 768px) {
   .linkedin-chat-container {
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px));
     right: 12px;
     gap: 8px;
   }
 
   .linkedin-messaging-dock {
     width: 290px;
+    border-radius: 12px 12px 0 0;
   }
 
   .linkedin-chat-window {
@@ -831,6 +1066,7 @@
 
 @media (max-width: 620px) {
   .linkedin-chat-container {
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px));
     right: 8px;
     left: 8px;
     justify-content: flex-end;
@@ -844,12 +1080,12 @@
   .linkedin-chat-window {
     width: 100%;
     max-width: 360px;
-    height: 75vh;
+    height: 70vh;
   }
 
   .linkedin-messaging-dock.open {
     width: 100%;
     max-width: 360px;
-    height: 75vh;
+    height: 70vh;
   }
 }

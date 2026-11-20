@@ -3,24 +3,31 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  height: 100%;
+  overflow-y: auto;
   background: #f8fafc;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
-.card {
+.centerlogin .card {
   background: #fff;
   border-radius: 12px;
   padding: 32px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 420px;
 }
 
-.card h3 {
+.centerlogin .card h3 {
   margin-bottom: 16px;
   font-size: 1.5rem;
   color: #1e293b;
 }
 
-.input {
-  width: 95%;
+.centerlogin .input {
+  width: 100%;
+  box-sizing: border-box;
   padding: 10px 14px;
   margin-top: 6px;
   border: 1px solid #d1d5db;
@@ -28,13 +35,13 @@
   font-size: 0.95rem;
 }
 
-.input:focus {
+.centerlogin .input:focus {
   border-color: #2563eb;
   outline: none;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
 }
 
-.button {
+.centerlogin .button {
   padding: 10px 16px;
   border-radius: 8px;
   cursor: pointer;
@@ -42,22 +49,25 @@
   border: none;
 }
 
-.button.primary {
+.centerlogin .button.primary {
   background: #2563eb;
   color: white;
+  width: 100%;
 }
 
-.button.primary:hover {
+.centerlogin .button.primary:hover {
   background: #1e40af;
 }
 
-.small {
-  color: #5f83f8;
+.centerlogin .small {
+  color: #ef4444;
   font-size: 0.85rem;
 }
 
 .zorvixe_login_logo {
   height: 50px;
+  max-width: 100%;
+  object-fit: contain;
 }
 
 .login_logo_container {
@@ -67,12 +77,12 @@
 }
 
 @media (max-width: 480px) {
-  .card {
-    width: 90% !important;
-    padding: 20px !important;
-    margin: 10px;
+  .centerlogin .card {
+    width: 100% !important;
+    padding: 24px 18px !important;
+    margin: 0 !important;
   }
-  .input {
-    width: 88% !important;
+  .centerlogin .input {
+    width: 100% !important;
   }
 }

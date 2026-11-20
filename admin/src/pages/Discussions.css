@@ -2,23 +2,39 @@
    Full-Page Discussions Component Styling
    ========================================================================== */
 
+/* Prevent outer content scroll container from scrolling on Discussions page */
+.content:has(.discussions-page) {
+  overflow: hidden !important;
+}
+
 .discussions-page {
-  padding: 24px;
-  height: calc(100vh - 75px);
-  max-width: 1300px;
-  margin: 0 auto;
+  height: calc(100vh - 56px);
+  height: calc(100dvh - 56px);
+  max-height: calc(100vh - 56px);
+  max-height: calc(100dvh - 56px);
+  margin: 56px auto 0 auto !important;
+  padding: 16px 24px 20px 24px !important;
+  max-width: 1440px;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .discussions-card {
   flex: 1;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
   background: #ffffff;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   display: flex;
   overflow: hidden;
+  position: relative;
 }
 
 /* ------------------- Sidebar (Left) ------------------- */
@@ -29,6 +45,9 @@
   flex-direction: column;
   background: #ffffff;
   flex-shrink: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .disc-sidebar-header {
@@ -37,6 +56,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .disc-header-title {
@@ -131,7 +151,9 @@
 
 .disc-users-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .disc-users-list::-webkit-scrollbar {
@@ -281,7 +303,11 @@
   display: flex;
   flex-direction: column;
   background: #ffffff;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 
 .disc-main-header {
@@ -291,6 +317,7 @@
   align-items: center;
   gap: 12px;
   background: #ffffff;
+  flex-shrink: 0;
 }
 
 .disc-main-avatar {
@@ -322,12 +349,17 @@
 /* Messages area */
 .disc-messages-area {
   flex: 1;
+  height: 0;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 14px;
   background: #ffffff;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .disc-messages-area::-webkit-scrollbar {
@@ -430,8 +462,21 @@
   align-items: flex-start;
 }
 
+/* WhatsApp-style Bubble Container & Action Trigger */
+.disc-bubble-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+}
+
+.disc-msg-row.outgoing .disc-bubble-container {
+  flex-direction: row-reverse;
+}
+
 .disc-bubble {
-  padding: 10px 15px;
+  position: relative;
+  padding: 9px 14px;
   font-size: 13.5px;
   line-height: 1.5;
   white-space: pre-wrap;
@@ -451,6 +496,126 @@
   border-radius: 18px 18px 18px 3px;
 }
 
+/* WhatsApp Deleted Bubble Style */
+.disc-bubble.deleted {
+  font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.85;
+}
+
+.disc-bubble.outgoing.deleted {
+  background: #0959a8;
+  color: #e2e8f0;
+}
+
+.disc-bubble.incoming.deleted {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px dashed #cbd5e1;
+}
+
+.disc-deleted-icon {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+/* Trigger Button for Message Options */
+.disc-bubble-action-btn {
+  opacity: 0;
+  visibility: hidden;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #94a3b8;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  margin: 0 4px;
+}
+
+.disc-bubble-container:hover .disc-bubble-action-btn,
+.disc-bubble-action-btn.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.disc-bubble-action-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+/* Context Menu (Floating Dropdown) */
+.disc-context-menu {
+  position: absolute;
+  top: 100%;
+  z-index: 100;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15), 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 4px;
+  min-width: 155px;
+  animation: discMenuPop 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.disc-context-menu.outgoing {
+  right: 0;
+}
+
+.disc-context-menu.incoming {
+  left: 0;
+}
+
+@keyframes discMenuPop {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.disc-context-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #1e293b;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.12s ease;
+}
+
+.disc-context-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.disc-context-item.danger {
+  color: #ef4444;
+}
+
+.disc-context-item.danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
 .disc-link {
   color: inherit;
   text-decoration: underline;
@@ -462,6 +627,15 @@
   color: #94a3b8;
   margin-top: 3px;
   padding: 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.disc-edited-label {
+  font-size: 10.5px;
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .disc-read-status {
@@ -469,10 +643,86 @@
   font-weight: 700;
 }
 
+/* Composer Container & Editing Banner */
+.disc-composer-container {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+.disc-edit-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #eff6ff;
+  border-bottom: 1px solid #dbeafe;
+  border-left: 4px solid #0a66c2;
+  animation: editBarSlideDown 0.2s ease-out;
+}
+
+@keyframes editBarSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.disc-edit-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: #0a66c2;
+}
+
+.disc-edit-bar-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.disc-edit-bar-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #0a66c2;
+}
+
+.disc-edit-bar-snippet {
+  font-size: 12.5px;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 500px;
+}
+
+.disc-edit-bar-close {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.disc-edit-bar-close:hover {
+  color: #0f172a;
+}
+
 /* Composer */
 .disc-composer {
   padding: 14px 20px;
-  border-top: 1px solid #f1f5f9;
   display: flex;
   align-items: flex-end;
   gap: 12px;
@@ -530,6 +780,8 @@
 
 .disc-no-selection {
   flex: 1;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -558,24 +810,238 @@
   margin: 0;
 }
 
+/* Back button hidden by default on desktop/large screens */
+.disc-mobile-back-btn {
+  display: none;
+}
+
 /* ------------------- Responsive ------------------- */
-@media (max-width: 900px) {
+@media (max-width: 1024px) and (min-width: 769px) {
   .discussions-page {
-    padding: 12px;
+    padding: 10px 14px 14px 14px !important;
   }
+
   .discussions-sidebar {
-    width: 280px;
+    width: 290px;
   }
 }
 
-@media (max-width: 700px) {
-  .discussions-card {
-    flex-direction: column;
+/* ==========================================================================
+   Mobile-Only LinkedIn Messaging Layout (Screen <= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .discussions-page {
+    padding: 0 !important;
+    height: calc(100vh - 56px) !important;
+    max-width: 100% !important;
+    margin-top: 60px !important;
   }
-  .discussions-sidebar {
-    width: 100%;
-    height: 40%;
-    border-right: none;
-    border-bottom: 1px solid #e2e8f0;
+
+  .discussions-card {
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    height: 100% !important;
+    width: 100% !important;
+    position: relative !important;
+    overflow: hidden !important;
+    flex-direction: row !important;
+  }
+
+  /* Back Button on Mobile */
+  .disc-mobile-back-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 6px;
+    margin-right: 6px;
+    color: #1e293b;
+    cursor: pointer;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease;
+  }
+
+  .disc-mobile-back-btn:active {
+    background-color: #f1f5f9;
+  }
+
+  /* State 1: Conversation List View (Mobile) */
+  .discussions-card.mobile-list-open .discussions-sidebar {
+    display: flex !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-right: none !important;
+  }
+
+  .discussions-card.mobile-list-open .discussions-main {
+    display: none !important;
+  }
+
+  /* State 2: Active Chat View (Mobile) */
+  .discussions-card.mobile-chat-open .discussions-sidebar {
+    display: none !important;
+  }
+
+  .discussions-card.mobile-chat-open .discussions-main {
+    display: flex !important;
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 10 !important;
+    background: #ffffff !important;
+  }
+
+  /* Mobile Chat Header (LinkedIn Mobile style) */
+  .disc-main-header {
+    padding: 8px 12px !important;
+    height: 56px !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    gap: 10px !important;
+  }
+
+  .disc-main-avatar {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 13.5px !important;
+  }
+
+  .disc-main-header-info h3 {
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+  }
+
+  .disc-main-header-info p {
+    font-size: 11.5px !important;
+    color: #64748b !important;
+  }
+
+  /* Mobile Messages Thread Area */
+  .disc-messages-area {
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+
+  .disc-banner {
+    padding: 16px 10px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .disc-banner-avatar {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 18px !important;
+  }
+
+  .disc-banner h4 {
+    font-size: 15px !important;
+  }
+
+  .disc-banner p {
+    font-size: 12px !important;
+  }
+
+  .disc-msg-row {
+    max-width: 86% !important;
+    gap: 6px !important;
+  }
+
+  .disc-msg-avatar {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .disc-bubble {
+    padding: 9px 13px !important;
+    font-size: 13.5px !important;
+    border-radius: 16px !important;
+    line-height: 1.45 !important;
+  }
+
+  .disc-bubble.outgoing {
+    border-bottom-right-radius: 3px !important;
+  }
+
+  .disc-bubble.incoming {
+    border-bottom-left-radius: 3px !important;
+  }
+
+  .disc-msg-time {
+    font-size: 10px !important;
+  }
+
+  /* Mobile Bottom Composer (LinkedIn mobile pinned bar) */
+  .disc-composer {
+    padding: 8px 10px !important;
+    background: #ffffff !important;
+    border-top: 1px solid #eef2f6 !important;
+    gap: 8px !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04) !important;
+    margin-bottom: 60px;
+  }
+
+  .disc-input {
+    padding: 8px 14px !important;
+    font-size: 14px !important;
+    border-radius: 20px !important;
+    max-height: 80px !important;
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .disc-input:focus {
+    background: #ffffff !important;
+    border-color: #0a66c2 !important;
+  }
+
+  .disc-send-btn {
+    width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .disc-send-btn span {
+    display: none !important;
+  }
+
+  .disc-send-btn svg {
+    width: 18px !important;
+    height: 18px !important;
+    margin-left: 2px !important;
+  }
+
+  /* Mobile User List Items */
+  .disc-user-item {
+    padding: 12px 14px !important;
+  }
+
+  .disc-avatar {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 14.5px !important;
+  }
+
+  .disc-user-name {
+    font-size: 14px !important;
+  }
+
+  .disc-user-preview {
+    font-size: 12.5px !important;
   }
 }

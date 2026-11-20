@@ -1,9 +1,10 @@
 .card {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 20px;
   margin-top: 16px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 4px 14px rgba(15, 23, 42, 0.02);
+  border: 1px solid #eef2f6;
 }
 
 .controls {
@@ -139,7 +140,24 @@
   width: 100%;
 }
 
+/* Responsive Table Support */
+.table-wrap-cand {
+  overflow-x: auto;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-cand {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
 @media (max-width: 768px) {
+  .card {
+    padding: 12px;
+    margin-top: 12px;
+  }
   .controls {
     flex-direction: column;
     gap: 8px;
@@ -153,5 +171,17 @@
     flex-direction: column;
     gap: 8px;
     align-items: center;
+  }
+  .modal-dialog {
+    margin: 10px auto !important;
+    width: calc(100% - 20px) !important;
+    max-width: 100% !important;
+  }
+  .row-actions {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .row-actions button {
+    padding: 6px 8px;
   }
 }

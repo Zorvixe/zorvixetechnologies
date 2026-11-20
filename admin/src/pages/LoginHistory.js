@@ -140,20 +140,30 @@ export default function LoginHistory() {
   }, [fetchLogs]);
 
   // Quick Date Helpers
-  const setTodayDate = () => {
+  const getTodayYmd = () => {
     const today = new Date();
-    const ymd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    setFilters((prev) => ({ ...prev, date: ymd }));
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  };
+
+  const getYesterdayYmd = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const setTodayDate = () => {
+    setFilters((prev) => ({ ...prev, date: getTodayYmd() }));
     setPage(1);
   };
 
   const setYesterdayDate = () => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    setFilters((prev) => ({ ...prev, date: ymd }));
+    setFilters((prev) => ({ ...prev, date: getYesterdayYmd() }));
     setPage(1);
   };
+
+  const isTodayActive = filters.date === getTodayYmd();
+  const isYesterdayActive = filters.date === getYesterdayYmd();
+  const isAllDaysActive = !filters.date;
 
   const clearAllFilters = () => {
     setFilters({
@@ -302,34 +312,63 @@ export default function LoginHistory() {
 
       {/* Filter Toolbar */}
       <div className="login-filters-card">
+        <div className="login-filters-header">
+          <div className="login-filters-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+            <span>Filter Records</span>
+            {hasActiveFilters && (
+              <span className="filters-active-badge">Active</span>
+            )}
+          </div>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="clear-all-link-btn"
+              onClick={clearAllFilters}
+              title="Reset all filters"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+              Reset Filters
+            </button>
+          )}
+        </div>
+
         <div className="login-filters-bar">
           {/* Quick Date Pills */}
-          <div className="quick-date-pills">
-            <button
-              type="button"
-              className={`pill-btn ${filters.date === "" ? "active" : ""}`}
-              onClick={() => { setFilters(prev => ({ ...prev, date: "" })); setPage(1); }}
-            >
-              All Days
-            </button>
-            <button
-              type="button"
-              className={`pill-btn ${filters.date && new Date(filters.date).toDateString() === new Date().toDateString() ? "active" : ""}`}
-              onClick={setTodayDate}
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              className="pill-btn"
-              onClick={setYesterdayDate}
-            >
-              Yesterday
-            </button>
+          <div className="filter-item pills-filter-item">
+            <label className="filter-label">Quick Preset</label>
+            <div className="quick-date-pills">
+              <button
+                type="button"
+                className={`pill-btn ${isAllDaysActive ? "active" : ""}`}
+                onClick={() => { setFilters(prev => ({ ...prev, date: "" })); setPage(1); }}
+              >
+                All Days
+              </button>
+              <button
+                type="button"
+                className={`pill-btn ${isTodayActive ? "active" : ""}`}
+                onClick={setTodayDate}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                className={`pill-btn ${isYesterdayActive ? "active" : ""}`}
+                onClick={setYesterdayDate}
+              >
+                Yesterday
+              </button>
+            </div>
           </div>
 
           {/* Date Picker */}
-          <div className="filter-item date-picker-wrapper">
+          <div className="filter-item date-filter-item">
             <label className="filter-label">Filter Date</label>
             <div className="input-with-clear">
               <input
@@ -339,7 +378,7 @@ export default function LoginHistory() {
                   setFilters({ ...filters, date: e.target.value });
                   setPage(1);
                 }}
-                className="filter-input"
+                className="filter-date-input"
                 title="Select date"
               />
               {filters.date && (
@@ -349,7 +388,10 @@ export default function LoginHistory() {
                   onClick={() => { setFilters({ ...filters, date: "" }); setPage(1); }}
                   title="Clear date"
                 >
-                  ×
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
                 </button>
               )}
             </div>
@@ -357,54 +399,61 @@ export default function LoginHistory() {
 
           {/* User selector for Admins */}
           {isAdmin && (
-            <div className="filter-item user-select-wrapper">
+            <div className="filter-item user-filter-item">
               <label className="filter-label">Member</label>
-              <select
-                value={filters.userId}
-                onChange={(e) => {
-                  setFilters({ ...filters, userId: e.target.value });
-                  setPage(1);
-                }}
-                className="filter-select"
-              >
-                <option value="all">All Members</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.email})
-                  </option>
-                ))}
-              </select>
+              <div className="select-wrapper">
+                <select
+                  value={filters.userId}
+                  onChange={(e) => {
+                    setFilters({ ...filters, userId: e.target.value });
+                    setPage(1);
+                  }}
+                  className="filter-select"
+                >
+                  <option value="all">All Members</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
 
           {/* Search Input */}
-          <div className="filter-item search-wrapper">
+          <div className="filter-item search-filter-item">
             <label className="filter-label">Search</label>
-            <input
-              type="text"
-              placeholder="Search user, email, IP..."
-              value={filters.search}
-              onChange={(e) => {
-                setFilters({ ...filters, search: e.target.value });
-                setPage(1);
-              }}
-              className="filter-input search-input search-filter-input"
-            />
-          </div>
-
-          {/* Reset button */}
-          {hasActiveFilters && (
-            <div className="filter-item clear-all-wrapper">
-              <button
-                type="button"
-                className="btn btn-outline-secondary clear-filters-btn"
-                onClick={clearAllFilters}
-                title="Reset all filters"
-              >
-                Reset Filters
-              </button>
+            <div className="search-input-box">
+              <svg className="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search user, email, IP..."
+                value={filters.search}
+                onChange={(e) => {
+                  setFilters({ ...filters, search: e.target.value });
+                  setPage(1);
+                }}
+                className="search-input"
+              />
+              {filters.search && (
+                <button
+                  type="button"
+                  className="clear-icon-btn"
+                  onClick={() => { setFilters({ ...filters, search: "" }); setPage(1); }}
+                  title="Clear search"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
 

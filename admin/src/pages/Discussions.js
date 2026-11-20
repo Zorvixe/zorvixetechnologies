@@ -4,9 +4,12 @@ import {
   apiGetChatUsers,
   apiGetChatMessages,
   apiSendChatMessage,
+  apiEditChatMessage,
+  apiDeleteChatMessage,
   apiMarkChatRead,
   apiGetChatUnreadCount,
 } from "../api";
+import { playNotificationSound } from "../utils/notificationSound";
 import "./Discussions.css";
 
 const getAvatarColor = (str = "") => {
@@ -97,16 +100,30 @@ export default function Discussions() {
   const [loadingUsers, setLoadingUsers] = useState(true);
 
   const [activeColleague, setActiveColleague] = useState(null);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
   const [sending, setSending] = useState(false);
 
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
+
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const lastMsgCountRef = useRef(0);
+  const lastUnreadTotalRef = useRef(null);
 
   const currentUserId = user?.sub || user?.id;
+
+  // Close context menu on outside click
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      setActiveMenuMsgId(null);
+    };
+    window.addEventListener("click", handleGlobalClick);
+    return () => window.removeEventListener("click", handleGlobalClick);
+  }, []);
 
   const fetchChatUsers = useCallback(async () => {
     if (!currentUserId) return;
@@ -114,13 +131,22 @@ export default function Discussions() {
       const res = await apiGetChatUsers();
       if (res && res.users) {
         setUsers(res.users);
-        // If no active colleague selected yet and users exist, select the first one
+        // On desktop (> 768px), auto-select first user. On mobile, keep list view initially
         if (!activeColleague && res.users.length > 0) {
-          setActiveColleague(res.users[0]);
+          if (typeof window !== "undefined" && window.innerWidth > 768) {
+            setActiveColleague(res.users[0]);
+          }
         }
       }
       const unreadRes = await apiGetChatUnreadCount();
       if (unreadRes && typeof unreadRes.total_unread === "number") {
+        if (
+          lastUnreadTotalRef.current !== null &&
+          unreadRes.total_unread > lastUnreadTotalRef.current
+        ) {
+          playNotificationSound();
+        }
+        lastUnreadTotalRef.current = unreadRes.total_unread;
         setUnreadTotal(unreadRes.total_unread);
       }
     } catch (err) {
@@ -136,6 +162,13 @@ export default function Discussions() {
       if (res && res.messages) {
         setMessages(res.messages);
         if (res.messages.length > lastMsgCountRef.current) {
+          // If silent polling brings in new incoming message, play chime!
+          if (silent && lastMsgCountRef.current > 0) {
+            const lastMsg = res.messages[res.messages.length - 1];
+            if (lastMsg && Number(lastMsg.sender_id) !== Number(currentUserId)) {
+              playNotificationSound();
+            }
+          }
           lastMsgCountRef.current = res.messages.length;
           setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -171,6 +204,7 @@ export default function Discussions() {
   useEffect(() => {
     if (activeColleague) {
       lastMsgCountRef.current = 0;
+      setEditingMessage(null);
       fetchActiveMessages(activeColleague.id);
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
@@ -181,6 +215,8 @@ export default function Discussions() {
 
   const handleSelectColleague = (colleague) => {
     setActiveColleague(colleague);
+    setMobileChatOpen(true);
+    setEditingMessage(null);
     if (colleague.unread_count > 0) {
       setUsers((prev) =>
         prev.map((u) => (u.id === colleague.id ? { ...u, unread_count: 0 } : u))
@@ -190,11 +226,92 @@ export default function Discussions() {
     }
   };
 
+  const handleStartEdit = (msg) => {
+    setActiveMenuMsgId(null);
+    setEditingMessage(msg);
+    setInputMessage(msg.message_text || "");
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setInputMessage("");
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    setActiveMenuMsgId(null);
+    const confirmed = window.confirm("Delete message for everyone?");
+    if (!confirmed) return;
+
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? { ...m, is_deleted: true, message_text: "This message was deleted" }
+          : m
+      )
+    );
+
+    try {
+      await apiDeleteChatMessage(messageId);
+      fetchChatUsers();
+    } catch (err) {
+      console.error("Failed to delete message:", err);
+      alert("Failed to delete message.");
+      if (activeColleague) {
+        fetchActiveMessages(activeColleague.id, true);
+      }
+    }
+  };
+
+  const handleCopyMessage = (text) => {
+    setActiveMenuMsgId(null);
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+    }
+  };
+
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
     const text = inputMessage.trim();
     if (!text || !activeColleague || sending) return;
 
+    // Handle editing message
+    if (editingMessage) {
+      const targetId = editingMessage.id;
+      setEditingMessage(null);
+      setInputMessage("");
+      setSending(true);
+
+      // Optimistic edit
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === targetId
+            ? { ...m, message_text: text, is_edited: true, edited_at: new Date().toISOString() }
+            : m
+        )
+      );
+
+      try {
+        const res = await apiEditChatMessage(targetId, text);
+        if (res && res.message) {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === targetId ? res.message : m))
+          );
+        }
+        fetchChatUsers();
+      } catch (err) {
+        console.error("Failed to edit message:", err);
+        alert("Failed to edit message.");
+        fetchActiveMessages(activeColleague.id, true);
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
+    // Normal message send
     const tempId = "temp-" + Date.now();
     const optimisticMsg = {
       id: tempId,
@@ -202,6 +319,8 @@ export default function Discussions() {
       receiver_id: activeColleague.id,
       message_text: text,
       is_read: false,
+      is_edited: false,
+      is_deleted: false,
       created_at: new Date().toISOString(),
       sender_name: user?.name || "You",
     };
@@ -237,7 +356,10 @@ export default function Discussions() {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Escape" && editingMessage) {
+      e.preventDefault();
+      handleCancelEdit();
+    } else if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -259,7 +381,7 @@ export default function Discussions() {
 
   return (
     <div className="discussions-page">
-      <div className="discussions-card">
+      <div className={`discussions-card ${mobileChatOpen ? "mobile-chat-open" : "mobile-list-open"}`}>
         {/* LEFT COLUMN: Colleagues Sidebar */}
         <aside className="discussions-sidebar">
           <div className="disc-sidebar-header">
@@ -376,6 +498,18 @@ export default function Discussions() {
             <>
               {/* Header */}
               <div className="disc-main-header">
+                <button
+                  type="button"
+                  className="disc-mobile-back-btn"
+                  onClick={() => setMobileChatOpen(false)}
+                  aria-label="Back to conversations"
+                  title="Back"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
                 <div
                   className="disc-main-avatar"
                   style={{
@@ -398,22 +532,7 @@ export default function Discussions() {
 
               {/* Messages scroll area */}
               <div className="disc-messages-area">
-                <div className="disc-banner">
-                  <div
-                    className="disc-banner-avatar"
-                    style={{
-                      backgroundColor: getAvatarColor(activeColleague.email || activeColleague.name).bg,
-                      color: getAvatarColor(activeColleague.email || activeColleague.name).text,
-                    }}
-                  >
-                    {getInitials(activeColleague.name)}
-                  </div>
-                  <h4>{activeColleague.name}</h4>
-                  <p>
-                    {activeColleague.position || activeColleague.role}
-                    {activeColleague.department ? ` • ${activeColleague.department}` : ""}
-                  </p>
-                </div>
+
 
                 {loadingMessages && messages.length === 0 ? (
                   <div className="disc-msg-loading">Loading...</div>
@@ -424,6 +543,9 @@ export default function Discussions() {
                 ) : (
                   messages.map((msg, i) => {
                     const isMe = Number(msg.sender_id) === Number(currentUserId);
+                    const isDeleted = Boolean(msg.is_deleted);
+                    const isEdited = Boolean(msg.is_edited);
+
                     return (
                       <div
                         key={msg.id || i}
@@ -441,12 +563,90 @@ export default function Discussions() {
                           </div>
                         )}
                         <div className="disc-msg-wrapper">
-                          <div className={`disc-bubble ${isMe ? "outgoing" : "incoming"}`}>
-                            {renderMessageWithLinks(msg.message_text)}
+                          <div className="disc-bubble-container">
+                            {isDeleted ? (
+                              <div className={`disc-bubble deleted ${isMe ? "outgoing" : "incoming"}`}>
+                                <svg className="disc-deleted-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10" />
+                                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                                </svg>
+                                <span>{isMe ? "You deleted this message" : "This message was deleted"}</span>
+                              </div>
+                            ) : (
+                              <>
+                                <div className={`disc-bubble ${isMe ? "outgoing" : "incoming"}`}>
+                                  {renderMessageWithLinks(msg.message_text)}
+                                </div>
+                                <button
+                                  type="button"
+                                  className={`disc-bubble-action-btn ${activeMenuMsgId === msg.id ? "active" : ""}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuMsgId(activeMenuMsgId === msg.id ? null : msg.id);
+                                  }}
+                                  title="Message options"
+                                  aria-label="Message options"
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="6 9 12 15 18 9" />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
+
+                            {/* Dropdown Menu (WhatsApp style) */}
+                            {activeMenuMsgId === msg.id && !isDeleted && (
+                              <div
+                                className={`disc-context-menu ${isMe ? "outgoing" : "incoming"}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {isMe && (
+                                  <button
+                                    type="button"
+                                    className="disc-context-item"
+                                    onClick={() => handleStartEdit(msg)}
+                                  >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                    <span>Edit</span>
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  className="disc-context-item"
+                                  onClick={() => handleCopyMessage(msg.message_text)}
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                  </svg>
+                                  <span>Copy</span>
+                                </button>
+                                {(isMe || user?.role === "admin") && (
+                                  <button
+                                    type="button"
+                                    className="disc-context-item danger"
+                                    onClick={() => handleDeleteMessage(msg.id)}
+                                  >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <polyline points="3 6 5 6 21 6" />
+                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                    </svg>
+                                    <span>Delete for everyone</span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
+
                           <div className="disc-msg-time">
                             {formatMessageTimestamp(msg.created_at)}
-                            {isMe && (
+                            {isEdited && !isDeleted && (
+                              <span className="disc-edited-label">• edited</span>
+                            )}
+                            {isMe && !isDeleted && (
                               <span className="disc-read-status">
                                 {msg.is_read ? " ✓✓" : " ✓"}
                               </span>
@@ -460,29 +660,66 @@ export default function Discussions() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Message Composer */}
-              <form className="disc-composer" onSubmit={handleSendMessage}>
-                <textarea
-                  ref={textareaRef}
-                  className="disc-input"
-                  placeholder={`Write a message to ${activeColleague.name.split(" ")[0]}... (Press Enter to send)`}
-                  rows={2}
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                />
-                <button
-                  type="submit"
-                  className={`disc-send-btn ${inputMessage.trim() ? "active" : ""}`}
-                  disabled={!inputMessage.trim() || sending}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13" />
-                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                  </svg>
-                  <span>Send</span>
-                </button>
-              </form>
+              {/* Message Composer Container */}
+              <div className="disc-composer-container">
+                {editingMessage && (
+                  <div className="disc-edit-bar">
+                    <div className="disc-edit-bar-left">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                      <div className="disc-edit-bar-text">
+                        <span className="disc-edit-bar-title">Editing Message</span>
+                        <span className="disc-edit-bar-snippet">{editingMessage.message_text}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="disc-edit-bar-close"
+                      onClick={handleCancelEdit}
+                      title="Cancel editing (Esc)"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
+                <form className="disc-composer" onSubmit={handleSendMessage}>
+                  <textarea
+                    ref={textareaRef}
+                    className="disc-input"
+                    placeholder={editingMessage ? "Edit message..." : `Message ${activeColleague.name.split(" ")[0]}...`}
+                    rows={2}
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                  />
+                  <button
+                    type="submit"
+                    className={`disc-send-btn ${inputMessage.trim() ? "active" : ""}`}
+                    disabled={!inputMessage.trim() || sending}
+                    title={editingMessage ? "Save edit (Enter)" : "Send message (Enter)"}
+                  >
+                    {editingMessage ? (
+                      <>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Save</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13" />
+                          <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                        </svg>
+                        <span>Send</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
             </>
           ) : (
             <div className="disc-no-selection">

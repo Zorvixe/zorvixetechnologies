@@ -36,10 +36,52 @@
   }
 }
 
+/* Table scroll wrappers */
+.table-wrap-cand {
+  overflow-x: auto;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-cand {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.table-title {
+  padding: 8px 0;
+  font-size: 0.95rem;
+}
+
 @media (max-width: 768px) {
   .table-links {
     display: block;
     overflow-x: auto;
     width: 100%;
+  }
+
+  .card {
+    padding: 12px !important;
+  }
+
+  .payment_buttons {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .payment_buttons button {
+    width: 100% !important;
+  }
+
+  .modal-dialog {
+    margin: 10px auto !important;
+    width: calc(100% - 20px) !important;
+    max-width: 100% !important;
+  }
+
+  .row-actions {
+    flex-wrap: wrap;
+    gap: 4px;
   }
 }
