@@ -528,9 +528,10 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
   AND NOT EXISTS (SELECT 1 FROM leave_balances WHERE employee_id = admin_users.id)
 `);
 
-    // Add department and position to admin_users
+    // Add department, position, and phone to admin_users
     await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS department VARCHAR(100);`);
     await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS position VARCHAR(100);`);
+    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS phone VARCHAR(30);`);
 
     // Table for tracking user login and logout timings
     await client.query(`
@@ -555,6 +556,21 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
       FROM admin_users
       WHERE last_login_at IS NOT NULL
         AND NOT EXISTS (SELECT 1 FROM user_login_logs WHERE user_login_logs.user_id = admin_users.id);
+    `);
+
+    // Table for LinkedIn-style direct and group chatting / discussions
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id BIGSERIAL PRIMARY KEY,
+        sender_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+        receiver_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+        message_text TEXT NOT NULL,
+        is_read BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_chat_messages_sender ON chat_messages(sender_id);
+      CREATE INDEX IF NOT EXISTS idx_chat_messages_receiver ON chat_messages(receiver_id);
+      CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at);
     `);
 
 
@@ -896,6 +912,153 @@ app.post('/api/admin/logout', async (req, res) => {
 app.get('/api/admin/me', requireAuth, (req, res) => {
   res.json({ me: req.user })
 })
+
+/* ----------------------------- My Account API ----------------------------- */
+
+// 1. Get logged-in user's complete account profile & stats
+app.get('/api/admin/account', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const userRes = await pool.query(
+      `SELECT id, email, username, name, role, department, position, phone, is_active, last_login_at, created_at
+       FROM admin_users
+       WHERE id = $1`,
+      [userId]
+    );
+    if (userRes.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const profile = userRes.rows[0];
+
+    // Additional quick stats for profile dashboard
+    const [ticketsRes, leavesRes, loginsRes] = await Promise.all([
+      pool.query(
+        `SELECT 
+           COUNT(*) FILTER (WHERE created_by = $1)::int AS tickets_created,
+           COUNT(*) FILTER (WHERE assigned_to = $1)::int AS tickets_assigned
+         FROM tickets`,
+        [userId]
+      ).catch(() => ({ rows: [{ tickets_created: 0, tickets_assigned: 0 }] })),
+      pool.query(
+        `SELECT sick_balance, casual_balance, annual_balance, sick_used_this_month, casual_used_this_month
+         FROM leave_balances
+         WHERE employee_id = $1`,
+        [userId]
+      ).catch(() => ({ rows: [] })),
+      pool.query(
+        `SELECT COUNT(*)::int AS total_logins, MAX(login_at) AS last_session
+         FROM user_login_logs
+         WHERE user_id = $1`,
+        [userId]
+      ).catch(() => ({ rows: [{ total_logins: 0, last_session: null }] }))
+    ]);
+
+    res.json({
+      success: true,
+      user: profile,
+      stats: {
+        tickets: ticketsRes.rows[0] || { tickets_created: 0, tickets_assigned: 0 },
+        leaves: leavesRes.rows[0] || null,
+        logins: loginsRes.rows[0] || { total_logins: 0, last_session: null }
+      }
+    });
+  } catch (error) {
+    console.error('Fetch account error:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching account' });
+  }
+});
+
+// 2. Update logged-in user's profile information
+app.patch('/api/admin/account', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const { name, username, phone, department, position } = req.body || {};
+
+    const sets = [];
+    const params = [];
+
+    if (typeof name === 'string' && name.trim()) {
+      params.push(name.trim());
+      sets.push(`name=$${params.length}`);
+    }
+    if (typeof username === 'string') {
+      const cleanUsername = username.trim().toLowerCase() || null;
+      params.push(cleanUsername);
+      sets.push(`username=$${params.length}`);
+    }
+    if (typeof phone === 'string' || phone === null) {
+      params.push(phone ? phone.trim() : null);
+      sets.push(`phone=$${params.length}`);
+    }
+    if (typeof department === 'string' || department === null) {
+      params.push(department ? department.trim() : null);
+      sets.push(`department=$${params.length}`);
+    }
+    if (typeof position === 'string' || position === null) {
+      params.push(position ? position.trim() : null);
+      sets.push(`position=$${params.length}`);
+    }
+
+    if (sets.length === 0) {
+      return res.status(400).json({ success: false, message: 'No changes provided' });
+    }
+
+    params.push(userId);
+    const updateQuery = `
+      UPDATE admin_users
+      SET ${sets.join(', ')}
+      WHERE id = $${params.length}
+      RETURNING id, email, username, name, role, department, position, phone, is_active, last_login_at, created_at
+    `;
+    const { rows } = await pool.query(updateQuery, params);
+
+    res.json({
+      success: true,
+      message: 'Account profile updated successfully',
+      user: rows[0]
+    });
+  } catch (error) {
+    if (error.code === '23505') {
+      return res.status(409).json({ success: false, message: 'Username is already taken' });
+    }
+    console.error('Update account error:', error);
+    res.status(500).json({ success: false, message: 'Server error updating account' });
+  }
+});
+
+// 3. Change logged-in user's password
+app.post('/api/admin/account/change-password', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const { current_password, new_password } = req.body || {};
+
+    if (!current_password || !new_password) {
+      return res.status(400).json({ success: false, message: 'Current and new password are required' });
+    }
+
+    if (typeof new_password !== 'string' || new_password.length < 6) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+    }
+
+    const userRes = await pool.query('SELECT password_hash FROM admin_users WHERE id = $1', [userId]);
+    if (userRes.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(current_password, userRes.rows[0].password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Incorrect current password' });
+    }
+
+    const newHash = await bcrypt.hash(new_password, 12);
+    await pool.query('UPDATE admin_users SET password_hash = $1 WHERE id = $2', [newHash, userId]);
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ success: false, message: 'Server error updating password' });
+  }
+});
 
 /* ------------------------- User Login/Logout Logs API --------------------- */
 // List login/logout logs with date, user, search filters and pagination
@@ -4373,6 +4536,166 @@ app.post('/api/admin/leaves/carry-forward', requireAdmin, async (req, res) => {
 
   } catch (error) {
     console.error('Carry forward leaves error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+/* ----------------------------- Chat / Discussions ----------------------------- */
+
+// 1. Get chat users (colleagues) with last message, unread count, and status
+app.get('/api/chat/users', requireAuth, async (req, res) => {
+  try {
+    const currentUserId = req.user.sub;
+    const query = `
+      SELECT 
+        u.id,
+        u.name,
+        u.email,
+        u.role,
+        u.department,
+        u.position,
+        u.last_login_at,
+        COALESCE(unread.count, 0) AS unread_count,
+        lm.message_text AS last_message,
+        lm.created_at AS last_message_at,
+        lm.sender_id AS last_message_sender_id
+      FROM admin_users u
+      LEFT JOIN LATERAL (
+        SELECT cm.message_text, cm.created_at, cm.sender_id
+        FROM chat_messages cm
+        WHERE (cm.sender_id = $1 AND cm.receiver_id = u.id)
+           OR (cm.sender_id = u.id AND cm.receiver_id = $1)
+        ORDER BY cm.created_at DESC
+        LIMIT 1
+      ) lm ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS count
+        FROM chat_messages cm
+        WHERE cm.sender_id = u.id AND cm.receiver_id = $1 AND cm.is_read = FALSE
+      ) unread ON TRUE
+      WHERE u.id != $1 AND u.is_active = TRUE
+      ORDER BY 
+        CASE WHEN lm.created_at IS NOT NULL THEN 0 ELSE 1 END,
+        lm.created_at DESC NULLS LAST,
+        u.name ASC;
+    `;
+    const { rows } = await pool.query(query, [currentUserId]);
+    res.json({ success: true, users: rows });
+  } catch (error) {
+    console.error('Chat users error:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching chat users' });
+  }
+});
+
+// 2. Get total unread messages count for current user
+app.get('/api/chat/unread-count', requireAuth, async (req, res) => {
+  try {
+    const currentUserId = req.user.sub;
+    const { rows } = await pool.query(
+      `SELECT COUNT(*)::int AS total_unread FROM chat_messages WHERE receiver_id = $1 AND is_read = FALSE`,
+      [currentUserId]
+    );
+    res.json({ success: true, total_unread: rows[0]?.total_unread || 0 });
+  } catch (error) {
+    console.error('Chat unread count error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// 3. Get messages exchanged between current user and another user
+app.get('/api/chat/messages/:otherUserId', requireAuth, async (req, res) => {
+  try {
+    const currentUserId = req.user.sub;
+    const otherUserId = Number(req.params.otherUserId);
+    if (!Number.isFinite(otherUserId) || otherUserId === currentUserId) {
+      return res.status(400).json({ success: false, message: 'Invalid target user id' });
+    }
+
+    // Mark unread messages from other user as read
+    await pool.query(
+      `UPDATE chat_messages SET is_read = TRUE WHERE sender_id = $1 AND receiver_id = $2 AND is_read = FALSE`,
+      [otherUserId, currentUserId]
+    );
+
+    const query = `
+      SELECT 
+        cm.id,
+        cm.sender_id,
+        cm.receiver_id,
+        cm.message_text,
+        cm.is_read,
+        cm.created_at,
+        s.name AS sender_name,
+        r.name AS receiver_name
+      FROM chat_messages cm
+      JOIN admin_users s ON s.id = cm.sender_id
+      JOIN admin_users r ON r.id = cm.receiver_id
+      WHERE (cm.sender_id = $1 AND cm.receiver_id = $2)
+         OR (cm.sender_id = $2 AND cm.receiver_id = $1)
+      ORDER BY cm.created_at ASC
+      LIMIT 300
+    `;
+    const { rows } = await pool.query(query, [currentUserId, otherUserId]);
+    res.json({ success: true, messages: rows });
+  } catch (error) {
+    console.error('Chat messages fetch error:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching messages' });
+  }
+});
+
+// 4. Send a message to another user
+app.post('/api/chat/messages', requireAuth, async (req, res) => {
+  try {
+    const currentUserId = req.user.sub;
+    const { receiver_id, message_text } = req.body || {};
+    const targetUserId = Number(receiver_id);
+    const text = typeof message_text === 'string' ? message_text.trim() : '';
+
+    if (!Number.isFinite(targetUserId) || targetUserId === currentUserId) {
+      return res.status(400).json({ success: false, message: 'Invalid receiver ID' });
+    }
+    if (!text) {
+      return res.status(400).json({ success: false, message: 'Message text cannot be empty' });
+    }
+
+    // Ensure receiver exists and is active
+    const checkReceiver = await pool.query(
+      `SELECT id, name FROM admin_users WHERE id = $1 AND is_active = TRUE`,
+      [targetUserId]
+    );
+    if (checkReceiver.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Recipient not found or inactive' });
+    }
+
+    const insertQuery = `
+      INSERT INTO chat_messages (sender_id, receiver_id, message_text, is_read, created_at)
+      VALUES ($1, $2, $3, FALSE, NOW())
+      RETURNING *
+    `;
+    const { rows } = await pool.query(insertQuery, [currentUserId, targetUserId, text]);
+    res.json({ success: true, message: rows[0] });
+  } catch (error) {
+    console.error('Send chat message error:', error);
+    res.status(500).json({ success: false, message: 'Server error sending message' });
+  }
+});
+
+// 5. Explicitly mark messages from a specific sender as read
+app.patch('/api/chat/read/:senderId', requireAuth, async (req, res) => {
+  try {
+    const currentUserId = req.user.sub;
+    const senderId = Number(req.params.senderId);
+    if (!Number.isFinite(senderId)) {
+      return res.status(400).json({ success: false, message: 'Invalid sender ID' });
+    }
+
+    await pool.query(
+      `UPDATE chat_messages SET is_read = TRUE WHERE sender_id = $1 AND receiver_id = $2 AND is_read = FALSE`,
+      [senderId, currentUserId]
+    );
+    res.json({ success: true, message: 'Messages marked as read' });
+  } catch (error) {
+    console.error('Mark read error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

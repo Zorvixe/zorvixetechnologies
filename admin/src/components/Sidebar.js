@@ -2,7 +2,7 @@ import { useAuth } from '../auth'
 import "./Sidebar.css"
 
 const VALID_VIEWS = new Set([
-  'stats', 'clients', 'payments', 'users', 'candidates', 'tickets', 'contacts'
+  'stats', 'clients', 'payments', 'users', 'candidates', 'tickets', 'contacts', 'account'
 ]);
 
 export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
@@ -24,7 +24,7 @@ export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       {!collapsed ? (
         <div className="user">
-          <div className="user-info-wrapper">
+          <div className="user-info-wrapper" onClick={goto('account')} style={{ cursor: 'pointer' }} title="View My Account">
             <strong>{user?.name || user?.email}</strong>
             <span className="badge">
               ZOR -  {user?.role ? user.role.charAt(0).toUpperCase() : ""}
@@ -35,7 +35,7 @@ export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
           </button>
         </div>
       ) : (
-        <button className="avatar-btn avatar_button_sidebar" aria-label="Account" title={`${user?.name || ''} (${user?.email || ''})`}>
+        <button className="avatar-btn avatar_button_sidebar" aria-label="Account" title={`${user?.name || ''} (${user?.email || ''})`} onClick={goto('account')}>
           <span className="avatar">{initials}</span>
         </button>
       )}
@@ -82,8 +82,6 @@ export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path><path d="M13 5v2"></path><path d="M13 17v2"></path><path d="M13 11v2"></path></svg>
           {!collapsed && <span>Jira</span>}
         </a>
-
-
 
         <a href="#contacts" className={`navlink ${current === 'contacts' ? 'active' : ''}`} onClick={goto('contacts')} title="Contacts">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"

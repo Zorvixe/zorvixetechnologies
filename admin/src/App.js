@@ -15,6 +15,9 @@ import Clients from './pages/Clients';
 import Payments from './pages/Payments';
 import Tickets from './pages/Tickets';
 import LoginHistory from './pages/LoginHistory';
+import Discussions from './pages/Discussions';
+import Account from './pages/Account';
+import LinkedInChatWidget from './components/LinkedInChatWidget';
 
 import LeaveManagement from "./pages/LeaveManagement/LeaveManagement"
 
@@ -60,9 +63,13 @@ function Shell() {
     clients: 'Clients',
     payments: 'Payments',
     tickets: 'Tickets',
+    discussions: 'Discussions',
+    chat: 'Discussions',
     leaves: 'Leaves',
     'login-history': 'Login Timings',
     logins: 'Login Timings',
+    account: 'My Account',
+    profile: 'My Account',
   };
   const currentTitle = titleMap[safePath] || 'Dashboard';
 
@@ -106,16 +113,22 @@ function Shell() {
 
           {/* Project detail remains as separate page */}
           <Route path="/clients" element={<Clients />} />
-
           <Route path="/projects/:id" element={<Clients />} />
 
-          <Route path="*" element={<Navigate to="/stats" />} />
-
+          <Route path="/discussions" element={<Discussions />} />
+          <Route path="/chat" element={<Navigate to="/discussions" replace />} />
           <Route path="/leaves" element={<LeaveManagement />} />
           <Route path="/login-history" element={<LoginHistory />} />
           <Route path="/logins" element={<Navigate to="/login-history" replace />} />
+          <Route path="/account" element={<Account />} />
+          <Route path="/profile" element={<Navigate to="/account" replace />} />
+
+          <Route path="*" element={<Navigate to="/stats" />} />
         </Routes>
       </main>
+
+      {/* LinkedIn-style floating messaging widget docked at bottom-right */}
+      <LinkedInChatWidget />
     </div>
   );
 }

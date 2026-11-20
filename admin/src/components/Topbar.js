@@ -210,8 +210,10 @@ export default function Topbar({
     };
   }, [menuOpen]);
 
-  const handleLeave = () => navigate("/leaves");
-  const handleLogin = () => navigate("/login-history");
+  const handleLeave = () => { setMenuOpen(false); navigate("/leaves"); };
+  const handleLogin = () => { setMenuOpen(false); navigate("/login-history"); };
+  const handleDiscussions = () => { setMenuOpen(false); navigate("/discussions"); };
+  const handleAccount = () => { setMenuOpen(false); navigate("/account"); };
 
 
   /* ---------------------- Render ---------------------- */
@@ -384,12 +386,11 @@ export default function Topbar({
                     <div className="pm-user">
                       <div className="pm-name">{user?.name || "User"}</div>
                       <div className="pm-email">{user?.email}</div>
-                      <h1></h1>
                       <button
                         className="pm-link"
-                        onClick={() => { /* navigate to account page if present */ }}
+                        onClick={handleAccount}
                       >
-                        My account
+                        My account →
                       </button>
                     </div>
                   </div>
@@ -415,6 +416,17 @@ export default function Topbar({
                         </svg>
                       </span>
                       <span>Login History</span>
+                    </button>
+                  </div>
+
+                  <div className="pm-actions">
+                    <button className="pm-item_apply_leave" onClick={handleDiscussions}>
+                      <span className="pm-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                      </span>
+                      <span>Discussions / Chat</span>
                     </button>
                   </div>
 

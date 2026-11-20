@@ -341,6 +341,18 @@ const formatDateForAPI = (dateString) => {
   return date.toISOString().split('T')[0]; // YYYY-MM-DD
 };
 
+/* --------------------------- My Account --------------------------- */
+export const apiGetMyAccount = () => request("/api/admin/account");
+export const apiUpdateMyAccount = (body) => request("/api/admin/account", { method: "PATCH", body });
+export const apiChangePassword = (body) => request("/api/admin/account/change-password", { method: "POST", body });
+
+/* --------------------------- Chat / Discussions --------------------------- */
+export const apiGetChatUsers = () => request("/api/chat/users");
+export const apiGetChatUnreadCount = () => request("/api/chat/unread-count");
+export const apiGetChatMessages = (otherUserId) => request(`/api/chat/messages/${otherUserId}`);
+export const apiSendChatMessage = (body) => request("/api/chat/messages", { method: "POST", body });
+export const apiMarkChatRead = (senderId) => request(`/api/chat/read/${senderId}`, { method: "PATCH" });
+
 /* --------------------------- Helpers --------------------------- */
 export const formatDate = (d) => {
   if (!d) return "-"
