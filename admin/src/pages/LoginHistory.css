@@ -174,17 +174,34 @@
   align-items: center;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
+  background: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.input-with-clear:focus {
+.input-with-clear:focus-within {
   border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
-.filter-input,
-.filter-select {
+.input-with-clear .filter-input {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent;
+  padding-right: 28px;
+}
+
+.input-with-clear .filter-input:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.filter-select,
+.search-input {
   height: 38px;
   padding: 8px 12px;
-  border: none;
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
   font-size: 13px;
   color: #1e293b;
@@ -193,19 +210,14 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.filter-input:focus,
-.filter-select:focus {
+.filter-select:focus,
+.search-input:focus {
   border-color: #0284c7;
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
 .search-input {
   min-width: 240px;
-}
-
-.search-filter-input {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
 }
 
 .clear-icon-btn {
@@ -218,10 +230,17 @@
   cursor: pointer;
   line-height: 1;
   padding: 0;
+  outline: none;
 }
 
 .clear-icon-btn:hover {
   color: #475569;
+}
+
+.clear-icon-btn:focus,
+.clear-icon-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .clear-filters-btn {

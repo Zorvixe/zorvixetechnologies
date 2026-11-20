@@ -1193,12 +1193,12 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
     `
     const { rows } = await pool.query(sql, [name, email.toLowerCase(), uname, roleVal, hash])
 
-    // In the POST /api/admin/users endpoint, change casual_balance from 2 to 1
+    // Initialize leave balance for new user
     await pool.query(`
-  INSERT INTO leave_balances (employee_id, sick_balance, casual_balance, annual_balance, maternity_balance, paternity_balance)
-  VALUES ($1, 1, 1, 21, 180, 15)   // changed casual from 2 to 1
-  ON CONFLICT (employee_id) DO NOTHING
-`, [rows[0].id]);
+      INSERT INTO leave_balances (employee_id, sick_balance, casual_balance, annual_balance, maternity_balance, paternity_balance)
+      VALUES ($1, 1, 1, 21, 180, 15)
+      ON CONFLICT (employee_id) DO NOTHING
+    `, [rows[0].id]).catch(err => console.error('Leave balance init error for user:', err));
 
     res.status(201).json({ message: 'User created', user: rows[0] })
   } catch (e) {
