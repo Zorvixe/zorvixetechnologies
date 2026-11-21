@@ -478,14 +478,12 @@ export default function Payments() {
 
       {/* Project's Links Modal */}
       {view && (
-        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
-          <div className="modal-dialog modal-xl modal-dialog-centered">
+        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)" }} tabIndex={-1}>
+          <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">
-                  {view.client.name} — {view.project.name} (Links)
-                </h5>
-                <button type="button" className="btn-close" onClick={() => setView(null)} />
+                <h5 className="modal-title">{view.client.name} — {view.project.name}</h5>
+                <button type="button" className="btn-close" onClick={() => setView(null)} aria-label="Close" />
               </div>
 
               <div className="modal-body">
@@ -563,12 +561,12 @@ export default function Payments() {
 
       {/* Link Details (submissions) */}
       {linkDetails && (
-        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
+        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)" }} tabIndex={-1}>
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Link Details</h5>
-                <button type="button" className="btn-close" onClick={() => setLinkDetails(null)} />
+                <h5 className="modal-title">Link Details & Submissions</h5>
+                <button type="button" className="btn-close" onClick={() => setLinkDetails(null)} aria-label="Close" />
               </div>
               <div className="modal-body">
                 <div className="small muted" style={{ marginBottom: 8 }}>
@@ -708,19 +706,21 @@ function CreateLinkModal({
 }) {
   if (!open) return null
   return (
-    <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
-      <div className="modal-dialog modal-lg modal-dialog-centered">
+    <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)" }} tabIndex={-1}>
+      <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div className="modal-content">
           <div className="modal-header">
             <h5 className="modal-title">Create Payment Link</h5>
-            <button type="button" className="btn-close" onClick={onClose} />
+            <button type="button" className="btn-close" onClick={onClose} aria-label="Close" />
           </div>
           <div className="modal-body">
-            <div className="grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div>
-                <label className="muted small">Client</label>
+            <div className="row g-3">
+              <div className="col-12 col-md-6">
+                <label className="form-label">
+                  Client <span className="text-danger">*</span>
+                </label>
                 <select
-                  className="input"
+                  className="form-select"
                   value={form.clientId}
                   onChange={(e) => onChange("clientId", e.target.value)}
                 >
@@ -731,10 +731,12 @@ function CreateLinkModal({
                 </select>
               </div>
 
-              <div>
-                <label className="muted small">Project</label>
+              <div className="col-12 col-md-6">
+                <label className="form-label">
+                  Project <span className="text-danger">*</span>
+                </label>
                 <select
-                  className="input"
+                  className="form-select"
                   value={form.projectId}
                   onChange={(e) => onChange("projectId", e.target.value)}
                   disabled={!form.clientId}
@@ -746,10 +748,12 @@ function CreateLinkModal({
                 </select>
               </div>
 
-              <div>
-                <label className="muted small">Payment kind</label>
+              <div className="col-12 col-md-4">
+                <label className="form-label">
+                  Payment Kind <span className="text-danger">*</span>
+                </label>
                 <select
-                  className="input"
+                  className="form-select"
                   value={form.kind}
                   onChange={(e) => onChange("kind", e.target.value)}
                 >
@@ -758,22 +762,26 @@ function CreateLinkModal({
                 </select>
               </div>
 
-              <div>
-                <label className="muted small">Amount (Rs.)</label>
+              <div className="col-12 col-md-4">
+                <label className="form-label">
+                  Amount (₹)
+                </label>
                 <input
-                  className="input"
+                  className="form-control"
                   type="number"
                   min="0"
                   value={form.amount}
                   onChange={(e) => onChange("amount", e.target.value)}
-                  placeholder="e.g. 5001"
+                  placeholder="e.g. 5000"
                 />
               </div>
 
-              <div>
-                <label className="muted small">Expiry</label>
+              <div className="col-12 col-md-4">
+                <label className="form-label">
+                  Expiry Date & Time
+                </label>
                 <input
-                  className="input"
+                  className="form-control"
                   type="datetime-local"
                   value={form.expires_at}
                   onChange={(e) => onChange("expires_at", e.target.value)}
@@ -783,26 +791,29 @@ function CreateLinkModal({
 
             {/* Project summary */}
             {projectMeta && (
-              <div className="card" style={{ marginTop: 12 }}>
-                <div className="card-content">
-                  <div className="small muted" style={{ marginBottom: 6 }}>Project details</div>
-                  <div className="details-grid-improved" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                    <div><strong>Name:</strong> {projectMeta.projectName}</div>
-                    <div><strong>Code:</strong> {projectMeta.projectCode}</div>
-                    <div><strong>Type:</strong> {projectMeta.projectType}</div>
+              <div className="card mt-3 border bg-light-subtle rounded-3 overflow-hidden">
+                <div className="card-body p-3">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="small fw-bold text-uppercase text-secondary" style={{ letterSpacing: "0.04em" }}>Selected Project Summary</span>
+                    <span className="badge bg-primary-subtle text-primary fw-semibold">{projectMeta.projectType}</span>
+                  </div>
+                  <div className="row g-2 small">
+                    <div className="col-12 col-md-6"><strong>Project:</strong> {projectMeta.projectName}</div>
+                    <div className="col-12 col-md-6"><strong>Code:</strong> <code className="bg-white px-2 py-1 rounded border">{projectMeta.projectCode}</code></div>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="muted small" style={{ marginTop: 8 }}>
-              The link will be created for the selected project. Amount and expiry are stored per-link.
+            <div className="text-muted small mt-3 d-flex align-items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span>The link will be created for the selected project. Amount and expiry are stored per-link.</span>
             </div>
           </div>
           <div className="modal-footer">
-            <button className="button ghost" onClick={onClose} disabled={submitting}>Cancel</button>
-            <button className="primary" onClick={onSubmit} disabled={submitting}>
-              {submitting ? "Creating…" : "Create link"}
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
+            <button type="button" className="btn btn-primary" onClick={onSubmit} disabled={submitting}>
+              {submitting ? "Creating…" : "Create Link"}
             </button>
           </div>
         </div>

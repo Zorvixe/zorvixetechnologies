@@ -74,8 +74,19 @@ export default function Users() {
   }
   useEffect(() => { fetchUsers() }, [page, limit, search])
 
-  // modal controls (React-only -> no Bootstrap JS errors)
-  const closeCreate = () => setShowForm(false)
+  // modal controls (React & Bootstrap)
+  const closeCreate = () => {
+    setShowForm(false)
+    const modalEl = document.getElementById('create_user')
+    if (modalEl) {
+      if (window.bootstrap?.Modal) {
+        const inst = window.bootstrap.Modal.getInstance(modalEl)
+        if (inst) inst.hide()
+      }
+      const closeBtn = modalEl.querySelector('[data-bs-dismiss="modal"]')
+      if (closeBtn) closeBtn.click()
+    }
+  }
   useEffect(() => {
     if (!showForm) return
     const onKey = (e) => { if (e.key === 'Escape') closeCreate() }
@@ -177,22 +188,21 @@ export default function Users() {
         {/* Optional error banner (like Candidates page) */}
         {error && <div className="alert error" style={{ margin: '8px 0' }}>{error}</div>}
 
-        <div className="modal fade" id="create_user" tabIndex="-1">
+        <div className="modal fade" id="create_user" tabIndex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
           <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content">
+            <form className="modal-content" onSubmit={createUser}>
               <div className="modal-header">
-                <h5 className="modal-title">Create User</h5>
+                <h5 className="modal-title" id="createUserModalLabel">Create User</h5>
                 <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
+
               <div className="modal-body">
-                <form className="row" onSubmit={createUser}>
-                  <div className="column">
-
-
-                    <label htmlFor="uFullName" className="visually-hidden">Full name</label>
+                <div className="row g-3">
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="uFullName" className="form-label">Full Name</label>
                     <input
                       id="uFullName"
-                      className="input"
+                      className="form-control"
                       placeholder="Full name"
                       required
                       value={form.name}
@@ -200,21 +210,25 @@ export default function Users() {
                       autoComplete="name"
                       autoFocus
                     />
+                  </div>
 
-                    <label htmlFor="uUserName" className="visually-hidden">Username</label>
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="uUserName" className="form-label">Username</label>
                     <input
                       id="uUserName"
-                      className="input"
+                      className="form-control"
                       placeholder="Username"
                       value={form.username}
                       onChange={e => setForm({ ...form, username: e.target.value })}
                       autoComplete="username"
                     />
+                  </div>
 
-                    <label htmlFor="uEmail" className="visually-hidden">Email</label>
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="uEmail" className="form-label">Email</label>
                     <input
                       id="uEmail"
-                      className="input"
+                      className="form-control"
                       type="email"
                       placeholder="Email"
                       required
@@ -222,11 +236,26 @@ export default function Users() {
                       onChange={e => setForm({ ...form, email: e.target.value })}
                       autoComplete="email"
                     />
+                  </div>
 
-                    <label htmlFor="uPassword" className="visually-hidden">Password</label>
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="uRole" className="form-label">Role</label>
+                    <select
+                      id="uRole"
+                      className="form-select"
+                      value={form.role}
+                      onChange={e => setForm({ ...form, role: e.target.value })}
+                    >
+                      <option value="employee">ZOR - E</option>
+                      <option value="admin">ZOR - A</option>
+                    </select>
+                  </div>
+
+                  <div className="col-12">
+                    <label htmlFor="uPassword" className="form-label">Password</label>
                     <input
                       id="uPassword"
-                      className="input"
+                      className="form-control"
                       type="password"
                       placeholder="Password"
                       required
@@ -234,103 +263,91 @@ export default function Users() {
                       onChange={e => setForm({ ...form, password: e.target.value })}
                       autoComplete="new-password"
                     />
-
-                    <label htmlFor="uRole" className="visually-hidden">Role</label>
-                    <select
-                      id="uRole"
-                      className="input"
-                      value={form.role}
-                      onChange={e => setForm({ ...form, role: e.target.value })}
-                    >
-                      <option value="employee">ZOR -E</option>
-                      <option value="admin">ZOR - A</option>
-                    </select>
                   </div>
-
-                  <div className="modal-footer">
-                    <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" className="btn btn-primary">Create</button>
-                  </div>
-                </form>
+                </div>
               </div>
 
-            </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? "Creating…" : "Create"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
 
 
         {/* Users List */}
-        <div className="card">
-          <div className="table-wrap-cand">
-            <table className="table-cand">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name / Email</th>
-                  <th>Username</th>
-                  <th>Role</th>
-                  <th>Active</th>
-                  <th>Last Login</th>
-                  <th>Actions</th>
+        <div className="table-wrap-cand">
+          <table className="table-cand">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name / Email</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Active</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+
+
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={7}>
+                  <div className="loader_container">
+                    <p className="loader_spinner"></p>
+                    <p>Loading Users…</p>
+                  </div></td></tr>
+              ) : rows.length === 0 ? (
+                <tr><td colSpan={7}>No users</td></tr>
+              ) : rows.map(u => (
+                <tr key={u.id}>
+                  <td>{u.id}</td>
+                  <td>
+                    <div>{u.name}</div>
+                    <div className="small">{u.email}</div>
+                  </td>
+                  <td>{u.username || <span className="small">—</span>}</td>
+                  <td>
+                    <select className="select" value={u.role} onChange={(e) => changeRole(u.id, e.target.value)}>
+                      <option value="employee">ZOR - E</option>
+                      <option value="admin">ZOR - A</option>
+                    </select>
+                  </td>
+                  <td>
+                    <label className="small">
+                      <input
+                        type="checkbox"
+                        checked={!!u.is_active}
+                        onChange={() => toggleActive(u.id, u.is_active)}
+                      /> active
+                    </label>
+                  </td>
+                  <td className="small">{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '—'}</td>
+                  <td className="row-actions">
+                    <button className="button ghost" onClick={() => resetPassword(u.id)}>Reset PW</button>
+                    {isAdmin && (
+                      <button className="buttondanger" onClick={() => del(u.id)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M9 3v1H4v2h16V4h-5V3H9zm-2 6v11a1 1 0 001 1h8a1 1 0 001-1V9H7zm2 2h2v9H9v-9zm4 0h2v9h-2v-9z" />
+                        </svg>
+                      </button>
+                    )}
+                  </td>
                 </tr>
-              </thead>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-
-
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={7}>
-                    <div className="loader_container">
-                      <p className="loader_spinner"></p>
-                      <p>Loading Users…</p>
-                    </div></td></tr>
-                ) : rows.length === 0 ? (
-                  <tr><td colSpan={7}>No users</td></tr>
-                ) : rows.map(u => (
-                  <tr key={u.id}>
-                    <td>{u.id}</td>
-                    <td>
-                      <div>{u.name}</div>
-                      <div className="small">{u.email}</div>
-                    </td>
-                    <td>{u.username || <span className="small">—</span>}</td>
-                    <td>
-                      <select className="select" value={u.role} onChange={(e) => changeRole(u.id, e.target.value)}>
-                        <option value="employee">ZOR - E</option>
-                        <option value="admin">ZOR - A</option>
-                      </select>
-                    </td>
-                    <td>
-                      <label className="small">
-                        <input
-                          type="checkbox"
-                          checked={!!u.is_active}
-                          onChange={() => toggleActive(u.id, u.is_active)}
-                        /> active
-                      </label>
-                    </td>
-                    <td className="small">{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '—'}</td>
-                    <td className="row-actions">
-                      <button className="button ghost" onClick={() => resetPassword(u.id)}>Reset PW</button>
-                      {isAdmin && (
-                        <button className="buttondanger" onClick={() => del(u.id)}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M9 3v1H4v2h16V4h-5V3H9zm-2 6v11a1 1 0 001 1h8a1 1 0 001-1V9H7zm2 2h2v9H9v-9zm4 0h2v9h-2v-9z" />
-                          </svg>
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="pagination">
-            <button className="button ghost" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Prev</button>
-            <div className="small">Page {page} / {totalPages || 1}</div>
-            <button className="button ghost" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</button>
-          </div>
+        <div className="pagination">
+          <button className="button ghost" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Prev</button>
+          <div className="small">Page {page} / {totalPages || 1}</div>
+          <button className="button ghost" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</button>
         </div>
 
         {/* Toast */}

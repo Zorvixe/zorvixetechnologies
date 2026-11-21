@@ -66,9 +66,11 @@ function BootstrapModal({
   open,
   title,
   onClose,
+  onSubmit,
+  footer,
   children,
   dialogClassName = "",
-  scrollable = false,
+  scrollable = true,
   centered = true,
 }) {
   const overlayRef = useRef(null);
@@ -102,10 +104,13 @@ function BootstrapModal({
     if (e.target === overlayRef.current) onClose?.();
   };
 
+  const ContentTag = onSubmit ? "form" : "div";
+  const contentProps = onSubmit ? { className: "modal-content", onSubmit } : { className: "modal-content" };
+
   return (
     <div
       className="modal fade show"
-      style={{ display: "block" }}
+      style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)" }}
       tabIndex="-1"
       aria-modal="true"
       role="dialog"
@@ -120,7 +125,7 @@ function BootstrapModal({
           dialogClassName,
         ].join(" ").trim()}
       >
-        <div className="modal-content">
+        <ContentTag {...contentProps}>
           {title !== undefined && (
             <div className="modal-header">
               <h5 className="modal-title">{title}</h5>
@@ -133,7 +138,8 @@ function BootstrapModal({
             </div>
           )}
           <div className="modal-body">{children}</div>
-        </div>
+          {footer && <div className="modal-footer">{footer}</div>}
+        </ContentTag>
       </div>
     </div>
   );
@@ -726,74 +732,86 @@ export default function Tickets() {
         onClose={() => setShowCreate(false)}
         title="Create New Ticket"
         centered
-        scrollable={false}
+        scrollable
         dialogClassName="modal-lg"
-      >
-        <form onSubmit={handleCreateSubmit} className="ticket-form">
-          <div className="ticket_create_rows">
-            <div className="form-group col-5">
-              <label htmlFor="new-title">Title</label>
-              <input
-                id="new-title"
-                type="text"
-                className="comment-input"
-                value={newTicket.title}
-                onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
-                required
-                autoFocus
-              />
-            </div>
-
-            <div className="form-group col-3">
-              <label htmlFor="new-priority">Priority</label>
-              <select
-                id="new-priority"
-                className="comment-input"
-                value={newTicket.priority}
-                onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value })}
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
-            <div className="form-group col-3">
-              <label htmlFor="new-assignee">Assign To</label>
-              <select
-                id="new-assignee"
-                className="comment-input"
-                value={newTicket.assigned_to}
-                onChange={(e) => setNewTicket({ ...newTicket, assigned_to: e.target.value })}
-              >
-                <option value="">Unassigned</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.email})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="form-group">
-            <label htmlFor="new-desc">Description</label>
-            <RichTextEditor
-              value={newTicket.description}
-              style={{ minHeight: "280px" }}
-              className="comment-input create_descrption"
-              placeholder="Descrption"
-              onChange={(content) => setNewTicket({ ...newTicket, description: content })}
-            />
-          </div>
-          <div className="form-actions">
-            <button type="submit" className="btn btn-primary">
-              Create
-            </button>
+        onSubmit={handleCreateSubmit}
+        footer={
+          <>
             <button type="button" className="btn btn-secondary" onClick={() => setShowCreate(false)}>
               Cancel
             </button>
+            <button type="submit" className="btn btn-primary">
+              Create Ticket
+            </button>
+          </>
+        }
+      >
+        <div className="row g-3">
+          <div className="col-12 col-md-6">
+            <label htmlFor="new-title" className="form-label">
+              Ticket Title <span className="text-danger">*</span>
+            </label>
+            <input
+              id="new-title"
+              type="text"
+              className="form-control"
+              placeholder="Brief summary of the issue..."
+              value={newTicket.title}
+              onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
+              required
+              autoFocus
+            />
           </div>
-        </form>
+
+          <div className="col-12 col-md-3">
+            <label htmlFor="new-priority" className="form-label">
+              Priority <span className="text-danger">*</span>
+            </label>
+            <select
+              id="new-priority"
+              className="form-select"
+              value={newTicket.priority}
+              onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value })}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+
+          <div className="col-12 col-md-3">
+            <label htmlFor="new-assignee" className="form-label">
+              Assign To
+            </label>
+            <select
+              id="new-assignee"
+              className="form-select"
+              value={newTicket.assigned_to}
+              onChange={(e) => setNewTicket({ ...newTicket, assigned_to: e.target.value })}
+            >
+              <option value="">Unassigned</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name} ({u.email})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="col-12">
+            <label htmlFor="new-desc" className="form-label">
+              Description & Details
+            </label>
+            <RichTextEditor
+              value={newTicket.description}
+              style={{ minHeight: "220px" }}
+              className="comment-input create_descrption"
+              placeholder="Provide detailed description of the ticket..."
+              onChange={(content) => setNewTicket({ ...newTicket, description: content })}
+            />
+          </div>
+        </div>
       </BootstrapModal>
 
       {/* ---------------------------- View Ticket Modal --------------------------- */}
@@ -817,89 +835,99 @@ export default function Tickets() {
         onClose={() => setShowEdit(false)}
         title="Edit Ticket"
         centered
-        scrollable={false}
+        scrollable
         dialogClassName="modal-xl"
+        onSubmit={handleEditSubmit}
+        footer={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowEdit(false)}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Save Changes
+            </button>
+          </>
+        }
       >
-        <form onSubmit={handleEditSubmit} className="ticket-form">
-          <div className="ticket_create_rows">
-            <div className="form-group col-3">
-              <label>Title</label>
-              <input
-                className="comment-input"
-                value={editData.title}
-                onChange={(e) => setEditData({ ...editData, title: e.target.value })}
-                required
-                disabled={!canManageTicket(selectedTicket) || (selectedTicket?.creator_id !== user.id && user.role !== 'admin')}
-              />
-            </div>
-
-            <div className="form-group col-3">
-              <label>Status</label>
-              <select
-                className="comment-input"
-                value={editData.status}
-                onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-              >
-                <option value="open">Open</option>
-                <option value="in_progress">In Progress</option>
-                <option value="resolved">Resolved</option>
-                <option value="closed">Closed</option>
-              </select>
-            </div>
-
-            <div className="form-group col-2">
-              <label>Priority</label>
-              <select
-                className="comment-input"
-                value={editData.priority}
-                onChange={(e) => setEditData({ ...editData, priority: e.target.value })}
-                disabled={!canManageTicket(selectedTicket) || (selectedTicket?.creator_id !== user.id && user.role !== 'admin')}
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
-
-            <div className="form-group col-3.5">
-              <label>Assign To</label>
-              <select
-                className="comment-input"
-                value={editData.assigned_to}
-                onChange={(e) => setEditData({ ...editData, assigned_to: e.target.value })}
-                disabled={!canManageTicket(selectedTicket) || (selectedTicket?.creator_id !== user.id && user.role !== 'admin')}
-              >
-                <option value="">Unassigned</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.email})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Description</label>
-            <RichTextEditor
-              value={editData.description}
-              placeholder="Description"
-              style={{ minHeight: "280px" }}
-              onChange={(content) => setEditData({ ...editData, description: content })}
+        <div className="row g-3">
+          <div className="col-12 col-md-4">
+            <label className="form-label">
+              Ticket Title <span className="text-danger">*</span>
+            </label>
+            <input
+              className="form-control"
+              value={editData.title}
+              onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+              required
               disabled={!canManageTicket(selectedTicket) || (selectedTicket?.creator_id !== user.id && user.role !== 'admin')}
             />
           </div>
 
-          <div className="form-actions">
-            <button type="submit" className="btn btn-primary">
-              Save Changes
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowEdit(false)}>
-              Cancel
-            </button>
+          <div className="col-12 col-md-3">
+            <label className="form-label">
+              Status <span className="text-danger">*</span>
+            </label>
+            <select
+              className="form-select"
+              value={editData.status}
+              onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+            >
+              <option value="open">Open</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
           </div>
-        </form>
+
+          <div className="col-12 col-md-2">
+            <label className="form-label">
+              Priority <span className="text-danger">*</span>
+            </label>
+            <select
+              className="form-select"
+              value={editData.priority}
+              onChange={(e) => setEditData({ ...editData, priority: e.target.value })}
+              disabled={!canManageTicket(selectedTicket) || (selectedTicket?.creator_id !== user.id && user.role !== 'admin')}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+
+          <div className="col-12 col-md-3">
+            <label className="form-label">
+              Assign To
+            </label>
+            <select
+              className="form-select"
+              value={editData.assigned_to}
+              onChange={(e) => setEditData({ ...editData, assigned_to: e.target.value })}
+              disabled={!canManageTicket(selectedTicket) || (selectedTicket?.creator_id !== user.id && user.role !== 'admin')}
+            >
+              <option value="">Unassigned</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name} ({u.email})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="col-12">
+            <label className="form-label">
+              Description
+            </label>
+            <RichTextEditor
+              value={editData.description}
+              placeholder="Description"
+              style={{ minHeight: "220px" }}
+              onChange={(content) => setEditData({ ...editData, description: content })}
+              disabled={!canManageTicket(selectedTicket) || (selectedTicket?.creator_id !== user.id && user.role !== 'admin')}
+            />
+          </div>
+        </div>
       </BootstrapModal>
 
       <div className={`toastx ${toast.type} ${toast.open ? 'show' : ''}`} role="status" aria-live="polite">
@@ -1061,10 +1089,15 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
     <BootstrapModal
       open={open}
       onClose={onClose}
-      title="Ticket Details"
+      title={`Ticket #${ticket.id || ""}`}
       centered
       scrollable
       dialogClassName="modal-xl"
+      footer={
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          Close
+        </button>
+      }
     >
       <div className="ticket-info hover-frame">
         <div className="ticket-action-buttons in-modal">

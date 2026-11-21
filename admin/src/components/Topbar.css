@@ -47,6 +47,7 @@
   position: relative; 
 }
 .icon-btn:hover { background: #f3f4f6; }
+.icon-btn.is-active { background: #eff6ff; color: #0a66c2; }
 
 .avatar-btn { background: transparent; border: 0; padding: 0; cursor: pointer; border-radius: 999px; }
 .avatar {

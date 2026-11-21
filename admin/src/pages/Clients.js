@@ -372,7 +372,7 @@ export default function Clients() {
                         <td>{c.id}</td>
                         <td>
                           {editingId === c.id ? (
-                            <div className="row">
+                            <div className="client-edit-row">
                               <input
                                 id={`editName-${c.id}`}
                                 className="inputedit"
@@ -563,158 +563,177 @@ export default function Clients() {
 
       {/* Create Client Modal */}
       {showCreateClient && (
-        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
+        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)" }} tabIndex={-1}>
           <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content">
-              <form onSubmit={createClient}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Create Client</h5>
-                  <button type="button" className="btn-close" onClick={() => setShowCreateClient(false)} />
-                </div>
-                <div className="modal-body">
-                  <div className="form-row">
-                    <label htmlFor="newClientName" className="visually-hidden">Client name</label>
+            <form className="modal-content" onSubmit={createClient}>
+              <div className="modal-header">
+                <h5 className="modal-title">Create Client</h5>
+                <button type="button" className="btn-close" onClick={() => setShowCreateClient(false)} aria-label="Close" />
+              </div>
+              <div className="modal-body">
+                <div className="row g-3">
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="newClientName" className="form-label">
+                      Client Name <span className="text-danger">*</span>
+                    </label>
                     <input
                       id="newClientName"
-                      className="input"
+                      className="form-control"
                       required
-                      placeholder="Client name"
+                      placeholder="e.g. Acme Corporation"
                       value={newClient.name}
                       onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
                       autoComplete="name"
+                      autoFocus
                     />
-                    <label htmlFor="newClientEmail" className="visually-hidden">Email</label>
+                  </div>
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="newClientEmail" className="form-label">
+                      Email Address <span className="text-danger">*</span>
+                    </label>
                     <input
                       id="newClientEmail"
-                      className="input"
+                      className="form-control"
                       required
-                      placeholder="Email"
+                      placeholder="client@company.com"
                       type="email"
                       value={newClient.email}
                       onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
                       autoComplete="email"
                     />
                   </div>
-                  <div className="form-row">
-                    <label htmlFor="newClientPhone" className="visually-hidden">Phone</label>
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="newClientPhone" className="form-label">
+                      Phone Number <span className="text-danger">*</span>
+                    </label>
                     <input
                       id="newClientPhone"
-                      className="input"
+                      className="form-control"
                       required
-                      placeholder="Phone"
+                      placeholder="+91 9876543210"
+                      type="tel"
                       value={newClient.phone}
                       onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
                       autoComplete="tel"
                     />
-                    <label htmlFor="newClientCompany" className="visually-hidden">Company</label>
+                  </div>
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="newClientCompany" className="form-label">
+                      Company Name
+                    </label>
                     <input
                       id="newClientCompany"
-                      className="input"
-                      placeholder="Company"
+                      className="form-control"
+                      placeholder="e.g. Acme Inc"
                       value={newClient.company}
                       onChange={(e) => setNewClient({ ...newClient, company: e.target.value })}
                       autoComplete="organization"
                     />
                   </div>
                 </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowCreateClient(false)}>Cancel</button>
-                  <button className="btn btn-primary" type="submit">Create</button>
-                </div>
-              </form>
-            </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateClient(false)}>Cancel</button>
+                <button className="btn btn-primary" type="submit">Create Client</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
       {/* Create Project Modal */}
       {showCreateProject && (
-        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
-          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-md">
-            <div className="modal-content">
-              <form className="project-form" onSubmit={createProject}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Create Project</h5>
-                  <button type="button" className="btn-close" onClick={() => setShowCreateProject(false)} />
-                </div>
-                <div className="modal-body">
-                  <div className="row">
-                    <div className="grow">
-                      <label htmlFor="npName" className="visually-hidden">Project name</label>
+        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)" }} tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <form className="modal-content project-form" onSubmit={createProject}>
+              <div className="modal-header">
+                <h5 className="modal-title">Create Project</h5>
+                <button type="button" className="btn-close" onClick={() => setShowCreateProject(false)} aria-label="Close" />
+              </div>
+              <div className="modal-body">
+                <div className="row g-3">
+                  <div className={showOther ? "col-12 col-md-4" : "col-12 col-md-6"}>
+                    <label htmlFor="npName" className="form-label">
+                      Project Name <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      id="npName"
+                      className="form-control"
+                      required
+                      placeholder="e.g. Corporate Website"
+                      value={np.name}
+                      onChange={(e) => setNp({ ...np, name: e.target.value })}
+                      autoComplete="off"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className={showOther ? "col-12 col-md-4" : "col-12 col-md-6"}>
+                    <label htmlFor="npType" className="form-label">
+                      Project Type <span className="text-danger">*</span>
+                    </label>
+                    <select
+                      id="npType"
+                      className="form-select"
+                      value={np.type}
+                      onChange={(e) => setNp({ ...np, type: e.target.value })}
+                    >
+                      <option value="web_development">Web Development</option>
+                      <option value="digital_marketing">Digital Marketing</option>
+                      <option value="data_analytics">Data Analytics</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  {showOther && (
+                    <div className="col-12 col-md-4">
+                      <label htmlFor="npOtherType" className="form-label">
+                        Other Type Specification <span className="text-danger">*</span>
+                      </label>
                       <input
-                        id="npName"
-                        className="input"
-                        required
-                        placeholder="Project name"
-                        value={np.name}
-                        onChange={(e) => setNp({ ...np, name: e.target.value })}
+                        id="npOtherType"
+                        className="form-control"
+                        placeholder="Specify project type…"
+                        value={np.other_type}
+                        onChange={(e) => setNp({ ...np, other_type: e.target.value })}
                         autoComplete="off"
                       />
                     </div>
+                  )}
 
-                    <div className="grow">
-                      <label htmlFor="npType" className="visually-hidden">Project type</label>
-                      <select
-                        id="npType"
-                        className="input"
-                        value={np.type}
-                        onChange={(e) => setNp({ ...np, type: e.target.value })}
-                      >
-                        <option value="web_development">Web Development</option>
-                        <option value="digital_marketing">Digital Marketing</option>
-                        <option value="data_analytics">Data Analytics</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-
-                    {showOther && (
-                      <div className="grow">
-                        <label htmlFor="npOtherType" className="visually-hidden">Other type</label>
-                        <input
-                          id="npOtherType"
-                          className="input"
-                          placeholder="Other type…"
-                          value={np.other_type}
-                          onChange={(e) => setNp({ ...np, other_type: e.target.value })}
-                          autoComplete="off"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="row">
-                    <div className="grow">
-                      <label htmlFor="npDesc" className="visually-hidden">Description</label>
-                      <RichTextEditor
-                        id="npDesc"
-                        className="textarea_description project_desc"
-                        placeholder="Project description"
-                        value={np.description}
-                        onChange={(content) => setNp({ ...np, description: content })}
-                        autoComplete="off"
-                        rows={5}
-                      />
-                    </div>
+                  <div className="col-12">
+                    <label htmlFor="npDesc" className="form-label">
+                      Project Description
+                    </label>
+                    <RichTextEditor
+                      id="npDesc"
+                      className="textarea_description project_desc"
+                      placeholder="Enter project description, deliverables, scope..."
+                      value={np.description}
+                      onChange={(content) => setNp({ ...np, description: content })}
+                      autoComplete="off"
+                      rows={5}
+                    />
                   </div>
                 </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowCreateProject(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary">Create</button>
-                </div>
-              </form>
-            </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateProject(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create Project</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
       {/* Project Details Modal (view only; no payments) */}
       {viewProject && (
-        <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex={-1}>
-          <div className="modal-dialog modal-xl modal-dialog-centered">
+        <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0, 0, 0, 0.5)' }} tabIndex={-1}>
+          <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Project Details</h5>
-                <button type="button" className="btn-close" onClick={() => setViewProject(null)} />
+                <h5 className="modal-title">{viewProject.name || "Project Details"}</h5>
+                <button type="button" className="btn-close" onClick={() => setViewProject(null)} aria-label="Close" />
               </div>
               <div className="modal-body">
                 {/* Add tabs for Details and Comments */}
@@ -830,98 +849,101 @@ export default function Clients() {
         </div>
       )}
       {showEditProjectModal && (
-        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
-          <div className="modal-dialog modal-dialog-centered modal-xl">
-            <div className="modal-content">
-              <form className="project-form" onSubmit={saveProjectEdit}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Edit Project</h5>
-                  <button type="button" className="btn-close" onClick={() => setShowEditProjectModal(false)} />
-                </div>
-                <div className="modal-body">
-                  <div className="row">
-                    <div className="grow">
-                      <label htmlFor="epName" className="visually-hidden">Project name</label>
+        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)" }} tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <form className="modal-content project-form" onSubmit={saveProjectEdit}>
+              <div className="modal-header">
+                <h5 className="modal-title">Edit Project</h5>
+                <button type="button" className="btn-close" onClick={() => setShowEditProjectModal(false)} aria-label="Close" />
+              </div>
+              <div className="modal-body">
+                <div className="row g-3">
+                  <div className="col-12 col-md-4">
+                    <label htmlFor="epName" className="form-label">
+                      Project Name <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      id="epName"
+                      className="form-control"
+                      required
+                      placeholder="Project name"
+                      value={epForm.name}
+                      onChange={(e) => setEpForm({ ...epForm, name: e.target.value })}
+                      autoComplete="off"
+                    />
+                  </div>
+
+                  <div className="col-12 col-md-4">
+                    <label htmlFor="epStatus" className="form-label">
+                      Status <span className="text-danger">*</span>
+                    </label>
+                    <select
+                      id="epStatus"
+                      className="form-select"
+                      value={epForm.status}
+                      onChange={(e) => setEpForm({ ...epForm, status: e.target.value })}
+                    >
+                      <option value="new">New</option>
+                      <option value="InProgress">In Progress</option>
+                      <option value="completed">Completed</option>
+                      <option value="OnHold">On Hold</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div className="col-12 col-md-4">
+                    <label htmlFor="epType" className="form-label">
+                      Project Type <span className="text-danger">*</span>
+                    </label>
+                    <select
+                      id="epType"
+                      className="form-select"
+                      value={epForm.type}
+                      onChange={(e) => setEpForm({ ...epForm, type: e.target.value })}
+                    >
+                      <option value="web_development">Web Development</option>
+                      <option value="digital_marketing">Digital Marketing</option>
+                      <option value="data_analytics">Data Analytics</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  {epForm.type === "other" && (
+                    <div className="col-12">
+                      <label htmlFor="epOtherType" className="form-label">
+                        Other Type Specification <span className="text-danger">*</span>
+                      </label>
                       <input
-                        id="epName"
-                        className="input"
-                        required
-                        placeholder="Project name"
-                        value={epForm.name}
-                        onChange={(e) => setEpForm({ ...epForm, name: e.target.value })}
+                        id="epOtherType"
+                        className="form-control"
+                        placeholder="Specify other type…"
+                        value={epForm.other_type}
+                        onChange={(e) => setEpForm({ ...epForm, other_type: e.target.value })}
                         autoComplete="off"
                       />
                     </div>
+                  )}
 
-                    <div className="grow">
-                      <label htmlFor="epStatus" className="visually-hidden">Status</label>
-                      <select
-                        id="epStatus"
-                        className="input"
-                        value={epForm.status}
-                        onChange={(e) => setEpForm({ ...epForm, status: e.target.value })}
-                      >
-                        <option value="new">new</option>
-                        <option value="InProgress">InProgress</option>
-                        <option value="completed">completed</option>
-                        <option value="OnHold">OnHold</option>
-                        <option value="cancelled">cancelled</option>
-                      </select>
-                    </div>
-                    <div className="grow">
-                      <label htmlFor="epType" className="visually-hidden">Type</label>
-                      <select
-                        id="epType"
-                        className="input"
-                        value={epForm.type}
-                        onChange={(e) => setEpForm({ ...epForm, type: e.target.value })}
-                      >
-                        <option value="web_development">Web Development</option>
-                        <option value="digital_marketing">Digital Marketing</option>
-                        <option value="data_analytics">Data Analytics</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="row">
-
-
-                    {epForm.type === "other" && (
-                      <div className="grow">
-                        <label htmlFor="epOtherType" className="visually-hidden">Other type</label>
-                        <input
-                          id="epOtherType"
-                          className="input"
-                          placeholder="Other type…"
-                          value={epForm.other_type}
-                          onChange={(e) => setEpForm({ ...epForm, other_type: e.target.value })}
-                          autoComplete="off"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="row">
-                    <div className="grow">
-                      <label htmlFor="epDesc" className="visually-hidden">Description</label>
-                      <RichTextEditor
-                        id="epDesc"
-                        className="textarea_description project_desc"
-                        placeholder="Project description"
-                        value={epForm.description}
-                        onChange={(content) => setEpForm({ ...epForm, description: content })}
-                        rows={5}
-                      />
-                    </div>
+                  <div className="col-12">
+                    <label htmlFor="epDesc" className="form-label">
+                      Description
+                    </label>
+                    <RichTextEditor
+                      id="epDesc"
+                      className="textarea_description project_desc"
+                      placeholder="Project description"
+                      value={epForm.description}
+                      onChange={(content) => setEpForm({ ...epForm, description: content })}
+                      rows={5}
+                    />
                   </div>
                 </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowEditProjectModal(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary">Save</button>
-                </div>
-              </form>
-            </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditProjectModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Changes</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -929,12 +951,12 @@ export default function Clients() {
 
       {/* Access Manager Modal */}
       {accessProject && (
-        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
+        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)" }} tabIndex={-1}>
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Manage Access — {accessProject.name}</h5>
-                <button type="button" className="btn-close" onClick={() => setAccessProject(null)} />
+                <h5 className="modal-title">Manage Access - {accessProject.name}</h5>
+                <button type="button" className="btn-close" onClick={() => setAccessProject(null)} aria-label="Close" />
               </div>
               <div className="modal-body">
                 <div className="table-responsive">

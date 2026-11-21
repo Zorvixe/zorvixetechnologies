@@ -90,6 +90,15 @@ export default function Candidates() {
       await createCandidate(form);
       setForm({ name: "", email: "", phone: "", position: "" });
       setShowForm(false);
+      const modalEl = document.getElementById('create_candidate');
+      if (modalEl) {
+        if (window.bootstrap?.Modal) {
+          const inst = window.bootstrap.Modal.getInstance(modalEl);
+          if (inst) inst.hide();
+        }
+        const closeBtn = modalEl.querySelector('[data-bs-dismiss="modal"]');
+        if (closeBtn) closeBtn.click();
+      }
       await refresh();
       showToast('Candidate Created', 'success');
     } catch (e) {
@@ -180,95 +189,153 @@ export default function Candidates() {
         {/* Error Alert */}
         {error && <div className="alert-cand error-cand">{error}</div>}
 
-        <div className="modal fade" id="create_candidate" tabIndex="-1">
+        <div className="modal fade" id="create_candidate" tabIndex="-1" aria-labelledby="createCandidateModalLabel" aria-hidden="true">
           <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content">
+            <form className="modal-content" onSubmit={onCreate}>
               <div className="modal-header">
-                <h5 className="modal-title">Create Candidate</h5>
+                <h5 className="modal-title" id="createCandidateModalLabel">Create Candidate</h5>
                 <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
-              <div className="modal-body">
-                <form onSubmit={onCreate} className="row" >
-                  <div className='column'>
-                    <input
-                      id='cFullName'
-                      className="input"
 
-                      placeholder="Full name*"
+              <div className="modal-body">
+                <div className="row g-3">
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="cFullName" className="form-label">
+                      Full Name <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      id="cFullName"
+                      className="form-control"
+                      placeholder="e.g. Jane Smith"
+                      required
                       value={form.name}
                       onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                      autoFocus
                     />
-                    <input
-                      id='cEmail'
-                      className="input"
+                  </div>
 
-                      placeholder="Email*"
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="cEmail" className="form-label">
+                      Email Address <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      id="cEmail"
+                      type="email"
+                      className="form-control"
+                      placeholder="candidate@example.com"
+                      required
                       value={form.email}
                       onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))}
                     />
+                  </div>
 
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="cPhone" className="form-label">
+                      Phone Number <span className="text-danger">*</span>
+                    </label>
                     <input
-                      id='cPhone'
-                      className="input"
-
-                      placeholder="Phone*"
+                      id="cPhone"
+                      type="tel"
+                      className="form-control"
+                      placeholder="10-digit phone (starts 6-9)"
+                      required
                       value={form.phone}
                       onChange={(e) => setForm((s) => ({ ...s, phone: e.target.value }))}
                     />
-                    <input
-                      id='cPosition'
-                      className="input"
+                  </div>
 
-                      placeholder="Position*"
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="cPosition" className="form-label">
+                      Position / Role <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      id="cPosition"
+                      className="form-control"
+                      placeholder="e.g. Frontend Developer"
+                      required
                       value={form.position}
                       onChange={(e) => setForm((s) => ({ ...s, position: e.target.value }))}
                     />
                   </div>
-
-                  <div className="modal-footer">
-                    <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" className="btn btn-primary"> Create</button>
-                  </div>
-                </form>
+                </div>
               </div>
 
-            </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={creating}>
+                  {creating ? "Creating…" : "Create Candidate"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
 
         {/* Link popup */}
         {linkInfo && (
-          <div className="modal-cand">
-            <div className="modal-card-cand">
-              <div className="modal-header-cand">
-                <h3>Onboarding Link</h3>
-                <button className="close-cand" onClick={() => setLinkInfo(null)}>×</button>
-              </div>
-
-              <div className="modal-body-cand">
-                <div className="info-block-cand">
-                  <label>URL</label>
-                  <code className="code-cand full-cand">{linkInfo.link}</code>
-                  <button className="btn-cand small-cand" onClick={() => copy(linkInfo.link)}>Copy URL</button>
+          <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)" }} tabIndex={-1}>
+            <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Onboarding Link</h5>
+                  <button type="button" className="btn-close" onClick={() => setLinkInfo(null)} aria-label="Close"></button>
                 </div>
 
-                <div className="info-block-cand">
-                  <label>Token</label>
-                  <code className="code-cand full-cand">{linkInfo.token}</code>
-                  <button className="btn-cand small-cand" onClick={() => copy(linkInfo.token)}>Copy Token</button>
+                <div className="modal-body">
+                <div className="mb-3">
+                  <label className="form-label">Verification URL</label>
+                  <div className="d-flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={linkInfo.link}
+                      className="form-control font-monospace"
+                      style={{ fontSize: "0.85rem" }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary flex-shrink-0"
+                      onClick={() => copy(linkInfo.link)}
+                    >
+                      Copy URL
+                    </button>
+                  </div>
                 </div>
 
-                <p className="muted-cand mt-cand">
-                  Expires on: <strong>{formatDate(linkInfo.expiresAt)}</strong>
-                </p>
+                <div className="mb-3">
+                  <label className="form-label">Access Token</label>
+                  <div className="d-flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={linkInfo.token}
+                      className="form-control font-monospace"
+                      style={{ fontSize: "0.85rem" }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary flex-shrink-0"
+                      onClick={() => copy(linkInfo.token)}
+                    >
+                      Copy Token
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-3 bg-light border text-muted small">
+                  <i className="bi bi-clock me-1"></i>
+                  Expires on: <strong className="text-dark">{formatDate(linkInfo.expiresAt)}</strong>
+                </div>
               </div>
 
-              <div className="modal-footer-cand">
-                <button className="btn-cand danger-cand" onClick={() => setLinkInfo(null)}>Close</button>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-primary" onClick={() => setLinkInfo(null)}>
+                  Done
+                </button>
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* Candidates Table */}
         <div className="card-cand">

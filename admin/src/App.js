@@ -17,6 +17,8 @@ import Tickets from './pages/Tickets';
 import LoginHistory from './pages/LoginHistory';
 import Discussions from './pages/Discussions';
 import Account from './pages/Account';
+import Notification from './pages/Notification';
+import UserTicket from './pages/UserTicket';
 import LinkedInChatWidget from './components/LinkedInChatWidget';
 import MobileBottomNav from './components/MobileBottomNav';
 
@@ -71,6 +73,8 @@ function Shell() {
     logins: 'Login Timings',
     account: 'My Account',
     profile: 'My Account',
+    notifications: 'Notifications',
+    'user-tickets': 'Tickets Activity',
   };
   const currentTitle = titleMap[safePath] || 'Dashboard';
 
@@ -123,6 +127,8 @@ function Shell() {
           <Route path="/logins" element={<Navigate to="/login-history" replace />} />
           <Route path="/account" element={<Account />} />
           <Route path="/profile" element={<Navigate to="/account" replace />} />
+          <Route path="/notifications" element={<Notification />} />
+          <Route path="/user-tickets" element={<UserTicket />} />
 
           <Route path="*" element={<Navigate to="/stats" />} />
         </Routes>

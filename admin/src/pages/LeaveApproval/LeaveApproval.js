@@ -461,7 +461,7 @@ const LeaveApproval = () => {
         aria-labelledby="actionModalLabel"
         aria-hidden={!actionDialog}
       >
-        <div className="modal-dialog modal-dialog-centered" role="document">
+        <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
           <div className="modal-content">
             <div className={`modal-header ${actionType === 'approved' ? 'bg-success text-white' : 'bg-danger text-white'}`}>
               <h5 className="modal-title" id="actionModalLabel">

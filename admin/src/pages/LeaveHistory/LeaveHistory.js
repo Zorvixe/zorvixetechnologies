@@ -393,7 +393,7 @@ const LeaveHistory = () => {
         aria-labelledby="commentsModalLabel"
         aria-hidden={!showComments}
       >
-        <div className="modal-dialog modal-dialog-centered" role="document">
+        <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
           <div className="modal-content">
             <div className="modal-header bg-primary text-white">
               <h5 className="modal-title" id="commentsModalLabel">

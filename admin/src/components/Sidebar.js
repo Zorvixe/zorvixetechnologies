@@ -2,7 +2,7 @@ import { useAuth } from '../auth'
 import "./Sidebar.css"
 
 const VALID_VIEWS = new Set([
-  'stats', 'clients', 'payments', 'users', 'candidates', 'tickets', 'contacts', 'account', 'discussions', 'leaves', 'login-history'
+  'stats', 'clients', 'payments', 'users', 'candidates', 'tickets', 'contacts', 'account', 'discussions', 'leaves', 'login-history', 'notifications', 'user-tickets'
 ]);
 
 export default function Sidebar({ current, onNavigate, collapsed, onClose }) {

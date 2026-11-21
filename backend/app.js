@@ -16,6 +16,17 @@ const path = require('path')
 const fs = require('fs')
 const crypto = require('crypto')
 
+// Email notification services
+const {
+  sendEmail,
+  sendUserWelcomeEmail,
+  sendTicketAssignedEmail,
+  sendTicketCommentEmail,
+  sendLeaveAppliedEmail,
+  sendLeaveStatusEmail,
+  sendContactFormAlert
+} = require('./services/mailer')
+
 /* ---------------------------- App & Middleware ---------------------------- */
 const app = express()
 const PORT = process.env.PORT || 5001
@@ -1367,6 +1378,18 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
       ON CONFLICT (employee_id) DO NOTHING
     `, [rows[0].id]).catch(err => console.error('Leave balance init error for user:', err));
 
+    // Send welcome email with login credentials (non-blocking)
+    if (rows[0] && rows[0].email) {
+      sendUserWelcomeEmail({
+        to: rows[0].email,
+        name: rows[0].name,
+        username: rows[0].username || rows[0].email,
+        email: rows[0].email,
+        password: password,
+        role: rows[0].role
+      }).catch(err => console.error('[Mailer] Error sending user welcome email:', err));
+    }
+
     res.status(201).json({ message: 'User created', user: rows[0] })
   } catch (e) {
     if (e.code === '23505') return res.status(409).json({ message: 'Email or username already exists' })
@@ -1397,6 +1420,19 @@ app.patch('/api/admin/users/:id', requireAdmin, async (req, res) => {
        RETURNING id, email, username, name, role, is_active, last_login_at, created_at, updated_at`,
       params
     )
+
+    // If password was updated, email the user with their new password
+    if (typeof password === 'string' && password.length >= 6 && rows[0]?.email) {
+      sendUserWelcomeEmail({
+        to: rows[0].email,
+        name: rows[0].name,
+        username: rows[0].username || rows[0].email,
+        email: rows[0].email,
+        password: password,
+        role: rows[0].role
+      }).catch(err => console.error('[Mailer] Error sending updated credentials email:', err));
+    }
+
     res.json({ message: 'Updated', user: rows[0] })
   } catch (e) {
     if (e.code === '23505') return res.status(409).json({ message: 'Email or username already exists' })
@@ -1417,6 +1453,36 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
     res.status(500).json({ message: 'Server error' })
   }
 })
+
+// Test email endpoint for administrators to verify SMTP configuration
+app.post('/api/admin/test-email', requireAdmin, async (req, res) => {
+  try {
+    const targetEmail = (req.body.to || req.user.email || '').trim();
+    if (!targetEmail) return res.status(400).json({ success: false, message: 'Recipient email is required' });
+
+    const result = await sendEmail({
+      to: targetEmail,
+      subject: 'Test Email from Zorvixe Technologies',
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 24px; max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
+          <h2 style="color: #0a66c2; margin-top: 0;">Zorvixe Technologies SMTP Test</h2>
+          <p style="color: #334155; font-size: 14px; line-height: 1.6;">
+            Success! If you received this email, the SMTP server configuration for Zorvixe Technologies Workplace Management is working properly.
+          </p>
+          <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #475569; margin-top: 16px;">
+            <strong>Test Timestamp:</strong> ${new Date().toLocaleString()}
+          </div>
+        </div>
+      `,
+      text: 'Success! Your SMTP configuration on Zorvixe Technologies is working properly.'
+    });
+
+    res.json({ success: true, message: `Test email processed for ${targetEmail}`, result });
+  } catch (err) {
+    console.error('[Mailer] Test email error:', err);
+    res.status(500).json({ success: false, message: 'Failed to send test email: ' + err.message });
+  }
+});
 
 /* ---------------------------- Contact: Public API ------------------------- */
 const submitLimiter = rateLimit({
@@ -1459,6 +1525,18 @@ app.post('/api/contact/submit', submitLimiter, async (req, res) => {
       `INSERT INTO contacts (name, email, phone, subject, message) VALUES ($1,$2,$3,$4,$5)`,
       [name, email, phone, subject, message]
     )
+
+    // Notify administrator of new website contact inquiry (non-blocking)
+    const adminAlertEmail = process.env.ADMIN_NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL || 'admin@zorvixe.com';
+    sendContactFormAlert({
+      to: adminAlertEmail,
+      name,
+      email,
+      phone,
+      subject,
+      message
+    }).catch(err => console.error('[Mailer] Error sending contact alert email:', err));
+
     res.json({ message: 'Contact form submitted' })
   } catch (e) {
     console.error(e)
@@ -3565,7 +3643,36 @@ app.post('/api/tickets', requireAuth, async (req, res) => {
       RETURNING *
     `, [title, description, priority, req.user.sub, assigned_to || null]);
 
-    res.status(201).json({ success: true, ticket: result.rows[0] });
+    const createdTicket = result.rows[0];
+
+    // Send email notification to assigned user (non-blocking)
+    if (createdTicket && createdTicket.assigned_to) {
+      (async () => {
+        try {
+          const assigneeRes = await pool.query(
+            'SELECT id, name, email FROM admin_users WHERE id = $1',
+            [createdTicket.assigned_to]
+          );
+          if (assigneeRes.rows.length && assigneeRes.rows[0].email) {
+            const assignee = assigneeRes.rows[0];
+            await sendTicketAssignedEmail({
+              to: assignee.email,
+              assigneeName: assignee.name,
+              ticketId: createdTicket.id,
+              title: createdTicket.title,
+              description: createdTicket.description,
+              priority: createdTicket.priority,
+              createdByName: req.user.name || req.user.email,
+              createdByEmail: req.user.email
+            });
+          }
+        } catch (mailErr) {
+          console.error('[Mailer] Error sending ticket assignment email:', mailErr);
+        }
+      })();
+    }
+
+    res.status(201).json({ success: true, ticket: createdTicket });
   } catch (e) {
     console.error(e);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -3578,6 +3685,10 @@ app.patch('/api/tickets/:id', requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid ticket id' });
+
+    // Fetch previous assigned_to before update to detect re-assignment
+    const prevRes = await pool.query('SELECT assigned_to FROM tickets WHERE id=$1', [id]);
+    const prevAssignedTo = prevRes.rows[0]?.assigned_to;
 
     const { title, description, status, priority, assigned_to } = req.body;
     const sets = [];
@@ -3613,7 +3724,36 @@ app.patch('/api/tickets/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Ticket not found' });
     }
 
-    res.json({ success: true, ticket: result.rows[0] });
+    const updatedTicket = result.rows[0];
+
+    // If assigned_to changed to a new user, send email notification
+    if (assigned_to && Number(assigned_to) !== Number(prevAssignedTo)) {
+      (async () => {
+        try {
+          const assigneeRes = await pool.query(
+            'SELECT id, name, email FROM admin_users WHERE id = $1',
+            [assigned_to]
+          );
+          if (assigneeRes.rows.length && assigneeRes.rows[0].email) {
+            const assignee = assigneeRes.rows[0];
+            await sendTicketAssignedEmail({
+              to: assignee.email,
+              assigneeName: assignee.name,
+              ticketId: updatedTicket.id,
+              title: updatedTicket.title,
+              description: updatedTicket.description,
+              priority: updatedTicket.priority,
+              createdByName: req.user.name || req.user.email,
+              createdByEmail: req.user.email
+            });
+          }
+        } catch (mailErr) {
+          console.error('[Mailer] Error sending ticket assignment email:', mailErr);
+        }
+      })();
+    }
+
+    res.json({ success: true, ticket: updatedTicket });
   } catch (e) {
     console.error(e);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -3649,6 +3789,58 @@ app.post('/api/tickets/:id/comments', requireAuth, async (req, res) => {
        WHERE tc.id=$1`,
       [ins.rows[0].id]
     );
+
+    // Notify ticket assignee and creator of the new comment (non-blocking)
+    (async () => {
+      try {
+        const ticketInfo = await pool.query(
+          `SELECT t.id, t.title, t.created_by, t.assigned_to,
+                  c.name AS creator_name, c.email AS creator_email,
+                  a.name AS assignee_name, a.email AS assignee_email
+           FROM tickets t
+           LEFT JOIN admin_users c ON c.id = t.created_by
+           LEFT JOIN admin_users a ON a.id = t.assigned_to
+           WHERE t.id = $1`,
+          [id]
+        );
+        if (ticketInfo.rows.length) {
+          const t = ticketInfo.rows[0];
+          const commenterId = Number(req.user.sub);
+          const commenterName = req.user.name || req.user.email;
+
+          // Notify assignee if not the commenter
+          if (t.assigned_to && Number(t.assigned_to) !== commenterId && t.assignee_email) {
+            await sendTicketCommentEmail({
+              to: t.assignee_email,
+              recipientName: t.assignee_name,
+              ticketId: t.id,
+              title: t.title,
+              commenterName: commenterName,
+              commentText: comment_text.trim()
+            });
+          }
+
+          // Notify creator if not the commenter and not the assignee
+          if (
+            t.created_by &&
+            Number(t.created_by) !== commenterId &&
+            Number(t.created_by) !== Number(t.assigned_to) &&
+            t.creator_email
+          ) {
+            await sendTicketCommentEmail({
+              to: t.creator_email,
+              recipientName: t.creator_name,
+              ticketId: t.id,
+              title: t.title,
+              commenterName: commenterName,
+              commentText: comment_text.trim()
+            });
+          }
+        }
+      } catch (mailErr) {
+        console.error('[Mailer] Error sending ticket comment email:', mailErr);
+      }
+    })();
 
     res.status(201).json({ success: true, comment: joined.rows[0] });
   } catch (e) {
@@ -4159,6 +4351,21 @@ app.post('/api/leaves/apply', requireAuth, async (req, res) => {
       WHERE l.id = $1
     `, [result.rows[0].id]);
 
+    // Send email notification to approver (non-blocking)
+    const createdLeave = leaveWithDetails.rows[0];
+    if (createdLeave && createdLeave.approver_email) {
+      sendLeaveAppliedEmail({
+        to: createdLeave.approver_email,
+        approverName: createdLeave.approver_name,
+        employeeName: createdLeave.employee_name,
+        leaveType: createdLeave.leave_type,
+        startDate: createdLeave.start_date,
+        endDate: createdLeave.end_date,
+        totalDays: createdLeave.total_days,
+        reason: createdLeave.reason
+      }).catch(err => console.error('[Mailer] Error sending leave application email:', err));
+    }
+
     res.status(201).json({
       success: true,
       message: 'Leave application submitted successfully',
@@ -4329,6 +4536,22 @@ app.patch('/api/leaves/:id/status', requireAuth, async (req, res) => {
         LEFT JOIN admin_users approver ON approver.id = l.approved_by
         WHERE l.id = $1
       `, [leaveId]);
+
+      // Send email notification to employee regarding approval/rejection (non-blocking)
+      const updatedRow = updatedLeave.rows[0];
+      if (updatedRow && updatedRow.employee_email) {
+        sendLeaveStatusEmail({
+          to: updatedRow.employee_email,
+          employeeName: updatedRow.employee_name,
+          status,
+          leaveType: updatedRow.leave_type,
+          startDate: updatedRow.start_date,
+          endDate: updatedRow.end_date,
+          totalDays: updatedRow.total_days,
+          approverName: req.user.name || req.user.email,
+          comments: comments || ''
+        }).catch(err => console.error('[Mailer] Error sending leave status email:', err));
+      }
 
       res.json({
         success: true,

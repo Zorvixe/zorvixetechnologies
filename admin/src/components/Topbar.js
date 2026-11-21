@@ -1,6 +1,6 @@
 // src/components/Topbar.js
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth";
 import ZorvixeLogo from "../assets/zorvixe_logo.png";
@@ -27,6 +27,7 @@ export default function Topbar({
 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   /* ------------------- MEETINGS DROPDOWN ------------------- */
   const [meetOpen, setMeetOpen] = useState(false);
@@ -107,7 +108,11 @@ export default function Topbar({
         notifStorageKey(user?.id || user?.email || "anon"),
         now
       );
-      setShowNotifications(true);
+      if (window.innerWidth <= 768) {
+        navigate("/notifications");
+      } else {
+        setShowNotifications((v) => !v);
+      }
       await apiResetNotificationCount();
     } catch { }
   };
@@ -141,7 +146,11 @@ export default function Topbar({
       now
     );
     setTicketCount(0);
-    setShowUserTickets(true);
+    if (window.innerWidth <= 768) {
+      navigate("/user-tickets");
+    } else {
+      setShowUserTickets((v) => !v);
+    }
   };
 
   /* ------------------- INIT ------------------- */
@@ -316,8 +325,9 @@ export default function Topbar({
 
             {/* Notifications */}
             <button
-              className="icon-btn notif-btn"
+              className={`icon-btn notif-btn ${location.pathname === "/notifications" ? "is-active" : ""}`}
               aria-label="Notifications"
+              title="Notifications"
               onClick={handleNotificationClick}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
@@ -333,8 +343,9 @@ export default function Topbar({
 
             {/* Tickets */}
             <button
-              className="icon-btn ticket-btn"
+              className={`icon-btn ticket-btn ${location.pathname === "/user-tickets" ? "is-active" : ""}`}
               aria-label="My Tickets"
+              title="Tickets Activity"
               onClick={handleTicketClick}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
@@ -347,7 +358,7 @@ export default function Topbar({
               )}
             </button>
 
-            {/* Render panels */}
+            {/* Desktop Modal Panels (only on other devices) */}
             {showNotifications && (
               <Notification
                 isOpen={showNotifications}

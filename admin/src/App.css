@@ -32,15 +32,21 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
 
-.center { text-align: center; margin: 24px 0; }
+.center {
+  text-align: center;
+  margin: 24px 0;
+}
 
 /* Universal border-box to prevent mobile padding/border blowout */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
@@ -56,7 +62,7 @@ body {
 }
 
 /* Space for page sections below the global header */
-.content > *:not(.topbar--global) {
+.content>*:not(.topbar--global) {
   display: block;
   padding: 16px;
   margin: 56px 0px 0px 0px;
@@ -88,7 +94,8 @@ body {
 }
 
 /* Modern Buttons */
-.button, .btn {
+.button,
+.btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -97,7 +104,9 @@ body {
   transition: all 0.15s ease;
   user-select: none;
 }
-.button:active, .btn:active {
+
+.button:active,
+.btn:active {
   transform: scale(0.97);
 }
 
@@ -123,7 +132,9 @@ body {
   border-collapse: collapse;
 }
 
-.table-cand th, .table th, .leaves-table th {
+.table-cand th,
+.table th,
+.leaves-table th {
   background: #f8fafc;
   color: #475569;
   font-weight: 600;
@@ -134,7 +145,9 @@ body {
   border-bottom: 1px solid #e2e8f0;
 }
 
-.table-cand td, .table td, .leaves-table td {
+.table-cand td,
+.table td,
+.leaves-table td {
   padding: 12px 14px;
   border-bottom: 1px solid #f1f5f9;
   color: #1e293b;
@@ -142,7 +155,9 @@ body {
   vertical-align: middle;
 }
 
-.table-cand tr:hover td, .table tbody tr:hover td, .leaves-table tr:hover td {
+.table-cand tr:hover td,
+.table tbody tr:hover td,
+.leaves-table tr:hover td {
   background: #f8fafc;
 }
 
@@ -151,20 +166,23 @@ body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
 /* Mobile global shell adjustments */
 @media (max-width: 768px) {
-  .content > *:not(.topbar--global) {
+  .content>*:not(.topbar--global) {
     padding: 14px 12px calc(76px + env(safe-area-inset-bottom, 0px)) 12px;
     margin: 56px 0px 0px 0px;
     max-width: 100vw;
@@ -177,7 +195,9 @@ body {
   }
 
   /* Prevent iOS Safari from auto-zooming into inputs */
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     font-size: 16px !important;
   }
 
@@ -187,7 +207,7 @@ body {
 }
 
 @media (max-width: 480px) {
-  .content > *:not(.topbar--global) {
+  .content>*:not(.topbar--global) {
     padding: 12px 10px calc(76px + env(safe-area-inset-bottom, 0px)) 10px;
   }
 }
