@@ -1334,7 +1334,7 @@ app.get('/api/admin/users', requireAdmin, async (req, res) => {
     if (q) {
       params.push(`%${q}%`)
       const idx = params.length
-      where.push(`(LOWER(name) LIKE $${idx} OR LOWER(email) LIKE $${idx} OR LOWER(username) LIKE $${idx})`)
+      where.push(`(LOWER(name) LIKE $${idx} OR LOWER(email) LIKE $${idx} OR LOWER(username) LIKE $${idx} OR LOWER(COALESCE(department, '')) LIKE $${idx} OR LOWER(COALESCE(position, '')) LIKE $${idx})`)
     }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
 
@@ -1342,7 +1342,7 @@ app.get('/api/admin/users', requireAdmin, async (req, res) => {
     const total = Number(c.rows[0]?.total || 0)
 
     const data = await pool.query(
-      `SELECT id, email, username, name, role, is_active, last_login_at, created_at, updated_at
+      `SELECT id, email, username, name, role, department, position, phone, is_active, last_login_at, created_at, updated_at
        FROM admin_users
        ${whereSql}
        ORDER BY created_at DESC
@@ -1358,18 +1358,28 @@ app.get('/api/admin/users', requireAdmin, async (req, res) => {
 })
 app.post('/api/admin/users', requireAdmin, async (req, res) => {
   try {
-    const { name = '', email = '', username = '', role = 'employee', password = '' } = req.body || {}
+    const {
+      name = '',
+      email = '',
+      username = '',
+      role = 'employee',
+      password = '',
+      department = '',
+      position = ''
+    } = req.body || {}
     if (!name || !email || !password) return res.status(400).json({ message: 'name, email, password required' })
     const roleVal = role === 'admin' ? 'admin' : 'employee'
     const uname = username ? username.toLowerCase() : null
+    const dept = (department || '').trim() || null
+    const pos = (position || '').trim() || null
 
     const hash = await bcrypt.hash(password, 12)
     const sql = `
-      INSERT INTO admin_users (name, email, username, role, password_hash, is_active)
-      VALUES ($1,$2,$3,$4,$5,TRUE)
-      RETURNING id, email, username, name, role, is_active, created_at, updated_at
+      INSERT INTO admin_users (name, email, username, role, password_hash, is_active, department, position)
+      VALUES ($1, $2, $3, $4, $5, TRUE, $6, $7)
+      RETURNING id, email, username, name, role, department, position, phone, is_active, created_at, updated_at
     `
-    const { rows } = await pool.query(sql, [name, email.toLowerCase(), uname, roleVal, hash])
+    const { rows } = await pool.query(sql, [name, email.toLowerCase(), uname, roleVal, hash, dept, pos])
 
     // Initialize leave balance for new user
     await pool.query(`
@@ -1386,7 +1396,9 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
         username: rows[0].username || rows[0].email,
         email: rows[0].email,
         password: password,
-        role: rows[0].role
+        role: rows[0].role,
+        department: rows[0].department,
+        position: rows[0].position
       }).catch(err => console.error('[Mailer] Error sending user welcome email:', err));
     }
 
@@ -1403,12 +1415,20 @@ app.patch('/api/admin/users/:id', requireAdmin, async (req, res) => {
     if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' })
     const sets = []
     const params = []
-    const { name, email, username, role, is_active, password } = req.body || {}
+    const { name, email, username, role, is_active, password, department, position } = req.body || {}
     if (typeof name === 'string') { params.push(name); sets.push(`name=$${params.length}`) }
     if (typeof email === 'string') { params.push(email.toLowerCase()); sets.push(`email=$${params.length}`) }
     if (typeof username === 'string') { params.push(username.toLowerCase() || null); sets.push(`username=$${params.length}`) }
     if (role === 'admin' || role === 'employee') { params.push(role); sets.push(`role=$${params.length}`) }
     if (typeof is_active === 'boolean') { params.push(is_active); sets.push(`is_active=$${params.length}`) }
+    if (typeof department === 'string' || department === null) {
+      params.push(department ? department.trim() : null)
+      sets.push(`department=$${params.length}`)
+    }
+    if (typeof position === 'string' || position === null) {
+      params.push(position ? position.trim() : null)
+      sets.push(`position=$${params.length}`)
+    }
     if (typeof password === 'string' && password.length >= 6) {
       const hash = await bcrypt.hash(password, 12)
       params.push(hash); sets.push(`password_hash=$${params.length}`)
@@ -1417,7 +1437,7 @@ app.patch('/api/admin/users/:id', requireAdmin, async (req, res) => {
     params.push(id)
     const { rows } = await pool.query(
       `UPDATE admin_users SET ${sets.join(', ')} WHERE id=$${params.length}
-       RETURNING id, email, username, name, role, is_active, last_login_at, created_at, updated_at`,
+       RETURNING id, email, username, name, role, department, position, phone, is_active, last_login_at, created_at, updated_at`,
       params
     )
 
@@ -1429,7 +1449,9 @@ app.patch('/api/admin/users/:id', requireAdmin, async (req, res) => {
         username: rows[0].username || rows[0].email,
         email: rows[0].email,
         password: password,
-        role: rows[0].role
+        role: rows[0].role,
+        department: rows[0].department,
+        position: rows[0].position
       }).catch(err => console.error('[Mailer] Error sending updated credentials email:', err));
     }
 

@@ -165,7 +165,7 @@ function wrapBrandTemplate({ title, contentHtml }) {
 /**
  * 1. Send Welcome Email with User Credentials
  */
-async function sendUserWelcomeEmail({ to, name, username, email, password, role }) {
+async function sendUserWelcomeEmail({ to, name, username, email, password, role, department, position }) {
   const portalUrl = getPortalUrl();
   const subject = `Welcome to Zorvixe Technologies - Your Account Credentials`;
 
@@ -190,6 +190,16 @@ async function sendUserWelcomeEmail({ to, name, username, email, password, role 
         <tr>
           <td style="color: #64748b; font-weight: 600;">Username:</td>
           <td style="color: #0f172a; font-weight: 600;">${escapeHtml(username)}</td>
+        </tr>` : ''}
+        ${department ? `
+        <tr>
+          <td style="color: #64748b; font-weight: 600;">Department:</td>
+          <td style="color: #0f172a; font-weight: 600;">${escapeHtml(department)}</td>
+        </tr>` : ''}
+        ${position ? `
+        <tr>
+          <td style="color: #64748b; font-weight: 600;">Position / Designation:</td>
+          <td style="color: #0f172a; font-weight: 600;">${escapeHtml(position)}</td>
         </tr>` : ''}
         <tr>
           <td style="color: #64748b; font-weight: 600;">Temporary Password:</td>

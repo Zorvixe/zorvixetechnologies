@@ -22,10 +22,56 @@ export default function Users() {
     email: '',
     username: '',
     role: 'employee',
+    department: '',
+    position: '',
     password: ''
   })
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false) // React-controlled modal
+
+  // edit user (modal)
+  const [editingUser, setEditingUser] = useState(null)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    username: '',
+    role: 'employee',
+    department: '',
+    position: ''
+  })
+  const [editSaving, setEditSaving] = useState(false)
+
+  const openEdit = (u) => {
+    setEditingUser(u)
+    setEditForm({
+      name: u.name || '',
+      email: u.email || '',
+      username: u.username || '',
+      role: u.role || 'employee',
+      department: u.department || '',
+      position: u.position || ''
+    })
+  }
+
+  const closeEdit = () => {
+    setEditingUser(null)
+  }
+
+  const saveEdit = async (e) => {
+    e.preventDefault()
+    if (!editingUser) return
+    setEditSaving(true)
+    try {
+      await apiPatchUser(editingUser.id, editForm)
+      showToast('User updated successfully', 'success')
+      closeEdit()
+      await fetchUsers()
+    } catch (err) {
+      showToast(err?.message || 'Update failed', 'error')
+    } finally {
+      setEditSaving(false)
+    }
+  }
 
   // toast
   const toastTimer = useRef(null)
@@ -104,12 +150,12 @@ export default function Users() {
     setSaving(true)
     try {
       await apiCreateUser(form)
-      setForm({ name: '', email: '', username: '', role: 'employee', password: '' })
+      setForm({ name: '', email: '', username: '', role: 'employee', department: '', position: '', password: '' })
       setShowForm(false);
       closeCreate()
       setPage(1)
       await fetchUsers()
-      showToast('User created', 'success')
+      showToast('User created successfully', 'success')
     } catch (err) {
       showToast(err?.message || 'Create failed', 'error')
     } finally {
@@ -251,6 +297,40 @@ export default function Users() {
                     </select>
                   </div>
 
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="uDepartment" className="form-label">Department</label>
+                    <input
+                      id="uDepartment"
+                      className="form-control"
+                      placeholder="e.g. IT, Development, HR, Sales"
+                      value={form.department}
+                      onChange={e => setForm({ ...form, department: e.target.value })}
+                      list="deptList"
+                    />
+                    <datalist id="deptList">
+                      <option value="Development" />
+                      <option value="IT" />
+                      <option value="HR" />
+                      <option value="Finance" />
+                      <option value="Marketing" />
+                      <option value="Sales" />
+                      <option value="Operations" />
+                      <option value="Design" />
+                      <option value="Quality Assurance" />
+                    </datalist>
+                  </div>
+
+                  <div className="col-12 col-md-6">
+                    <label htmlFor="uPosition" className="form-label">Position / Designation</label>
+                    <input
+                      id="uPosition"
+                      className="form-control"
+                      placeholder="e.g. Software Engineer, Team Lead"
+                      value={form.position}
+                      onChange={e => setForm({ ...form, position: e.target.value })}
+                    />
+                  </div>
+
                   <div className="col-12">
                     <label htmlFor="uPassword" className="form-label">Password</label>
                     <input
@@ -278,6 +358,98 @@ export default function Users() {
         </div>
 
 
+        {/* Edit User Modal */}
+        {editingUser && (
+          <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1" aria-modal="true" role="dialog">
+            <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+              <form className="modal-content" onSubmit={saveEdit}>
+                <div className="modal-header">
+                  <h5 className="modal-title">Edit User (#{editingUser.id})</h5>
+                  <button type="button" className="btn-close" onClick={closeEdit} aria-label="Close"></button>
+                </div>
+                <div className="modal-body">
+                  <div className="row g-3">
+                    <div className="col-12 col-md-6">
+                      <label className="form-label">Full Name</label>
+                      <input
+                        className="form-control"
+                        required
+                        value={editForm.name}
+                        onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label">Username</label>
+                      <input
+                        className="form-control"
+                        value={editForm.username}
+                        onChange={e => setEditForm({ ...editForm, username: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label">Email</label>
+                      <input
+                        type="email"
+                        className="form-control"
+                        required
+                        value={editForm.email}
+                        onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label">Role</label>
+                      <select
+                        className="form-select"
+                        value={editForm.role}
+                        onChange={e => setEditForm({ ...editForm, role: e.target.value })}
+                      >
+                        <option value="employee">ZOR - E (Employee)</option>
+                        <option value="admin">ZOR - A (Admin)</option>
+                      </select>
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label">Department</label>
+                      <input
+                        className="form-control"
+                        placeholder="e.g. IT, Development, HR, Sales"
+                        value={editForm.department}
+                        onChange={e => setEditForm({ ...editForm, department: e.target.value })}
+                        list="deptListEdit"
+                      />
+                      <datalist id="deptListEdit">
+                        <option value="Development" />
+                        <option value="IT" />
+                        <option value="HR" />
+                        <option value="Finance" />
+                        <option value="Marketing" />
+                        <option value="Sales" />
+                        <option value="Operations" />
+                        <option value="Design" />
+                        <option value="Quality Assurance" />
+                      </datalist>
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label">Position / Designation</label>
+                      <input
+                        className="form-control"
+                        placeholder="e.g. Software Engineer, Team Lead"
+                        value={editForm.position}
+                        onChange={e => setEditForm({ ...editForm, position: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={closeEdit}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={editSaving}>
+                    {editSaving ? "Saving…" : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Users List */}
         <div className="table-wrap-cand">
           <table className="table-cand">
@@ -286,6 +458,7 @@ export default function Users() {
                 <th>ID</th>
                 <th>Name / Email</th>
                 <th>Username</th>
+                <th>Department & Designation</th>
                 <th>Role</th>
                 <th>Active</th>
                 <th>Last Login</th>
@@ -293,25 +466,33 @@ export default function Users() {
               </tr>
             </thead>
 
-
-
             <tbody>
               {loading ? (
-                <tr><td colSpan={7}>
+                <tr><td colSpan={8}>
                   <div className="loader_container">
                     <p className="loader_spinner"></p>
                     <p>Loading Users…</p>
                   </div></td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={7}>No users</td></tr>
+                <tr><td colSpan={8}>No users</td></tr>
               ) : rows.map(u => (
                 <tr key={u.id}>
                   <td>{u.id}</td>
                   <td>
-                    <div>{u.name}</div>
-                    <div className="small">{u.email}</div>
+                    <div style={{ fontWeight: 600 }}>{u.name}</div>
+                    <div className="small text-muted">{u.email}</div>
                   </td>
-                  <td>{u.username || <span className="small">—</span>}</td>
+                  <td>{u.username || <span className="small text-muted">—</span>}</td>
+                  <td>
+                    {u.department ? (
+                      <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1', marginRight: 6 }}>
+                        {u.department}
+                      </span>
+                    ) : null}
+                    <div className="small" style={{ color: '#475569', marginTop: u.department ? 3 : 0 }}>
+                      {u.position || (!u.department ? <span className="small text-muted">—</span> : '')}
+                    </div>
+                  </td>
                   <td>
                     <select className="select" value={u.role} onChange={(e) => changeRole(u.id, e.target.value)}>
                       <option value="employee">ZOR - E</option>
@@ -319,7 +500,7 @@ export default function Users() {
                     </select>
                   </td>
                   <td>
-                    <label className="small">
+                    <label className="small" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <input
                         type="checkbox"
                         checked={!!u.is_active}
@@ -329,9 +510,10 @@ export default function Users() {
                   </td>
                   <td className="small">{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '—'}</td>
                   <td className="row-actions">
+                    <button className="button ghost" onClick={() => openEdit(u)} title="Edit user details">Edit</button>
                     <button className="button ghost" onClick={() => resetPassword(u.id)}>Reset PW</button>
                     {isAdmin && (
-                      <button className="buttondanger" onClick={() => del(u.id)}>
+                      <button className="buttondanger" onClick={() => del(u.id)} title="Delete user">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M9 3v1H4v2h16V4h-5V3H9zm-2 6v11a1 1 0 001 1h8a1 1 0 001-1V9H7zm2 2h2v9H9v-9zm4 0h2v9h-2v-9z" />
                         </svg>
