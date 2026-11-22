@@ -66,6 +66,7 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState("");
   const [activeFilter, setActiveFilter] = useState("all"); // 'all' | 'unread'
+  const [searchQuery, setSearchQuery] = useState("");
 
   const modalRef = useRef(null);
   const mobileDateInputRef = useRef(null);
@@ -82,7 +83,7 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
       } catch (err) {
         try {
           mobileDateInputRef.current.focus();
-        } catch (_) {}
+        } catch (_) { }
       }
     }
   };
@@ -410,7 +411,19 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
      ------------------------------------------------------------- */
   const unreadCount = tickets.filter((t) => t.is_new).length;
   const displayedTickets = tickets.filter((t) => {
-    if (activeFilter === "unread") return t.is_new;
+    if (activeFilter === "unread" && !t.is_new) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const titleMatch = (t.title || "").toLowerCase().includes(q);
+      const msgMatch = (t.message || "").toLowerCase().includes(q);
+      const creatorMatch = (t.creator || "").toLowerCase().includes(q);
+      const idMatch = String(
+        t.activityType === "ticket_comment"
+          ? (t.related_data?.ticket_id ?? t.related_data?.id ?? "")
+          : (t.related_data?.id ?? t.related_data?.ticket_id ?? "")
+      ).toLowerCase().includes(q);
+      return titleMatch || msgMatch || creatorMatch || idMatch;
+    }
     return true;
   });
 
@@ -422,23 +435,51 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
           <div className="li-header">
             <div className="li-header-top">
               <div className="li-title-group">
-                <h2 className="li-heading">Tickets Activity</h2>
+                <button
+                  type="button"
+                  className="li-back-btn"
+                  onClick={() => {
+                    if (window.history.length > 1) {
+                      navigate(-1);
+                    } else {
+                      navigate('/stats');
+                    }
+                  }}
+                  aria-label="Back"
+                  title="Back"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div className="disc-search-box">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search Tickets..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      className="disc-clear-btn"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
                 {unreadCount > 0 && (
                   <span className="li-unread-badge">{unreadCount} new</span>
                 )}
               </div>
 
-              <div className="li-header-actions">
-                <button
-                  type="button"
-                  className="li-mark-all-btn"
-                  onClick={handleMarkAllAsRead}
-                  disabled={unreadCount === 0}
-                  title="Mark all tickets as read"
-                >
-                  Mark all as read
-                </button>
-              </div>
+
             </div>
 
             {/* LinkedIn Filter Pills */}
@@ -490,7 +531,7 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
                       if (typeof e.target.showPicker === "function") {
                         e.target.showPicker();
                       }
-                    } catch (err) {}
+                    } catch (err) { }
                   }}
                   max={localYMD()}
                   tabIndex={-1}
@@ -510,6 +551,15 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
                   </span>
                 )}
               </div>
+              <button
+                type="button"
+                className="li-chip li-mark-all-btn"
+                onClick={handleMarkAllAsRead}
+                disabled={unreadCount === 0}
+                title="Mark all tickets as read"
+              >
+                Mark all as read
+              </button>
             </div>
           </div>
 
@@ -527,14 +577,18 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
                   </svg>
                 </div>
                 <h3 className="li-empty-title">
-                  {activeFilter === "unread"
+                  {searchQuery
+                    ? `No tickets matching "${searchQuery}"`
+                    : activeFilter === "unread"
                     ? "No unread tickets"
                     : selectedDate
-                    ? `No ticket updates for ${new Date(selectedDate).toLocaleDateString()}`
-                    : "No ticket updates found"}
+                      ? `No ticket updates for ${new Date(selectedDate).toLocaleDateString()}`
+                      : "No ticket updates found"}
                 </h3>
                 <p className="li-empty-desc">
-                  {activeFilter === "unread"
+                  {searchQuery
+                    ? "Try searching with different ticket terms or ID."
+                    : activeFilter === "unread"
                     ? "You're all caught up on all ticket activity!"
                     : "We'll notify you when tickets are assigned or updated."}
                 </p>

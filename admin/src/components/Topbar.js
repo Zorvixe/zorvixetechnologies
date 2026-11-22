@@ -11,6 +11,7 @@ import {
   apiStatsNotifications,
   apiResetNotificationCount,
   apiStatsTickets,
+  apiGlobalSearch,
 } from "../api";
 
 import Notification from "../pages/Notification";
@@ -224,6 +225,182 @@ export default function Topbar({
   const handleDiscussions = () => { setMenuOpen(false); navigate("/discussions"); };
   const handleAccount = () => { setMenuOpen(false); navigate("/account"); };
 
+  /* ------------------- GLOBAL SEARCH ------------------- */
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const searchContainerRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const searchDebounceRef = useRef(null);
+
+  // Debounced backend global search
+  useEffect(() => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setSearchResults([]);
+      setIsSearching(false);
+      setSelectedIndex(-1);
+      return;
+    }
+
+    setIsSearching(true);
+    searchDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await apiGlobalSearch(trimmed);
+        setSearchResults(Array.isArray(res?.results) ? res.results : []);
+        setSelectedIndex(-1);
+      } catch (err) {
+        console.error("Global search failed:", err);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 250);
+
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // Click outside listener for search dropdown
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (!searchContainerRef.current?.contains(e.target)) {
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  // Global hotkey Ctrl+K / Cmd+K to focus search bar
+  useEffect(() => {
+    const onGlobalKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener("keydown", onGlobalKey);
+    return () => document.removeEventListener("keydown", onGlobalKey);
+  }, []);
+
+  // Keyboard navigation inside search dropdown
+  const handleSearchKeyDown = (e) => {
+    if (!searchOpen || searchResults.length === 0) {
+      if (e.key === "Escape") {
+        setSearchOpen(false);
+      }
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < searchResults.length - 1 ? prev + 1 : 0));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : searchResults.length - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (selectedIndex >= 0 && selectedIndex < searchResults.length) {
+        handleSelectResult(searchResults[selectedIndex]);
+      }
+    } else if (e.key === "Escape") {
+      setSearchOpen(false);
+    }
+  };
+
+  const handleSelectResult = (item) => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    if (item?.url) {
+      navigate(item.url);
+    }
+  };
+
+  const getCategoryIcon = (type) => {
+    switch (type) {
+      case "ticket":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <circle cx="9" cy="12" r="3" />
+            <path d="M15 8h4M15 12h4M15 16h4" />
+          </svg>
+        );
+      case "project":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2" />
+            <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+          </svg>
+        );
+      case "client":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+        );
+      case "contact":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+            <path d="M5 12L3 7a2 2 0 012-2h14a2 2 0 012 2l-2 5" />
+            <path d="M7 21h10a2 2 0 0 0 2-2v-7" />
+          </svg>
+        );
+      case "user":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="7" r="4" />
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          </svg>
+        );
+      case "candidate":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          </svg>
+        );
+      case "leave":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+        );
+      case "payment":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+        );
+      default:
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        );
+    }
+  };
+
 
   /* ---------------------- Render ---------------------- */
   if (variant === "global") {
@@ -262,6 +439,127 @@ export default function Topbar({
             <h1 className="tb-title" title={title}>{title}</h1>
 
             {children && <div className="tb-actions">{children}</div>}
+          </div>
+
+          {/* ---------------- CENTER: GLOBAL SEARCH ---------------- */}
+          <div className="tb-center" ref={searchContainerRef}>
+            <div className={`tb-search-wrapper ${searchOpen && (searchResults.length > 0 || isSearching) ? "has-results" : ""}`}>
+              <div className="tb-search-input-box">
+                <svg className="tb-search-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  className="tb-search-input"
+                  placeholder="Search tickets, projects, clients, contacts, team..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setSearchOpen(true);
+                  }}
+                  onFocus={() => {
+                    if (searchQuery.trim().length > 0) setSearchOpen(true);
+                  }}
+                  onKeyDown={handleSearchKeyDown}
+                />
+
+                {isSearching && (
+                  <span className="tb-search-spinner" />
+                )}
+
+                {searchQuery && !isSearching && (
+                  <button
+                    type="button"
+                    className="tb-search-clear"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSearchResults([]);
+                      setSearchOpen(false);
+                      searchInputRef.current?.focus();
+                    }}
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+
+                <div className="tb-search-shortcut" title="Press Ctrl+K to search">
+                  <kbd>Ctrl</kbd>+<kbd>K</kbd>
+                </div>
+              </div>
+
+              {/* SEARCH DROPDOWN RESULTS */}
+              {searchOpen && searchQuery.trim().length > 0 && (
+                <div className="tb-search-dropdown">
+                  {isSearching && searchResults.length === 0 ? (
+                    <div className="tb-search-loading">
+                      <span className="tb-search-spinner" />
+                      <span>Searching across workspace...</span>
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="tb-search-empty">
+                      <p className="tb-empty-title">No results found for "<strong>{searchQuery}</strong>"</p>
+                      <p className="tb-empty-sub">Try searching with a ticket ID, project name, client email, or person's name.</p>
+                    </div>
+                  ) : (
+                    <div className="tb-search-results-list">
+                      <div className="tb-results-summary">
+                        <span>Found {searchResults.length} result{searchResults.length === 1 ? "" : "s"}</span>
+                        <span className="tb-results-hint">Use ↑ ↓ to navigate, Enter to select, Esc to close</span>
+                      </div>
+
+                      {/* Grouped by category */}
+                      {Object.entries(
+                        searchResults.reduce((acc, item) => {
+                          const cat = item.category || "Other";
+                          if (!acc[cat]) acc[cat] = [];
+                          acc[cat].push(item);
+                          return acc;
+                        }, {})
+                      ).map(([catName, items]) => (
+                        <div key={catName} className="tb-search-category-group">
+                          <div className="tb-category-header">
+                            <span>{catName}</span>
+                            <span className="tb-category-count">{items.length}</span>
+                          </div>
+                          {items.map((item) => {
+                            const globalIndex = searchResults.findIndex((r) => r.id === item.id);
+                            const isSelected = globalIndex === selectedIndex;
+                            return (
+                              <div
+                                key={item.id}
+                                className={`tb-search-item ${isSelected ? "is-selected" : ""}`}
+                                onClick={() => handleSelectResult(item)}
+                              >
+                                <div className={`tb-item-icon-wrap tb-icon-${item.type}`}>
+                                  {getCategoryIcon(item.type)}
+                                </div>
+                                <div className="tb-item-body">
+                                  <div className="tb-item-title-row">
+                                    <span className="tb-item-title">{item.title}</span>
+                                    {item.badge && (
+                                      <span className={`tb-item-badge badge-${item.type}`}>
+                                        {item.badge}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {item.subtitle && (
+                                    <div className="tb-item-sub">{item.subtitle}</div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ---------------- RIGHT SIDE ---------------- */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import {
   apiGetChatUsers,
@@ -92,7 +93,16 @@ const renderMessageWithLinks = (text) => {
 };
 
 export default function Discussions() {
+  const navigate = useNavigate();
   const { user } = useAuth();
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/stats");
+    }
+  };
   const [users, setUsers] = useState([]);
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -386,32 +396,46 @@ export default function Discussions() {
         <aside className="discussions-sidebar">
           <div className="disc-sidebar-header">
             <div className="disc-header-title">
-              <h2>Messaging</h2>
+              <div className="disc-title-left">
+                <button
+                  type="button"
+                  className="disc-sidebar-back-btn"
+                  onClick={handleBack}
+                  aria-label="Back"
+                  title="Back"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div className="disc-search-box">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search colleagues..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      className="disc-clear-btn"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
               {unreadTotal > 0 && (
                 <span className="disc-unread-badge">{unreadTotal}</span>
               )}
             </div>
-            <div className="disc-search-box">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search colleagues..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  className="disc-clear-btn"
-                  onClick={() => setSearchQuery("")}
-                >
-                  ×
-                </button>
-              )}
-            </div>
+
             <div className="disc-filter-row">
               <button
                 type="button"

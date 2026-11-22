@@ -362,6 +362,10 @@ export const apiDeleteChatMessage = (messageId) =>
   });
 export const apiMarkChatRead = (senderId) => request(`/api/chat/read/${senderId}`, { method: "PATCH" });
 
+/* --------------------------- Global Search --------------------------- */
+export const apiGlobalSearch = (q) =>
+  request("/api/global-search", { params: { q } });
+
 /* --------------------------- Helpers --------------------------- */
 export const formatDate = (d) => {
   if (!d) return "-"

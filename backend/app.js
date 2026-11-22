@@ -2792,6 +2792,279 @@ app.get('/api/stats/dashboard', requireAuth, async (_req, res) => {
   }
 });
 
+/* ------------------------ GLOBAL SEARCH API ------------------------ */
+// Search across all entities: Tickets, Projects, Clients, Contacts, Candidates, Users, Leaves, Payments
+app.get('/api/global-search', requireAuth, async (req, res) => {
+  try {
+    const rawQ = (req.query.q || req.query.query || '').toString().trim();
+    if (!rawQ || rawQ.length < 1) {
+      return res.json({ query: '', total: 0, results: [] });
+    }
+
+    const qLower = rawQ.toLowerCase();
+    const term = `%${qLower}%`;
+    const numId = parseInt(rawQ.replace(/[^0-9]/g, ''), 10);
+    const validNum = Number.isInteger(numId) ? numId : -1;
+
+    // Search in parallel across all core tables
+    const [
+      ticketsRes,
+      projectsRes,
+      clientsRes,
+      contactsRes,
+      candidatesRes,
+      usersRes,
+      leavesRes,
+      paymentsRes,
+    ] = await Promise.all([
+      // Tickets
+      pool.query(
+        `SELECT t.id, t.title, t.status, t.priority, t.created_at,
+                u.name AS assigned_to_name
+         FROM tickets t
+         LEFT JOIN admin_users u ON t.assigned_to = u.id
+         WHERE t.id = $1
+            OR LOWER(t.title) LIKE $2
+            OR LOWER(COALESCE(t.description, '')) LIKE $2
+            OR LOWER(COALESCE(t.status, '')) LIKE $2
+            OR LOWER(COALESCE(u.name, '')) LIKE $2
+         ORDER BY t.created_at DESC
+         LIMIT 6`,
+        [validNum, term]
+      ),
+
+      // Projects
+      pool.query(
+        `SELECT p.id, p.name, p.code, p.zorvixe_id, p.status, p.type,
+                c.name AS client_name
+         FROM projects p
+         LEFT JOIN clients c ON p.client_id = c.id
+         WHERE p.id = $1
+            OR LOWER(p.name) LIKE $2
+            OR LOWER(p.code) LIKE $2
+            OR LOWER(p.zorvixe_id) LIKE $2
+            OR LOWER(COALESCE(p.description, '')) LIKE $2
+            OR LOWER(COALESCE(c.name, '')) LIKE $2
+         ORDER BY p.created_at DESC
+         LIMIT 6`,
+        [validNum, term]
+      ),
+
+      // Clients
+      pool.query(
+        `SELECT id, name, email, phone, company, created_at
+         FROM clients
+         WHERE id = $1
+            OR LOWER(name) LIKE $2
+            OR LOWER(email) LIKE $2
+            OR LOWER(phone) LIKE $2
+            OR LOWER(COALESCE(company, '')) LIKE $2
+         ORDER BY created_at DESC
+         LIMIT 6`,
+        [validNum, term]
+      ),
+
+      // Contacts
+      pool.query(
+        `SELECT id, name, email, phone, subject, status, created_at
+         FROM contacts
+         WHERE id = $1
+            OR LOWER(name) LIKE $2
+            OR LOWER(email) LIKE $2
+            OR LOWER(phone) LIKE $2
+            OR LOWER(subject) LIKE $2
+            OR LOWER(message) LIKE $2
+         ORDER BY created_at DESC
+         LIMIT 6`,
+        [validNum, term]
+      ),
+
+      // Candidates
+      pool.query(
+        `SELECT id, name, email, phone, position, candidate_id, status, created_at
+         FROM candidates
+         WHERE id = $1
+            OR LOWER(name) LIKE $2
+            OR LOWER(email) LIKE $2
+            OR LOWER(phone) LIKE $2
+            OR LOWER(COALESCE(position, '')) LIKE $2
+            OR LOWER(candidate_id) LIKE $2
+         ORDER BY created_at DESC
+         LIMIT 6`,
+        [validNum, term]
+      ),
+
+      // Users / Team
+      pool.query(
+        `SELECT id, name, email, username, role, department, position, is_active
+         FROM admin_users
+         WHERE id = $1
+            OR LOWER(name) LIKE $2
+            OR LOWER(email) LIKE $2
+            OR LOWER(COALESCE(username, '')) LIKE $2
+            OR LOWER(COALESCE(department, '')) LIKE $2
+            OR LOWER(COALESCE(position, '')) LIKE $2
+         ORDER BY name ASC
+         LIMIT 6`,
+        [validNum, term]
+      ),
+
+      // Leaves
+      pool.query(
+        `SELECT l.id, l.leave_type, l.status, l.start_date, l.end_date, l.total_days, l.reason,
+                u.name AS employee_name
+         FROM leaves l
+         LEFT JOIN admin_users u ON l.employee_id = u.id
+         WHERE l.id = $1
+            OR LOWER(COALESCE(u.name, '')) LIKE $2
+            OR LOWER(l.leave_type) LIKE $2
+            OR LOWER(l.reason) LIKE $2
+            OR LOWER(l.status) LIKE $2
+         ORDER BY l.created_at DESC
+         LIMIT 6`,
+        [validNum, term]
+      ),
+
+      // Payments
+      pool.query(
+        `SELECT id, client_name, project_name, project_code, amount, status, reference_id, created_at
+         FROM payment_registrations
+         WHERE id = $1
+            OR LOWER(client_name) LIKE $2
+            OR LOWER(project_name) LIKE $2
+            OR LOWER(project_code) LIKE $2
+            OR LOWER(reference_id) LIKE $2
+         ORDER BY created_at DESC
+         LIMIT 6`,
+        [validNum, term]
+      ),
+    ]);
+
+    const results = [];
+
+    // Format Tickets
+    ticketsRes.rows.forEach((t) => {
+      results.push({
+        id: `ticket-${t.id}`,
+        rawId: t.id,
+        category: 'Tickets',
+        type: 'ticket',
+        title: t.title,
+        subtitle: `#${t.id} • ${t.status || 'open'} • ${t.assigned_to_name ? `Assigned: ${t.assigned_to_name}` : 'Unassigned'}`,
+        badge: t.status,
+        url: `/tickets/${t.id}`,
+      });
+    });
+
+    // Format Projects
+    projectsRes.rows.forEach((p) => {
+      results.push({
+        id: `project-${p.id}`,
+        rawId: p.id,
+        category: 'Projects',
+        type: 'project',
+        title: p.name,
+        subtitle: `${p.code || ''} • ${p.status || 'new'} ${p.client_name ? `• Client: ${p.client_name}` : ''}`,
+        badge: p.status,
+        url: `/projects/${p.id}`,
+      });
+    });
+
+    // Format Clients
+    clientsRes.rows.forEach((c) => {
+      results.push({
+        id: `client-${c.id}`,
+        rawId: c.id,
+        category: 'Clients',
+        type: 'client',
+        title: c.name,
+        subtitle: `${c.company ? `${c.company} • ` : ''}${c.email || ''} ${c.phone ? `• ${c.phone}` : ''}`,
+        badge: c.company || 'Client',
+        url: `/clients`,
+      });
+    });
+
+    // Format Contacts
+    contactsRes.rows.forEach((c) => {
+      results.push({
+        id: `contact-${c.id}`,
+        rawId: c.id,
+        category: 'Contacts',
+        type: 'contact',
+        title: c.name,
+        subtitle: `${c.email || ''} • ${c.phone || ''} ${c.subject ? `• "${c.subject}"` : ''}`,
+        badge: c.status,
+        url: `/contacts`,
+      });
+    });
+
+    // Format Users
+    usersRes.rows.forEach((u) => {
+      results.push({
+        id: `user-${u.id}`,
+        rawId: u.id,
+        category: 'Users',
+        type: 'user',
+        title: u.name,
+        subtitle: `${u.department ? `${u.department} • ` : ''}${u.position || u.role || ''} • ${u.email}`,
+        badge: u.role,
+        url: `/users`,
+      });
+    });
+
+    // Format Candidates
+    candidatesRes.rows.forEach((cd) => {
+      results.push({
+        id: `candidate-${cd.id}`,
+        rawId: cd.id,
+        category: 'Candidates',
+        type: 'candidate',
+        title: cd.name,
+        subtitle: `${cd.position ? `${cd.position} • ` : ''}${cd.email} • ID: ${cd.candidate_id}`,
+        badge: cd.status,
+        url: `/candidates`,
+      });
+    });
+
+    // Format Leaves
+    leavesRes.rows.forEach((l) => {
+      results.push({
+        id: `leave-${l.id}`,
+        rawId: l.id,
+        category: 'Leaves',
+        type: 'leave',
+        title: `${l.employee_name || 'Employee'} - ${l.leave_type} leave`,
+        subtitle: `${l.total_days} day(s) • ${l.status} • "${l.reason}"`,
+        badge: l.status,
+        url: `/leaves`,
+      });
+    });
+
+    // Format Payments
+    paymentsRes.rows.forEach((pm) => {
+      results.push({
+        id: `payment-${pm.id}`,
+        rawId: pm.id,
+        category: 'Payments',
+        type: 'payment',
+        title: `Payment: ${pm.client_name || pm.project_name}`,
+        subtitle: `₹${Number(pm.amount || 0).toLocaleString()} • ${pm.status} • Ref: ${pm.reference_id}`,
+        badge: pm.status,
+        url: `/payments`,
+      });
+    });
+
+    res.json({
+      query: rawQ,
+      total: results.length,
+      results,
+    });
+  } catch (err) {
+    console.error('Global search error:', err);
+    res.status(500).json({ message: 'Search failed', error: err.message });
+  }
+});
+
 app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
   try {
     const [

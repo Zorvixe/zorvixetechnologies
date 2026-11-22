@@ -65,6 +65,12 @@
   justify-content: space-between;
 }
 
+.disc-title-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .disc-header-title h2 {
   font-size: 18px;
   font-weight: 700;
@@ -810,8 +816,9 @@
   margin: 0;
 }
 
-/* Back button hidden by default on desktop/large screens */
-.disc-mobile-back-btn {
+/* Back buttons hidden by default on desktop/large screens */
+.disc-mobile-back-btn,
+.disc-sidebar-back-btn {
   display: none;
 }
 
@@ -866,6 +873,31 @@
 
   .disc-mobile-back-btn:active {
     background-color: #f1f5f9;
+  }
+
+  /* Left column back button on mobile */
+  .disc-sidebar-back-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 6px;
+    color: #1e293b;
+    cursor: pointer;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+
+  .disc-sidebar-back-btn:hover {
+    background-color: #f1f5f9;
+    color: #0a66c2;
+    transform: translateX(-1px);
+  }
+
+  .disc-sidebar-back-btn:active {
+    background-color: #e2e8f0;
   }
 
   /* State 1: Conversation List View (Mobile) */

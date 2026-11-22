@@ -59,6 +59,7 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(isModalMode ? localYMD() : '');
   const [activeFilter, setActiveFilter] = useState('all'); // for mobile page: 'all' | 'unread'
+  const [searchQuery, setSearchQuery] = useState('');
 
   const modalRef = useRef(null);
   const mobileDateInputRef = useRef(null);
@@ -75,7 +76,7 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
       } catch (err) {
         try {
           mobileDateInputRef.current.focus();
-        } catch (_) {}
+        } catch (_) { }
       }
     }
   };
@@ -575,7 +576,16 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
      ------------------------------------------------------------- */
   const unreadCount = notifications.filter((n) => n.is_new).length;
   const displayedNotifications = notifications.filter((n) => {
-    if (activeFilter === 'unread') return n.is_new;
+    if (activeFilter === 'unread' && !n.is_new) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const titleMatch = (n.title || '').toLowerCase().includes(q);
+      const msgMatch = (n.message || '').toLowerCase().includes(q);
+      const actorMatch = (n.assigned_to || '').toLowerCase().includes(q);
+      const refMatch = String(n.related_id || '').toLowerCase().includes(q);
+      const projMatch = (n.related_data?.title || '').toLowerCase().includes(q);
+      return titleMatch || msgMatch || actorMatch || refMatch || projMatch;
+    }
     return true;
   });
 
@@ -587,23 +597,51 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
           <div className="li-header">
             <div className="li-header-top">
               <div className="li-title-group">
-                <h2 className="li-heading">Notifications</h2>
+                <button
+                  type="button"
+                  className="li-back-btn"
+                  onClick={() => {
+                    if (window.history.length > 1) {
+                      navigate(-1);
+                    } else {
+                      navigate('/stats');
+                    }
+                  }}
+                  aria-label="Back"
+                  title="Back"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div className="disc-search-box">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search Notifications..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      className="disc-clear-btn"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
                 {unreadCount > 0 && (
                   <span className="li-unread-badge">{unreadCount} new</span>
                 )}
               </div>
 
-              <div className="li-header-actions">
-                <button
-                  type="button"
-                  className="li-mark-all-btn"
-                  onClick={handleMarkAllAsRead}
-                  disabled={unreadCount === 0}
-                  title="Mark all notifications as read"
-                >
-                  Mark all as read
-                </button>
-              </div>
+
             </div>
 
             {/* LinkedIn Filter Pills */}
@@ -655,7 +693,7 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
                       if (typeof e.target.showPicker === 'function') {
                         e.target.showPicker();
                       }
-                    } catch (err) {}
+                    } catch (err) { }
                   }}
                   max={localYMD()}
                   tabIndex={-1}
@@ -675,6 +713,17 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
                   </span>
                 )}
               </div>
+              <div className="li-header-actions">
+                <button
+                  type="button"
+                  className="li-chip li-mark-all-btn"
+                  onClick={handleMarkAllAsRead}
+                  disabled={unreadCount === 0}
+                  title="Mark all notifications as read"
+                >
+                  Mark all as read
+                </button>
+              </div>
             </div>
           </div>
 
@@ -693,14 +742,18 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
                   </svg>
                 </div>
                 <h3 className="li-empty-title">
-                  {activeFilter === 'unread'
+                  {searchQuery
+                    ? `No notifications matching "${searchQuery}"`
+                    : activeFilter === 'unread'
                     ? 'No unread notifications'
                     : selectedDate
-                    ? `No updates for ${new Date(selectedDate).toLocaleDateString()}`
-                    : 'No notifications right now'}
+                      ? `No updates for ${new Date(selectedDate).toLocaleDateString()}`
+                      : 'No notifications right now'}
                 </h3>
                 <p className="li-empty-desc">
-                  {activeFilter === 'unread'
+                  {searchQuery
+                    ? 'Try searching with different keywords.'
+                    : activeFilter === 'unread'
                     ? "You're completely caught up! Great job."
                     : "We'll notify you when new activity happens in your workspace."}
                 </p>
