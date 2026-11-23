@@ -366,6 +366,52 @@ export const apiMarkChatRead = (senderId) => request(`/api/chat/read/${senderId}
 export const apiGlobalSearch = (q) =>
   request("/api/global-search", { params: { q } });
 
+/* --------------------------- HRMS & Attendance --------------------------- */
+export const apiAttendanceToday = () => request("/api/hrms/attendance/today");
+export const apiAttendancePunch = (body) => request("/api/hrms/attendance/punch", { method: "POST", body });
+export const apiMyAttendance = (params) => request("/api/hrms/attendance/my", { params });
+export const apiListAttendance = (params) => request("/api/hrms/attendance", { params });
+export const apiSaveManualAttendance = (body) => request("/api/hrms/attendance/manual", { method: "POST", body });
+
+/* --------------------------- HRMS Employees --------------------------- */
+export const apiListEmployees = (params) => request("/api/hrms/employees", { params });
+export const apiGetEmployee = (id) => request(`/api/hrms/employees/${id}`);
+export const apiUpdateEmployee = (id, body) => request(`/api/hrms/employees/${id}`, { method: "PUT", body });
+
+/* --------------------------- HRMS Payroll --------------------------- */
+export const apiListSalaryStructures = () => request("/api/hrms/payroll/structures");
+export const apiUpdateSalaryStructure = (userId, body) => request(`/api/hrms/payroll/structures/${userId}`, { method: "PUT", body });
+export const apiListPayrollRuns = (params) => request("/api/hrms/payroll/runs", { params });
+export const apiGeneratePayroll = (body) => request("/api/hrms/payroll/generate", { method: "POST", body });
+export const apiUpdatePayroll = (id, body) => request(`/api/hrms/payroll/${id}`, { method: "PATCH", body });
+export const apiGetPayslip = (id) => request(`/api/hrms/payroll/payslip/${id}`);
+export const apiGetMyPayslips = () => request("/api/hrms/payroll/my-payslips");
+
+/* --------------------------- HRMS Recruitment & Compliance --------------------------- */
+export const apiListJobs = () => request("/api/hrms/recruitment/jobs");
+export const apiCreateJob = (body) => request("/api/hrms/recruitment/jobs", { method: "POST", body });
+export const apiUpdateJob = (id, body) => request(`/api/hrms/recruitment/jobs/${id}`, { method: "PUT", body });
+export const apiDeleteJob = (id) => request(`/api/hrms/recruitment/jobs/${id}`, { method: "DELETE" });
+export const apiRecruitmentPipeline = () => request("/api/hrms/recruitment/pipeline");
+export const apiUpdateCandidateStage = (id, body) => request(`/api/hrms/recruitment/candidate/${id}`, { method: "PATCH", body });
+export const apiHireCandidate = (id) => request(`/api/hrms/recruitment/hire/${id}`, { method: "POST" });
+export const apiListCompliance = (params) => request("/api/hrms/compliance", { params });
+export const apiUpdateCompliance = (id, body) => request(`/api/hrms/compliance/${id}`, { method: "PATCH", body });
+
+/* --------------------------- Workforce Insights --------------------------- */
+export const apiWorkforceInsights = () => request("/api/hrms/insights");
+
+/* --------------------------- CRM Deals & Activities --------------------------- */
+export const apiCrmStats = () => request("/api/crm/stats");
+export const apiListDeals = (params) => request("/api/crm/deals", { params });
+export const apiCreateDeal = (body) => request("/api/crm/deals", { method: "POST", body });
+export const apiUpdateDeal = (id, body) => request(`/api/crm/deals/${id}`, { method: "PATCH", body });
+export const apiDeleteDeal = (id) => request(`/api/crm/deals/${id}`, { method: "DELETE" });
+export const apiListCrmActivities = (params) => request("/api/crm/activities", { params });
+export const apiCreateCrmActivity = (body) => request("/api/crm/activities", { method: "POST", body });
+export const apiUpdateCrmActivity = (id, body) => request(`/api/crm/activities/${id}`, { method: "PATCH", body });
+export const apiDeleteCrmActivity = (id) => request(`/api/crm/activities/${id}`, { method: "DELETE" });
+
 /* --------------------------- Helpers --------------------------- */
 export const formatDate = (d) => {
   if (!d) return "-"

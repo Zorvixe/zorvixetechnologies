@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Topbar from '../components/Topbar'
-import { apiListContacts, apiUpdateContact, apiDeleteContact, apiExportContactsCsv } from '../api'
+import { apiListContacts, apiUpdateContact, apiDeleteContact, apiExportContactsCsv, apiCreateDeal } from '../api'
 import { useAuth } from '../auth'
 
 import "./Contacts.css"
@@ -8,6 +9,7 @@ import "./Contacts.css"
 export default function Contacts() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
+  const navigate = useNavigate()
 
   const [rows, setRows] = useState([])
   const [page, setPage] = useState(1)
@@ -31,6 +33,22 @@ export default function Contacts() {
 
   const updateStatus = async (id, newStatus) => { await apiUpdateContact(id, { status: newStatus }); fetchData() }
   const del = async (id) => { if (!window.confirm('Delete this contact?')) return; await apiDeleteContact(id); fetchData() }
+
+  const convertToDeal = async (contact) => {
+    try {
+      await apiCreateDeal({
+        title: `Opportunity: ${contact.subject || contact.name}`,
+        contact_id: contact.id,
+        value: 100000,
+        stage: 'lead',
+        description: `Inquiry from ${contact.name} (${contact.email}, ${contact.phone}): ${contact.message}`
+      });
+      alert('Contact inquiry converted to a CRM Deal!');
+      navigate('/crm');
+    } catch (err) {
+      alert(err.message || 'Failed to create deal');
+    }
+  }
 
   const exportCsv = async () => {
     try {
@@ -115,9 +133,21 @@ export default function Contacts() {
                   </td>
                   <td className="row-actions">
                     {isAdmin ? (
-                      <button className="buttondanger" onClick={() => del(r.id)}> <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M9 3v1H4v2h16V4h-5V3H9zm-2 6v11a1 1 0 001 1h8a1 1 0 001-1V9H7zm2 2h2v9H9v-9zm4 0h2v9h-2v-9z" />
-                      </svg></button>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <button
+                          className="button ghost"
+                          style={{ padding: '4px 8px', fontSize: '0.74rem', height: 'auto', fontWeight: 700 }}
+                          onClick={() => convertToDeal(r)}
+                          title="Convert to CRM Deal"
+                        >
+                          + Deal
+                        </button>
+                        <button className="buttondanger" onClick={() => del(r.id)} title="Delete Contact">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 3v1H4v2h16V4h-5V3H9zm-2 6v11a1 1 0 001 1h8a1 1 0 001-1V9H7zm2 2h2v9H9v-9zm4 0h2v9h-2v-9z" />
+                          </svg>
+                        </button>
+                      </div>
                     ) : <span className="small">—</span>}
                   </td>
                 </tr>

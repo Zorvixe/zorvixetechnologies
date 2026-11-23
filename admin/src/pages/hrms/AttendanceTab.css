@@ -1,0 +1,822 @@
+/* ==========================================================
+   Atlassian Jira Software Design System: Attendance Tab
+   Namespaced strictly under .attendance-tab & .att-*
+   ========================================================== */
+
+.attendance-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  color: #172b4d;
+  width: 100%;
+}
+
+/* Jira Loading Container */
+.att-loading-container {
+  text-align: center;
+  padding: 60px 20px;
+  color: #5e6c84;
+  font-size: 13px;
+  background: #ffffff;
+  border: 1px dashed #dfe1e6;
+  border-radius: 4px;
+}
+
+/* ==========================================================
+   1. Punch Terminal Banner Card
+   ========================================================== */
+.att-punch-banner-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 16px 20px;
+  color: #172b4d;
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.att-punch-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.att-live-clock {
+  display: flex;
+  flex-direction: column;
+}
+
+.att-clock-digits {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: #0052cc;
+  line-height: 1.1;
+}
+
+.att-clock-date {
+  font-size: 12px;
+  color: #5e6c84;
+  font-weight: 500;
+  margin-top: 3px;
+}
+
+/* Jira Status Indicator Badge */
+.att-punch-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fafbfc;
+  border: 1px solid #dfe1e6;
+  padding: 8px 14px;
+  border-radius: 3px;
+}
+
+.att-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.att-status-dot.in {
+  background: #006644;
+  box-shadow: 0 0 6px rgba(0, 102, 68, 0.6);
+  animation: attPulseGreen 2s infinite;
+}
+
+.att-status-dot.out {
+  background: #0052cc;
+  box-shadow: 0 0 6px rgba(0, 82, 204, 0.5);
+}
+
+.att-status-dot.idle {
+  background: #ffab00;
+  box-shadow: 0 0 6px rgba(255, 171, 0, 0.6);
+}
+
+@keyframes attPulseGreen {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 102, 68, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(0, 102, 68, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 102, 68, 0);
+  }
+}
+
+.att-status-text-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.att-status-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #172b4d;
+}
+
+.att-status-meta {
+  font-size: 11.5px;
+  color: #5e6c84;
+  margin-top: 1px;
+}
+
+/* Punch Action Buttons */
+.att-punch-banner-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.att-punch-note-input {
+  background: #fafbfc;
+  border: 1px solid #dfe1e6;
+  color: #172b4d;
+  padding: 0 10px;
+  height: 32px;
+  border-radius: 3px;
+  font-size: 13px;
+  outline: none;
+  min-width: 220px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.att-punch-note-input:focus {
+  border-color: #4c9aff;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px #4c9aff;
+}
+
+.att-punch-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.att-btn-punch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-family: inherit;
+}
+
+.att-btn-punch-in {
+  background: #006644;
+  color: #ffffff;
+}
+
+.att-btn-punch-in:hover:not(:disabled) {
+  background: #00875a;
+}
+
+.att-btn-punch-out {
+  background: #de350b;
+  color: #ffffff;
+}
+
+.att-btn-punch-out:hover:not(:disabled) {
+  background: #ff5630;
+}
+
+.att-btn-punch:disabled {
+  background: #ebecf0;
+  color: #a5adba;
+  cursor: not-allowed;
+}
+
+.att-punch-completed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e3fcef;
+  border: 1px solid #abf5d1;
+  color: #006644;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 3px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.att-btn-toggle-note {
+  height: 32px;
+  width: 32px;
+  background: #f4f5f7;
+  border: 1px solid #dfe1e6;
+  color: #42526e;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.att-btn-toggle-note:hover {
+  background: #ebecf0;
+  color: #172b4d;
+}
+
+/* ==========================================================
+   2. Org KPI Tiles (Jira Dashboard Gadgets)
+   ========================================================== */
+.att-org-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.att-kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+  transition: all 0.15s ease;
+}
+
+.att-kpi-card:hover {
+  box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+}
+
+.att-kpi-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: #f4f5f7;
+  flex-shrink: 0;
+}
+
+.att-kpi-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.att-kpi-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: #172b4d;
+  line-height: 1.1;
+}
+
+.att-kpi-lbl {
+  font-size: 11px;
+  color: #5e6c84;
+  font-weight: 600;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.att-text-success { color: #006644; }
+.att-text-warning { color: #ff8b00; }
+.att-text-info { color: #0052cc; }
+.att-text-purple { color: #6554c0; }
+
+/* ==========================================================
+   3. Jira Section Cards & Filters
+   ========================================================== */
+.att-section-card {
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.att-section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid #ebecf0;
+  padding-bottom: 12px;
+}
+
+.att-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #172b4d;
+  margin: 0 0 2px 0;
+}
+
+.att-section-sub {
+  font-size: 12px;
+  color: #5e6c84;
+  margin: 0;
+}
+
+.att-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.att-btn-manual-entry {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #0052cc;
+  color: #ffffff;
+  border: none;
+  padding: 0 12px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.att-btn-manual-entry:hover {
+  background: #0065ff;
+}
+
+/* Filter Bar */
+.att-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #fafbfc;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  padding: 8px 12px;
+}
+
+.att-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.att-filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5e6c84;
+}
+
+.att-filter-input,
+.att-filter-select {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  font-size: 12.5px;
+  color: #172b4d;
+  background: #ffffff;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.att-filter-input:focus,
+.att-filter-select:focus {
+  border-color: #4c9aff;
+  box-shadow: 0 0 0 1px #4c9aff;
+}
+
+/* Month Picker */
+.att-month-picker-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.att-month-select,
+.att-year-select {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #172b4d;
+  background: #fafbfc;
+  outline: none;
+  font-family: inherit;
+}
+
+.att-month-select:focus,
+.att-year-select:focus {
+  border-color: #4c9aff;
+  background: #ffffff;
+}
+
+/* My Stats Summary Pills */
+.att-my-stats-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.att-stat-pill {
+  background: #fafbfc;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.att-stat-pill span {
+  color: #5e6c84;
+  font-weight: 500;
+}
+
+.att-stat-pill strong {
+  color: #172b4d;
+  font-weight: 700;
+}
+
+/* ==========================================================
+   4. Jira Data Tables
+   ========================================================== */
+.att-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+}
+
+.att-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.att-table th {
+  background: #f4f5f7;
+  color: #5e6c84;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 12px;
+  border-bottom: 1px solid #dfe1e6;
+  white-space: nowrap;
+}
+
+.att-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #ebecf0;
+  color: #172b4d;
+  vertical-align: middle;
+}
+
+.att-table tr:last-child td {
+  border-bottom: none;
+}
+
+.att-table tr:hover td {
+  background: #fafbfc;
+}
+
+.att-table-empty,
+.att-table-loading {
+  text-align: center;
+  padding: 30px !important;
+  color: #5e6c84;
+  font-size: 13px;
+}
+
+/* Employee cell in table */
+.att-emp-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.att-emp-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #deebff;
+  color: #0052cc;
+  font-weight: 700;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.att-emp-name {
+  font-weight: 600;
+  color: #172b4d;
+  line-height: 1.2;
+}
+
+.att-emp-code {
+  font-size: 11px;
+  color: #5e6c84;
+  font-family: monospace;
+}
+
+.att-emp-dept {
+  font-weight: 500;
+  color: #172b4d;
+}
+
+.att-emp-pos {
+  font-size: 11px;
+  color: #5e6c84;
+}
+
+.att-punch-time {
+  font-family: monospace;
+  font-size: 12px;
+  color: #172b4d;
+}
+
+.att-note-cell {
+  font-size: 12px;
+  color: #5e6c84;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Jira Status Lozenges */
+.att-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.att-badge-present {
+  background: #e3fcef;
+  color: #006644;
+}
+
+.att-badge-late {
+  background: #fff0b3;
+  color: #172b4d;
+}
+
+.att-badge-half_day {
+  background: #deebff;
+  color: #0052cc;
+}
+
+.att-badge-absent {
+  background: #ffebe6;
+  color: #bf2600;
+}
+
+.att-badge-on_leave {
+  background: #eae6ff;
+  color: #403294;
+}
+
+/* ==========================================================
+   5. Jira Modal for Manual Correction
+   ========================================================== */
+.att-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 30, 66, 0.54);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 16px;
+}
+
+.att-modal-card {
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  box-shadow: 0 8px 30px rgba(9, 30, 66, 0.25);
+  max-width: 520px;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.att-modal-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid #ebecf0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+}
+
+.att-modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #172b4d;
+  margin: 0;
+}
+
+.att-modal-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #5e6c84;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 3px;
+}
+
+.att-modal-close-btn:hover {
+  background: rgba(9, 30, 66, 0.08);
+  color: #172b4d;
+}
+
+.att-modal-form {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.att-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.att-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.att-form-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5e6c84;
+}
+
+.att-form-input,
+.att-form-select {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #dfe1e6;
+  background: #ffffff;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #172b4d;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.att-form-input:focus,
+.att-form-select:focus {
+  border-color: #4c9aff;
+  box-shadow: 0 0 0 1px #4c9aff;
+}
+
+.att-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #ebecf0;
+  margin-top: 6px;
+}
+
+.att-btn-cancel {
+  height: 32px;
+  background: transparent;
+  border: 1px solid #dfe1e6;
+  color: #42526e;
+  border-radius: 3px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.att-btn-cancel:hover {
+  background: rgba(9, 30, 66, 0.04);
+}
+
+.att-btn-save {
+  height: 32px;
+  background: #0052cc;
+  border: none;
+  color: #ffffff;
+  border-radius: 3px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.att-btn-save:hover:not(:disabled) {
+  background: #0065ff;
+}
+
+.att-btn-save:disabled {
+  background: #ebecf0;
+  color: #a5adba;
+  cursor: not-allowed;
+}
+
+/* ==========================================================
+   6. Mobile & Responsive Layout
+   ========================================================== */
+@media (max-width: 768px) {
+  .att-punch-banner-card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px;
+  }
+
+  .att-punch-banner-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .att-punch-banner-right {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .att-punch-note-input {
+    min-width: 100%;
+  }
+
+  .att-punch-buttons-group {
+    width: 100%;
+  }
+
+  .att-btn-punch {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .att-section-card {
+    padding: 14px;
+  }
+
+  .att-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .att-filter-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .att-form-row {
+    grid-template-columns: 1fr;
+  }
+}

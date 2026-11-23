@@ -2,7 +2,8 @@ import { useAuth } from '../auth'
 import "./Sidebar.css"
 
 const VALID_VIEWS = new Set([
-  'stats', 'clients', 'payments', 'users', 'candidates', 'tickets', 'contacts', 'account', 'discussions', 'leaves', 'login-history', 'notifications', 'user-tickets'
+  'stats', 'clients', 'payments', 'users', 'candidates', 'tickets', 'contacts', 'account', 'discussions', 'leaves', 'login-history', 'notifications', 'user-tickets',
+  'hrms', 'attendance', 'payroll', 'employees', 'recruitment', 'workforce-insights', 'crm'
 ]);
 
 export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
@@ -52,12 +53,28 @@ export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
           {!collapsed && <span>Clients</span>}
         </a>
 
+        <a href="#crm" className={`navlink ${current === 'crm' ? 'active' : ''}`} onClick={goto('crm')} title="CRM Pipeline">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          {!collapsed && <span>CRM Pipeline</span>}
+        </a>
+
         {user?.role === 'admin' && (
           <a href="#payments" className={`navlink ${current === 'payments' ? 'active' : ''}`} onClick={goto('payments')} title="Payments">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /><path d="M6 16h2" /><path d="M10 16h6" /></svg>
             {!collapsed && <span>Payments</span>}
           </a>
         )}
+
+        {/* HRMS & Payroll */}
+        <a href="#hrms" className={`navlink ${['hrms', 'attendance', 'payroll', 'employees', 'recruitment', 'workforce-insights'].includes(current) ? 'active' : ''}`} onClick={goto('hrms')} title="HRMS & Payroll">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+          </svg>
+          {!collapsed && <span>HRMS & Payroll</span>}
+        </a>
 
         {user?.role === 'admin' && (
           <a href="#users" className={`navlink ${current === 'users' ? 'active' : ''}`} onClick={goto('users')} title="Users">

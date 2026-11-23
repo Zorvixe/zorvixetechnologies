@@ -588,6 +588,244 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
       CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at);
     `);
 
+    // ---------------- HRMS & Payroll Tables ----------------
+    // 1. Attendance Management
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS hrms_attendance (
+        id BIGSERIAL PRIMARY KEY,
+        employee_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+        date DATE NOT NULL,
+        punch_in TIMESTAMPTZ,
+        punch_out TIMESTAMPTZ,
+        total_hours NUMERIC(5,2) DEFAULT 0,
+        status VARCHAR(20) NOT NULL DEFAULT 'present', -- 'present', 'late', 'half_day', 'absent', 'on_leave', 'holiday'
+        punch_in_note TEXT,
+        punch_out_note TEXT,
+        ip_address VARCHAR(100),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(employee_id, date)
+      );
+      CREATE INDEX IF NOT EXISTS idx_hrms_attendance_employee ON hrms_attendance(employee_id);
+      CREATE INDEX IF NOT EXISTS idx_hrms_attendance_date ON hrms_attendance(date);
+      CREATE INDEX IF NOT EXISTS idx_hrms_attendance_status ON hrms_attendance(status);
+    `);
+
+    // 2. Employee Profile & Records
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS hrms_employee_profiles (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL UNIQUE REFERENCES admin_users(id) ON DELETE CASCADE,
+        employee_code VARCHAR(50) UNIQUE,
+        dob DATE,
+        gender VARCHAR(20),
+        blood_group VARCHAR(10),
+        address TEXT,
+        emergency_contact_name VARCHAR(100),
+        emergency_contact_phone VARCHAR(30),
+        emergency_contact_relation VARCHAR(50),
+        employment_type VARCHAR(30) DEFAULT 'full_time',
+        joining_date DATE,
+        reporting_manager_id BIGINT REFERENCES admin_users(id) ON DELETE SET NULL,
+        bank_name VARCHAR(100),
+        bank_account_no VARCHAR(50),
+        bank_ifsc VARCHAR(30),
+        pan_number VARCHAR(30),
+        uan_number VARCHAR(30),
+        esi_number VARCHAR(30),
+        documents JSONB DEFAULT '[]',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_hrms_emp_profiles_user ON hrms_employee_profiles(user_id);
+      CREATE INDEX IF NOT EXISTS idx_hrms_emp_profiles_code ON hrms_employee_profiles(employee_code);
+    `);
+
+    // 3. Salary Structures
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS hrms_salary_structures (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL UNIQUE REFERENCES admin_users(id) ON DELETE CASCADE,
+        ctc_annual NUMERIC(12,2) NOT NULL DEFAULT 0,
+        basic_monthly NUMERIC(10,2) NOT NULL DEFAULT 0,
+        hra_monthly NUMERIC(10,2) NOT NULL DEFAULT 0,
+        special_allowance_monthly NUMERIC(10,2) NOT NULL DEFAULT 0,
+        conveyance_monthly NUMERIC(10,2) NOT NULL DEFAULT 0,
+        medical_allowance_monthly NUMERIC(10,2) NOT NULL DEFAULT 0,
+        pf_employee_monthly NUMERIC(10,2) NOT NULL DEFAULT 0,
+        esi_employee_monthly NUMERIC(10,2) NOT NULL DEFAULT 0,
+        professional_tax_monthly NUMERIC(10,2) NOT NULL DEFAULT 200,
+        tds_monthly NUMERIC(10,2) NOT NULL DEFAULT 0,
+        effective_from DATE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_hrms_salary_structures_user ON hrms_salary_structures(user_id);
+    `);
+
+    // 4. Monthly Payroll Records
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS hrms_payrolls (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+        month INTEGER NOT NULL,
+        year INTEGER NOT NULL,
+        working_days INTEGER NOT NULL DEFAULT 30,
+        paid_days NUMERIC(4,1) NOT NULL DEFAULT 30,
+        unpaid_days NUMERIC(4,1) NOT NULL DEFAULT 0,
+        gross_earnings NUMERIC(10,2) NOT NULL DEFAULT 0,
+        total_deductions NUMERIC(10,2) NOT NULL DEFAULT 0,
+        net_salary NUMERIC(10,2) NOT NULL DEFAULT 0,
+        basic_pay NUMERIC(10,2) NOT NULL DEFAULT 0,
+        hra NUMERIC(10,2) NOT NULL DEFAULT 0,
+        special_allowance NUMERIC(10,2) NOT NULL DEFAULT 0,
+        conveyance NUMERIC(10,2) NOT NULL DEFAULT 0,
+        medical NUMERIC(10,2) NOT NULL DEFAULT 0,
+        bonus NUMERIC(10,2) NOT NULL DEFAULT 0,
+        pf_deduction NUMERIC(10,2) NOT NULL DEFAULT 0,
+        esi_deduction NUMERIC(10,2) NOT NULL DEFAULT 0,
+        pt_deduction NUMERIC(10,2) NOT NULL DEFAULT 0,
+        tds_deduction NUMERIC(10,2) NOT NULL DEFAULT 0,
+        other_deductions NUMERIC(10,2) NOT NULL DEFAULT 0,
+        status VARCHAR(20) NOT NULL DEFAULT 'draft',
+        payment_date DATE,
+        payment_mode VARCHAR(30) DEFAULT 'Bank Transfer',
+        notes TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(user_id, month, year)
+      );
+      CREATE INDEX IF NOT EXISTS idx_hrms_payrolls_user ON hrms_payrolls(user_id);
+      CREATE INDEX IF NOT EXISTS idx_hrms_payrolls_period ON hrms_payrolls(year, month);
+    `);
+
+    // 5. Job Openings (Recruitment) & Candidates Pipeline
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS hrms_job_openings (
+        id BIGSERIAL PRIMARY KEY,
+        title VARCHAR(150) NOT NULL,
+        department VARCHAR(100) NOT NULL,
+        experience_required VARCHAR(50),
+        job_type VARCHAR(50) DEFAULT 'Full-time',
+        vacancies INTEGER DEFAULT 1,
+        location VARCHAR(100) DEFAULT 'Hyderabad / Remote',
+        salary_range VARCHAR(100),
+        description TEXT,
+        requirements TEXT,
+        status VARCHAR(20) DEFAULT 'open',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS stage VARCHAR(50) DEFAULT 'applied';
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS interview_date TIMESTAMPTZ;
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS interview_notes TEXT;
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS rating INTEGER DEFAULT 0;
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS job_id BIGINT;
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS expected_salary VARCHAR(50);
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS experience_years VARCHAR(20);
+    `);
+
+    // 6. Statutory Compliance Records
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS hrms_compliance_records (
+        id BIGSERIAL PRIMARY KEY,
+        title VARCHAR(150) NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        frequency VARCHAR(30) DEFAULT 'monthly',
+        due_date DATE,
+        status VARCHAR(20) DEFAULT 'compliant',
+        notes TEXT,
+        document_ref VARCHAR(255),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // 7. CRM Deals & Sales Pipeline
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS crm_deals (
+        id BIGSERIAL PRIMARY KEY,
+        title VARCHAR(150) NOT NULL,
+        client_id BIGINT REFERENCES clients(id) ON DELETE SET NULL,
+        contact_id BIGINT REFERENCES contacts(id) ON DELETE SET NULL,
+        value NUMERIC(12,2) DEFAULT 0,
+        stage VARCHAR(30) NOT NULL DEFAULT 'lead',
+        probability INTEGER DEFAULT 50,
+        expected_close_date DATE,
+        assigned_to BIGINT REFERENCES admin_users(id) ON DELETE SET NULL,
+        description TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_crm_deals_stage ON crm_deals(stage);
+      CREATE INDEX IF NOT EXISTS idx_crm_deals_client ON crm_deals(client_id);
+    `);
+
+    // 8. CRM Activities & Follow-ups
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS crm_activities (
+        id BIGSERIAL PRIMARY KEY,
+        deal_id BIGINT REFERENCES crm_deals(id) ON DELETE CASCADE,
+        client_id BIGINT REFERENCES clients(id) ON DELETE CASCADE,
+        user_id BIGINT REFERENCES admin_users(id) ON DELETE SET NULL,
+        type VARCHAR(30) NOT NULL DEFAULT 'note',
+        title VARCHAR(200) NOT NULL,
+        description TEXT,
+        due_date TIMESTAMPTZ,
+        completed BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_crm_activities_deal ON crm_activities(deal_id);
+    `);
+
+    // Ensure profiles & salary structures exist for any existing users
+    await client.query(`
+      INSERT INTO hrms_employee_profiles (user_id, employee_code, employment_type, joining_date)
+      SELECT id, 'ZOR-EMP-' || LPAD(id::text, 3, '0'), 'full_time', created_at::date
+      FROM admin_users
+      WHERE NOT EXISTS (SELECT 1 FROM hrms_employee_profiles WHERE hrms_employee_profiles.user_id = admin_users.id);
+
+      INSERT INTO hrms_salary_structures (user_id, ctc_annual, basic_monthly, hra_monthly, special_allowance_monthly, conveyance_monthly, medical_allowance_monthly, pf_employee_monthly, esi_employee_monthly, professional_tax_monthly, effective_from)
+      SELECT id, 600000, 25000, 10000, 10000, 2500, 2500, 1800, 375, 200, CURRENT_DATE
+      FROM admin_users
+      WHERE NOT EXISTS (SELECT 1 FROM hrms_salary_structures WHERE hrms_salary_structures.user_id = admin_users.id);
+    `);
+
+    // Seed default statutory compliance templates if empty
+    await client.query(`
+      INSERT INTO hrms_compliance_records (title, category, frequency, due_date, status, notes)
+      SELECT 'EPF Monthly ECR Filing', 'PF_ESI', 'monthly', (CURRENT_DATE + INTERVAL '15 days')::date, 'compliant', 'Monthly EPF electronic return filing and payment'
+      WHERE NOT EXISTS (SELECT 1 FROM hrms_compliance_records WHERE title = 'EPF Monthly ECR Filing');
+
+      INSERT INTO hrms_compliance_records (title, category, frequency, due_date, status, notes)
+      SELECT 'ESIC Monthly Contribution Return', 'PF_ESI', 'monthly', (CURRENT_DATE + INTERVAL '15 days')::date, 'compliant', 'Monthly ESIC payment and challan filing'
+      WHERE NOT EXISTS (SELECT 1 FROM hrms_compliance_records WHERE title = 'ESIC Monthly Contribution Return');
+
+      INSERT INTO hrms_compliance_records (title, category, frequency, due_date, status, notes)
+      SELECT 'TDS Quarterly Return (Form 24Q)', 'TDS', 'quarterly', (CURRENT_DATE + INTERVAL '30 days')::date, 'compliant', 'Quarterly salary TDS return filing'
+      WHERE NOT EXISTS (SELECT 1 FROM hrms_compliance_records WHERE title = 'TDS Quarterly Return (Form 24Q)');
+
+      INSERT INTO hrms_compliance_records (title, category, frequency, due_date, status, notes)
+      SELECT 'Professional Tax Remittance', 'Statutory', 'monthly', (CURRENT_DATE + INTERVAL '20 days')::date, 'compliant', 'State statutory Professional Tax deposit'
+      WHERE NOT EXISTS (SELECT 1 FROM hrms_compliance_records WHERE title = 'Professional Tax Remittance');
+
+      INSERT INTO hrms_compliance_records (title, category, frequency, due_date, status, notes)
+      SELECT 'Labour Welfare Fund Compliance', 'Labour_Law', 'annual', (CURRENT_DATE + INTERVAL '60 days')::date, 'compliant', 'Annual labour welfare fund deduction and submission'
+      WHERE NOT EXISTS (SELECT 1 FROM hrms_compliance_records WHERE title = 'Labour Welfare Fund Compliance');
+    `);
+
+    // Seed sample job openings if empty
+    await client.query(`
+      INSERT INTO hrms_job_openings (title, department, experience_required, job_type, vacancies, salary_range, description, requirements, status)
+      SELECT 'Senior Full Stack React / Node Developer', 'Engineering', '3-5 years', 'Full-time', 2, '₹8,00,000 - ₹14,00,000', 'Building scalable web applications, API integrations, and UI components with React & Node.js.', 'Proficient in React, Node.js, PostgreSQL, Tailwind/CSS, Docker.', 'open'
+      WHERE NOT EXISTS (SELECT 1 FROM hrms_job_openings WHERE title = 'Senior Full Stack React / Node Developer');
+
+      INSERT INTO hrms_job_openings (title, department, experience_required, job_type, vacancies, salary_range, description, requirements, status)
+      SELECT 'UI/UX Product Designer', 'Design', '2-4 years', 'Full-time', 1, '₹6,00,000 - ₹10,00,000', 'Designing modern web & mobile product interfaces, wireframes, prototypes in Figma.', 'Figma, Design Systems, User Research, Prototyping.', 'open'
+      WHERE NOT EXISTS (SELECT 1 FROM hrms_job_openings WHERE title = 'UI/UX Product Designer');
+    `);
+
 
     // Seed default admin
     if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
@@ -2816,6 +3054,8 @@ app.get('/api/global-search', requireAuth, async (req, res) => {
       usersRes,
       leavesRes,
       paymentsRes,
+      dealsRes,
+      jobsRes,
     ] = await Promise.all([
       // Tickets
       pool.query(
@@ -2938,6 +3178,33 @@ app.get('/api/global-search', requireAuth, async (req, res) => {
          LIMIT 6`,
         [validNum, term]
       ),
+
+      // CRM Deals
+      pool.query(
+        `SELECT d.id, d.title, d.value, d.stage, d.probability, c.name AS client_name
+         FROM crm_deals d
+         LEFT JOIN clients c ON c.id = d.client_id
+         WHERE d.id = $1
+            OR LOWER(d.title) LIKE $2
+            OR LOWER(COALESCE(c.name, '')) LIKE $2
+            OR LOWER(d.stage) LIKE $2
+         ORDER BY d.created_at DESC
+         LIMIT 6`,
+        [validNum, term]
+      ),
+
+      // HRMS Job Openings
+      pool.query(
+        `SELECT id, title, department, vacancies, job_type, salary_range, status
+         FROM hrms_job_openings
+         WHERE id = $1
+            OR LOWER(title) LIKE $2
+            OR LOWER(department) LIKE $2
+            OR LOWER(status) LIKE $2
+         ORDER BY created_at DESC
+         LIMIT 6`,
+        [validNum, term]
+      ),
     ]);
 
     const results = [];
@@ -3051,6 +3318,34 @@ app.get('/api/global-search', requireAuth, async (req, res) => {
         subtitle: `₹${Number(pm.amount || 0).toLocaleString()} • ${pm.status} • Ref: ${pm.reference_id}`,
         badge: pm.status,
         url: `/payments`,
+      });
+    });
+
+    // Format CRM Deals
+    dealsRes.rows.forEach((d) => {
+      results.push({
+        id: `deal-${d.id}`,
+        rawId: d.id,
+        category: 'CRM Deals',
+        type: 'deal',
+        title: d.title,
+        subtitle: `₹${Number(d.value || 0).toLocaleString()} • ${d.client_name ? `Client: ${d.client_name} • ` : ''}Stage: ${d.stage}`,
+        badge: d.stage,
+        url: `/crm`,
+      });
+    });
+
+    // Format Job Openings
+    jobsRes.rows.forEach((j) => {
+      results.push({
+        id: `job-${j.id}`,
+        rawId: j.id,
+        category: 'Job Openings',
+        type: 'job',
+        title: j.title,
+        subtitle: `${j.department} • ${j.vacancies} Openings • ${j.job_type}`,
+        badge: j.status,
+        url: `/recruitment`,
       });
     });
 
@@ -5312,6 +5607,1571 @@ app.patch('/api/chat/read/:senderId', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Mark read error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+/* ==========================================================================
+   ======================= HRMS & PAYROLL MODULE APIS =======================
+   ========================================================================== */
+
+function numberToWords(num) {
+  if (!num || isNaN(num)) return 'Zero Rupees Only';
+  const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  const n = ('000000000' + Math.floor(num)).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+  if (!n) return `${num} Rupees Only`;
+  let str = '';
+  str += (Number(n[1]) !== 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : '';
+  str += (Number(n[2]) !== 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : '';
+  str += (Number(n[3]) !== 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : '';
+  str += (Number(n[4]) !== 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'Hundred ' : '';
+  str += (Number(n[5]) !== 0) ? ((str !== '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
+  return (str.trim() || 'Zero') + ' Rupees Only';
+}
+
+/* ----------------------- 1. Attendance Management ----------------------- */
+
+// Get current user's today attendance + admin organization overview
+app.get('/api/hrms/attendance/today', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const isUserAdmin = isAdmin(req);
+
+    // Current user's today record
+    const myToday = await pool.query(
+      `SELECT * FROM hrms_attendance WHERE employee_id = $1 AND date = CURRENT_DATE LIMIT 1`,
+      [userId]
+    );
+
+    let orgOverview = null;
+    let todayRecords = [];
+
+    if (isUserAdmin) {
+      const statsQ = await pool.query(`
+        SELECT 
+          COUNT(DISTINCT u.id) AS total_employees,
+          COUNT(DISTINCT a.id) FILTER (WHERE a.status IN ('present', 'late')) AS present_count,
+          COUNT(DISTINCT a.id) FILTER (WHERE a.status = 'late') AS late_count,
+          COUNT(DISTINCT a.id) FILTER (WHERE a.status = 'half_day') AS half_day_count,
+          COUNT(DISTINCT l.id) FILTER (WHERE l.status = 'approved' AND CURRENT_DATE BETWEEN l.start_date AND l.end_date) AS on_leave_count
+        FROM admin_users u
+        LEFT JOIN hrms_attendance a ON a.employee_id = u.id AND a.date = CURRENT_DATE
+        LEFT JOIN leaves l ON l.employee_id = u.id
+        WHERE u.is_active = TRUE
+      `);
+
+      const recordsQ = await pool.query(`
+        SELECT 
+          a.id,
+          u.id AS employee_id,
+          u.name,
+          u.email,
+          u.department,
+          u.position,
+          ep.employee_code,
+          a.date,
+          a.punch_in,
+          a.punch_out,
+          a.total_hours,
+          COALESCE(a.status, 'absent') AS status,
+          a.punch_in_note,
+          a.punch_out_note
+        FROM admin_users u
+        LEFT JOIN hrms_employee_profiles ep ON ep.user_id = u.id
+        LEFT JOIN hrms_attendance a ON a.employee_id = u.id AND a.date = CURRENT_DATE
+        WHERE u.is_active = TRUE
+        ORDER BY a.punch_in ASC NULLS LAST, u.name ASC
+      `);
+
+      orgOverview = statsQ.rows[0] || {};
+      todayRecords = recordsQ.rows || [];
+    }
+
+    res.json({
+      success: true,
+      myRecord: myToday.rows[0] || null,
+      currentTime: new Date().toISOString(),
+      orgOverview,
+      todayRecords
+    });
+  } catch (error) {
+    console.error('HRMS Attendance today error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch attendance data' });
+  }
+});
+
+// Quick Punch In / Punch Out
+app.post('/api/hrms/attendance/punch', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const { action, note } = req.body || {}; // action: 'in' | 'out'
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+
+    const existing = await pool.query(
+      `SELECT * FROM hrms_attendance WHERE employee_id = $1 AND date = CURRENT_DATE LIMIT 1`,
+      [userId]
+    );
+
+    if (action === 'in') {
+      if (existing.rows.length > 0 && existing.rows[0].punch_in) {
+        return res.status(400).json({ success: false, message: 'You have already punched in for today' });
+      }
+
+      // Check if late (after 10:15 AM local)
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const isLate = hours > 10 || (hours === 10 && minutes > 15);
+      const status = isLate ? 'late' : 'present';
+
+      const insertQ = `
+        INSERT INTO hrms_attendance (employee_id, date, punch_in, status, punch_in_note, ip_address)
+        VALUES ($1, CURRENT_DATE, NOW(), $2, $3, $4)
+        ON CONFLICT (employee_id, date) DO UPDATE 
+        SET punch_in = EXCLUDED.punch_in, status = EXCLUDED.status, punch_in_note = EXCLUDED.punch_in_note, updated_at = NOW()
+        RETURNING *
+      `;
+      const result = await pool.query(insertQ, [userId, status, note || null, ip]);
+      return res.json({ success: true, message: isLate ? 'Punched in (Marked Late)' : 'Punched in successfully', record: result.rows[0] });
+    } else if (action === 'out') {
+      if (existing.rows.length === 0 || !existing.rows[0].punch_in) {
+        return res.status(400).json({ success: false, message: 'Please punch in first before punching out' });
+      }
+
+      const punchInTime = new Date(existing.rows[0].punch_in);
+      const now = new Date();
+      const durationHours = Math.max(0, Number(((now - punchInTime) / (1000 * 60 * 60)).toFixed(2)));
+
+      let status = existing.rows[0].status;
+      if (durationHours < 4) {
+        status = 'half_day';
+      } else if (durationHours >= 8 && status === 'half_day') {
+        status = 'present';
+      }
+
+      const updateQ = `
+        UPDATE hrms_attendance
+        SET punch_out = NOW(), total_hours = $1, status = $2, punch_out_note = $3, updated_at = NOW()
+        WHERE id = $4
+        RETURNING *
+      `;
+      const result = await pool.query(updateQ, [durationHours, status, note || null, existing.rows[0].id]);
+      return res.json({ success: true, message: 'Punched out successfully', record: result.rows[0] });
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid action: must be in or out' });
+    }
+  } catch (error) {
+    console.error('HRMS Punch error:', error);
+    res.status(500).json({ success: false, message: 'Punch action failed' });
+  }
+});
+
+// My Attendance History
+app.get('/api/hrms/attendance/my', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const { month, year } = req.query;
+    const m = Number(month) || new Date().getMonth() + 1;
+    const y = Number(year) || new Date().getFullYear();
+
+    const q = `
+      SELECT * FROM hrms_attendance 
+      WHERE employee_id = $1 
+        AND EXTRACT(MONTH FROM date) = $2 
+        AND EXTRACT(YEAR FROM date) = $3
+      ORDER BY date DESC
+    `;
+    const { rows } = await pool.query(q, [userId, m, y]);
+
+    // Aggregate metrics
+    let presentCount = 0;
+    let lateCount = 0;
+    let halfDayCount = 0;
+    let totalHours = 0;
+    rows.forEach(r => {
+      if (r.status === 'present' || r.status === 'late') presentCount++;
+      if (r.status === 'late') lateCount++;
+      if (r.status === 'half_day') halfDayCount++;
+      totalHours += Number(r.total_hours || 0);
+    });
+
+    res.json({
+      success: true,
+      records: rows,
+      stats: {
+        totalDays: rows.length,
+        presentCount,
+        lateCount,
+        halfDayCount,
+        totalHours: totalHours.toFixed(2),
+        avgHoursPerDay: rows.length ? (totalHours / rows.length).toFixed(1) : 0
+      }
+    });
+  } catch (error) {
+    console.error('My Attendance error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch personal attendance' });
+  }
+});
+
+// Admin: Attendance Filter / Management across employees
+app.get('/api/hrms/attendance', requireAdmin, async (req, res) => {
+  try {
+    const { date, month, year, department, employee_id, status } = req.query;
+    let whereClauses = [];
+    let params = [];
+
+    if (date) {
+      params.push(date);
+      whereClauses.push(`a.date = $${params.length}`);
+    } else if (month && year) {
+      params.push(Number(month));
+      whereClauses.push(`EXTRACT(MONTH FROM a.date) = $${params.length}`);
+      params.push(Number(year));
+      whereClauses.push(`EXTRACT(YEAR FROM a.date) = $${params.length}`);
+    }
+
+    if (department) {
+      params.push(department);
+      whereClauses.push(`u.department = $${params.length}`);
+    }
+    if (employee_id) {
+      params.push(employee_id);
+      whereClauses.push(`u.id = $${params.length}`);
+    }
+    if (status) {
+      params.push(status);
+      whereClauses.push(`a.status = $${params.length}`);
+    }
+
+    const whereStr = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    const query = `
+      SELECT 
+        a.id,
+        u.id AS employee_id,
+        u.name,
+        u.email,
+        u.department,
+        u.position,
+        ep.employee_code,
+        a.date,
+        a.punch_in,
+        a.punch_out,
+        a.total_hours,
+        a.status,
+        a.punch_in_note,
+        a.punch_out_note
+      FROM hrms_attendance a
+      JOIN admin_users u ON u.id = a.employee_id
+      LEFT JOIN hrms_employee_profiles ep ON ep.user_id = u.id
+      ${whereStr}
+      ORDER BY a.date DESC, u.name ASC
+      LIMIT 300
+    `;
+
+    const { rows } = await pool.query(query, params);
+    res.json({ success: true, records: rows });
+  } catch (error) {
+    console.error('Admin attendance search error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve attendance logs' });
+  }
+});
+
+// Admin: Manual Attendance Upsert
+app.post('/api/hrms/attendance/manual', requireAdmin, async (req, res) => {
+  try {
+    const { employee_id, date, punch_in, punch_out, total_hours, status, note } = req.body || {};
+    if (!employee_id || !date) {
+      return res.status(400).json({ success: false, message: 'employee_id and date are required' });
+    }
+
+    const query = `
+      INSERT INTO hrms_attendance (employee_id, date, punch_in, punch_out, total_hours, status, punch_in_note)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (employee_id, date) DO UPDATE 
+      SET punch_in = EXCLUDED.punch_in,
+          punch_out = EXCLUDED.punch_out,
+          total_hours = EXCLUDED.total_hours,
+          status = EXCLUDED.status,
+          punch_in_note = EXCLUDED.punch_in_note,
+          updated_at = NOW()
+      RETURNING *
+    `;
+    const { rows } = await pool.query(query, [
+      employee_id,
+      date,
+      punch_in || null,
+      punch_out || null,
+      total_hours || 8,
+      status || 'present',
+      note || 'Manual Entry by Admin'
+    ]);
+
+    res.json({ success: true, message: 'Attendance record saved', record: rows[0] });
+  } catch (error) {
+    console.error('Manual attendance error:', error);
+    res.status(500).json({ success: false, message: 'Failed to save attendance record' });
+  }
+});
+
+/* ----------------------- 2. Employee Records & Directory ----------------------- */
+
+// Get all employee records (with profile & salary structures)
+app.get('/api/hrms/employees', requireAuth, async (req, res) => {
+  try {
+    const { search, department, role, status } = req.query;
+    let whereClauses = [];
+    let params = [];
+
+    if (search) {
+      params.push(`%${search.trim().toLowerCase()}%`);
+      whereClauses.push(`(LOWER(u.name) LIKE $${params.length} OR LOWER(u.email) LIKE $${params.length} OR LOWER(ep.employee_code) LIKE $${params.length})`);
+    }
+    if (department) {
+      params.push(department);
+      whereClauses.push(`u.department = $${params.length}`);
+    }
+    if (role) {
+      params.push(role);
+      whereClauses.push(`u.role = $${params.length}`);
+    }
+    if (status === 'active') {
+      whereClauses.push(`u.is_active = TRUE`);
+    } else if (status === 'inactive') {
+      whereClauses.push(`u.is_active = FALSE`);
+    }
+
+    const whereStr = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    const query = `
+      SELECT 
+        u.id,
+        u.name,
+        u.email,
+        u.username,
+        u.role,
+        u.department,
+        u.position,
+        u.phone,
+        u.is_active,
+        u.created_at,
+        ep.employee_code,
+        ep.dob,
+        ep.gender,
+        ep.blood_group,
+        ep.address,
+        ep.emergency_contact_name,
+        ep.emergency_contact_phone,
+        ep.emergency_contact_relation,
+        ep.employment_type,
+        ep.joining_date,
+        ep.bank_name,
+        ep.bank_account_no,
+        ep.bank_ifsc,
+        ep.pan_number,
+        ep.uan_number,
+        ep.esi_number,
+        ep.documents,
+        ss.ctc_annual,
+        ss.basic_monthly,
+        ss.hra_monthly,
+        ss.special_allowance_monthly
+      FROM admin_users u
+      LEFT JOIN hrms_employee_profiles ep ON ep.user_id = u.id
+      LEFT JOIN hrms_salary_structures ss ON ss.user_id = u.id
+      ${whereStr}
+      ORDER BY u.name ASC
+    `;
+
+    const { rows } = await pool.query(query, params);
+    res.json({ success: true, employees: rows, total: rows.length });
+  } catch (error) {
+    console.error('HRMS Employees list error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch employee records' });
+  }
+});
+
+// Get single employee full details
+app.get('/api/hrms/employees/:id', requireAuth, async (req, res) => {
+  try {
+    const targetId = Number(req.params.id);
+    if (!Number.isFinite(targetId)) return res.status(400).json({ success: false, message: 'Invalid employee ID' });
+
+    // Non-admin can only view their own profile
+    if (!isAdmin(req) && Number(req.user.sub) !== targetId) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const userQ = await pool.query(`
+      SELECT 
+        u.id, u.name, u.email, u.username, u.role, u.department, u.position, u.phone, u.is_active, u.created_at,
+        ep.employee_code, ep.dob, ep.gender, ep.blood_group, ep.address,
+        ep.emergency_contact_name, ep.emergency_contact_phone, ep.emergency_contact_relation,
+        ep.employment_type, ep.joining_date, ep.reporting_manager_id,
+        ep.bank_name, ep.bank_account_no, ep.bank_ifsc, ep.pan_number, ep.uan_number, ep.esi_number, ep.documents,
+        ss.ctc_annual, ss.basic_monthly, ss.hra_monthly, ss.special_allowance_monthly, ss.conveyance_monthly,
+        ss.medical_allowance_monthly, ss.pf_employee_monthly, ss.esi_employee_monthly, ss.professional_tax_monthly, ss.tds_monthly,
+        lb.sick_balance, lb.casual_balance, lb.annual_balance
+      FROM admin_users u
+      LEFT JOIN hrms_employee_profiles ep ON ep.user_id = u.id
+      LEFT JOIN hrms_salary_structures ss ON ss.user_id = u.id
+      LEFT JOIN leave_balances lb ON lb.employee_id = u.id
+      WHERE u.id = $1
+    `, [targetId]);
+
+    if (!userQ.rows.length) return res.status(404).json({ success: false, message: 'Employee not found' });
+
+    // Recent 5 attendance logs
+    const attQ = await pool.query(
+      `SELECT * FROM hrms_attendance WHERE employee_id = $1 ORDER BY date DESC LIMIT 5`,
+      [targetId]
+    );
+
+    // Recent 3 payslips
+    const payslipQ = await pool.query(
+      `SELECT id, month, year, gross_earnings, total_deductions, net_salary, status, payment_date FROM hrms_payrolls WHERE user_id = $1 ORDER BY year DESC, month DESC LIMIT 3`,
+      [targetId]
+    );
+
+    res.json({
+      success: true,
+      employee: userQ.rows[0],
+      recentAttendance: attQ.rows,
+      recentPayslips: payslipQ.rows
+    });
+  } catch (error) {
+    console.error('HRMS Employee detail error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve employee profile' });
+  }
+});
+
+// Update employee details (admin or employee updating profile)
+app.put('/api/hrms/employees/:id', requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const targetId = Number(req.params.id);
+    if (!Number.isFinite(targetId)) return res.status(400).json({ success: false, message: 'Invalid employee ID' });
+
+    const isUserAdmin = isAdmin(req);
+    if (!isUserAdmin && Number(req.user.sub) !== targetId) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const {
+      name, phone, department, position,
+      employee_code, dob, gender, blood_group, address,
+      emergency_contact_name, emergency_contact_phone, emergency_contact_relation,
+      employment_type, joining_date,
+      bank_name, bank_account_no, bank_ifsc, pan_number, uan_number, esi_number
+    } = req.body || {};
+
+    await client.query('BEGIN');
+
+    // Update admin_users basic fields
+    if (isUserAdmin) {
+      await client.query(
+        `UPDATE admin_users SET name = COALESCE($1, name), phone = COALESCE($2, phone), department = COALESCE($3, department), position = COALESCE($4, position), updated_at = NOW() WHERE id = $5`,
+        [name, phone, department, position, targetId]
+      );
+    } else {
+      await client.query(
+        `UPDATE admin_users SET phone = COALESCE($1, phone), updated_at = NOW() WHERE id = $2`,
+        [phone, targetId]
+      );
+    }
+
+    // Upsert hrms_employee_profiles
+    const profileQ = `
+      INSERT INTO hrms_employee_profiles (
+        user_id, employee_code, dob, gender, blood_group, address,
+        emergency_contact_name, emergency_contact_phone, emergency_contact_relation,
+        employment_type, joining_date,
+        bank_name, bank_account_no, bank_ifsc, pan_number, uan_number, esi_number
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      ON CONFLICT (user_id) DO UPDATE SET
+        employee_code = COALESCE(EXCLUDED.employee_code, hrms_employee_profiles.employee_code),
+        dob = EXCLUDED.dob,
+        gender = EXCLUDED.gender,
+        blood_group = EXCLUDED.blood_group,
+        address = EXCLUDED.address,
+        emergency_contact_name = EXCLUDED.emergency_contact_name,
+        emergency_contact_phone = EXCLUDED.emergency_contact_phone,
+        emergency_contact_relation = EXCLUDED.emergency_contact_relation,
+        employment_type = COALESCE(EXCLUDED.employment_type, hrms_employee_profiles.employment_type),
+        joining_date = COALESCE(EXCLUDED.joining_date, hrms_employee_profiles.joining_date),
+        bank_name = EXCLUDED.bank_name,
+        bank_account_no = EXCLUDED.bank_account_no,
+        bank_ifsc = EXCLUDED.bank_ifsc,
+        pan_number = EXCLUDED.pan_number,
+        uan_number = EXCLUDED.uan_number,
+        esi_number = EXCLUDED.esi_number,
+        updated_at = NOW()
+      RETURNING *
+    `;
+
+    const code = employee_code || `ZOR-EMP-${String(targetId).padStart(3, '0')}`;
+    const result = await client.query(profileQ, [
+      targetId, code, dob || null, gender || null, blood_group || null, address || null,
+      emergency_contact_name || null, emergency_contact_phone || null, emergency_contact_relation || null,
+      employment_type || 'full_time', joining_date || null,
+      bank_name || null, bank_account_no || null, bank_ifsc || null, pan_number || null, uan_number || null, esi_number || null
+    ]);
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: 'Employee profile updated successfully', profile: result.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Update employee profile error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to update employee' });
+  } finally {
+    client.release();
+  }
+});
+
+/* ----------------------- 3. Payroll Processing & Payslips ----------------------- */
+
+// Get Salary Structures
+app.get('/api/hrms/payroll/structures', requireAdmin, async (req, res) => {
+  try {
+    const q = `
+      SELECT 
+        u.id AS user_id,
+        u.name,
+        u.email,
+        u.department,
+        u.position,
+        ep.employee_code,
+        ep.joining_date,
+        ss.id AS structure_id,
+        COALESCE(ss.ctc_annual, 0) AS ctc_annual,
+        COALESCE(ss.basic_monthly, 0) AS basic_monthly,
+        COALESCE(ss.hra_monthly, 0) AS hra_monthly,
+        COALESCE(ss.special_allowance_monthly, 0) AS special_allowance_monthly,
+        COALESCE(ss.conveyance_monthly, 0) AS conveyance_monthly,
+        COALESCE(ss.medical_allowance_monthly, 0) AS medical_allowance_monthly,
+        COALESCE(ss.pf_employee_monthly, 0) AS pf_employee_monthly,
+        COALESCE(ss.esi_employee_monthly, 0) AS esi_employee_monthly,
+        COALESCE(ss.professional_tax_monthly, 200) AS professional_tax_monthly,
+        COALESCE(ss.tds_monthly, 0) AS tds_monthly,
+        ss.effective_from
+      FROM admin_users u
+      LEFT JOIN hrms_employee_profiles ep ON ep.user_id = u.id
+      LEFT JOIN hrms_salary_structures ss ON ss.user_id = u.id
+      WHERE u.is_active = TRUE
+      ORDER BY u.name ASC
+    `;
+    const { rows } = await pool.query(q);
+    res.json({ success: true, structures: rows });
+  } catch (error) {
+    console.error('Salary structures error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve salary structures' });
+  }
+});
+
+// Update/Save Employee Salary Structure
+app.put('/api/hrms/payroll/structures/:userId', requireAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.userId);
+    const {
+      ctc_annual, basic_monthly, hra_monthly, special_allowance_monthly,
+      conveyance_monthly, medical_allowance_monthly, pf_employee_monthly,
+      esi_employee_monthly, professional_tax_monthly, tds_monthly, effective_from
+    } = req.body || {};
+
+    const q = `
+      INSERT INTO hrms_salary_structures (
+        user_id, ctc_annual, basic_monthly, hra_monthly, special_allowance_monthly,
+        conveyance_monthly, medical_allowance_monthly, pf_employee_monthly,
+        esi_employee_monthly, professional_tax_monthly, tds_monthly, effective_from
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      ON CONFLICT (user_id) DO UPDATE SET
+        ctc_annual = EXCLUDED.ctc_annual,
+        basic_monthly = EXCLUDED.basic_monthly,
+        hra_monthly = EXCLUDED.hra_monthly,
+        special_allowance_monthly = EXCLUDED.special_allowance_monthly,
+        conveyance_monthly = EXCLUDED.conveyance_monthly,
+        medical_allowance_monthly = EXCLUDED.medical_allowance_monthly,
+        pf_employee_monthly = EXCLUDED.pf_employee_monthly,
+        esi_employee_monthly = EXCLUDED.esi_employee_monthly,
+        professional_tax_monthly = EXCLUDED.professional_tax_monthly,
+        tds_monthly = EXCLUDED.tds_monthly,
+        effective_from = EXCLUDED.effective_from,
+        updated_at = NOW()
+      RETURNING *
+    `;
+
+    const { rows } = await pool.query(q, [
+      userId,
+      ctc_annual || 0,
+      basic_monthly || 0,
+      hra_monthly || 0,
+      special_allowance_monthly || 0,
+      conveyance_monthly || 0,
+      medical_allowance_monthly || 0,
+      pf_employee_monthly || 0,
+      esi_employee_monthly || 0,
+      professional_tax_monthly || 200,
+      tds_monthly || 0,
+      effective_from || new Date().toISOString().slice(0, 10)
+    ]);
+
+    res.json({ success: true, message: 'Salary structure updated successfully', structure: rows[0] });
+  } catch (error) {
+    console.error('Update salary structure error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update salary structure' });
+  }
+});
+
+// List Payroll Runs for a given period
+app.get('/api/hrms/payroll/runs', requireAdmin, async (req, res) => {
+  try {
+    const { month, year, status } = req.query;
+    const m = Number(month) || new Date().getMonth() + 1;
+    const y = Number(year) || new Date().getFullYear();
+
+    let whereStr = `WHERE p.month = $1 AND p.year = $2`;
+    let params = [m, y];
+
+    if (status) {
+      params.push(status);
+      whereStr += ` AND p.status = $3`;
+    }
+
+    const q = `
+      SELECT 
+        p.*,
+        u.name,
+        u.email,
+        u.department,
+        u.position,
+        ep.employee_code,
+        ep.bank_name,
+        ep.bank_account_no,
+        ep.pan_number
+      FROM hrms_payrolls p
+      JOIN admin_users u ON u.id = p.user_id
+      LEFT JOIN hrms_employee_profiles ep ON ep.user_id = u.id
+      ${whereStr}
+      ORDER BY u.name ASC
+    `;
+
+    const { rows } = await pool.query(q, params);
+
+    // Compute summary
+    let totalGross = 0;
+    let totalDeductions = 0;
+    let totalNet = 0;
+    let paidCount = 0;
+    let draftCount = 0;
+
+    rows.forEach(r => {
+      totalGross += Number(r.gross_earnings || 0);
+      totalDeductions += Number(r.total_deductions || 0);
+      totalNet += Number(r.net_salary || 0);
+      if (r.status === 'paid') paidCount++;
+      else draftCount++;
+    });
+
+    res.json({
+      success: true,
+      period: { month: m, year: y },
+      payrolls: rows,
+      summary: {
+        totalEmployees: rows.length,
+        totalGross: totalGross.toFixed(2),
+        totalDeductions: totalDeductions.toFixed(2),
+        totalNet: totalNet.toFixed(2),
+        paidCount,
+        draftCount
+      }
+    });
+  } catch (error) {
+    console.error('Payroll runs list error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve payroll runs' });
+  }
+});
+
+// Generate / Run Payroll for all active employees
+app.post('/api/hrms/payroll/generate', requireAdmin, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { month, year } = req.body || {};
+    const m = Number(month) || new Date().getMonth() + 1;
+    const y = Number(year) || new Date().getFullYear();
+
+    const daysInMonth = new Date(y, m, 0).getDate();
+
+    await client.query('BEGIN');
+
+    // Fetch active employees with salary structure
+    const employeesQ = await client.query(`
+      SELECT 
+        u.id, u.name, u.email, u.department,
+        COALESCE(ss.basic_monthly, 25000) AS basic_monthly,
+        COALESCE(ss.hra_monthly, 10000) AS hra_monthly,
+        COALESCE(ss.special_allowance_monthly, 10000) AS special_allowance_monthly,
+        COALESCE(ss.conveyance_monthly, 2500) AS conveyance_monthly,
+        COALESCE(ss.medical_allowance_monthly, 2500) AS medical_allowance_monthly,
+        COALESCE(ss.pf_employee_monthly, 1800) AS pf_employee_monthly,
+        COALESCE(ss.esi_employee_monthly, 0) AS esi_employee_monthly,
+        COALESCE(ss.professional_tax_monthly, 200) AS professional_tax_monthly,
+        COALESCE(ss.tds_monthly, 0) AS tds_monthly
+      FROM admin_users u
+      LEFT JOIN hrms_salary_structures ss ON ss.user_id = u.id
+      WHERE u.is_active = TRUE
+    `);
+
+    let generatedCount = 0;
+
+    for (const emp of employeesQ.rows) {
+      // Calculate unpaid leave days from attendance or leave records
+      const attQ = await client.query(`
+        SELECT 
+          COUNT(*) FILTER (WHERE status = 'absent') AS absent_days,
+          COUNT(*) FILTER (WHERE status = 'half_day') AS half_days
+        FROM hrms_attendance
+        WHERE employee_id = $1 
+          AND EXTRACT(MONTH FROM date) = $2 
+          AND EXTRACT(YEAR FROM date) = $3
+      `, [emp.id, m, y]);
+
+      const absentDays = Number(attQ.rows[0]?.absent_days || 0);
+      const halfDays = Number(attQ.rows[0]?.half_days || 0);
+      const unpaidDays = absentDays + (halfDays * 0.5);
+      const paidDays = Math.max(0, daysInMonth - unpaidDays);
+
+      const baseGross = Number(emp.basic_monthly) + Number(emp.hra_monthly) + Number(emp.special_allowance_monthly) + Number(emp.conveyance_monthly) + Number(emp.medical_allowance_monthly);
+      const perDayRate = baseGross / daysInMonth;
+      const unpaidDeduction = Number((perDayRate * unpaidDays).toFixed(2));
+
+      const actualGross = Math.max(0, Number((baseGross - unpaidDeduction).toFixed(2)));
+      const pf = Number(emp.pf_employee_monthly);
+      const esi = Number(emp.esi_employee_monthly);
+      const pt = Number(emp.professional_tax_monthly);
+      const tds = Number(emp.tds_monthly);
+      const totalDeductions = Number((pf + esi + pt + tds).toFixed(2));
+      const netSalary = Math.max(0, Number((actualGross - totalDeductions).toFixed(2)));
+
+      const upsertQ = `
+        INSERT INTO hrms_payrolls (
+          user_id, month, year, working_days, paid_days, unpaid_days,
+          gross_earnings, total_deductions, net_salary,
+          basic_pay, hra, special_allowance, conveyance, medical, bonus,
+          pf_deduction, esi_deduction, pt_deduction, tds_deduction, other_deductions,
+          status, payment_mode
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 0, $15, $16, $17, $18, 0, 'draft', 'Bank Transfer')
+        ON CONFLICT (user_id, month, year) DO UPDATE SET
+          working_days = EXCLUDED.working_days,
+          paid_days = EXCLUDED.paid_days,
+          unpaid_days = EXCLUDED.unpaid_days,
+          gross_earnings = EXCLUDED.gross_earnings,
+          total_deductions = EXCLUDED.total_deductions,
+          net_salary = EXCLUDED.net_salary,
+          basic_pay = EXCLUDED.basic_pay,
+          hra = EXCLUDED.hra,
+          special_allowance = EXCLUDED.special_allowance,
+          conveyance = EXCLUDED.conveyance,
+          medical = EXCLUDED.medical,
+          pf_deduction = EXCLUDED.pf_deduction,
+          esi_deduction = EXCLUDED.esi_deduction,
+          pt_deduction = EXCLUDED.pt_deduction,
+          tds_deduction = EXCLUDED.tds_deduction,
+          updated_at = NOW()
+      `;
+
+      await client.query(upsertQ, [
+        emp.id, m, y, daysInMonth, paidDays, unpaidDays,
+        actualGross, totalDeductions, netSalary,
+        emp.basic_monthly, emp.hra_monthly, emp.special_allowance_monthly, emp.conveyance_monthly, emp.medical_allowance_monthly,
+        pf, esi, pt, tds
+      ]);
+
+      generatedCount++;
+    }
+
+    await client.query('COMMIT');
+    res.json({
+      success: true,
+      message: `Successfully processed payroll for ${generatedCount} employees for ${m}/${y}`
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Payroll generation error:', error);
+    res.status(500).json({ success: false, message: 'Payroll generation failed' });
+  } finally {
+    client.release();
+  }
+});
+
+// Update specific payroll status (mark paid, add bonus, notes)
+app.patch('/api/hrms/payroll/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { status, payment_date, payment_mode, bonus, other_deductions, notes } = req.body || {};
+
+    const existing = await pool.query(`SELECT * FROM hrms_payrolls WHERE id = $1`, [id]);
+    if (!existing.rows.length) return res.status(404).json({ success: false, message: 'Payroll not found' });
+
+    const p = existing.rows[0];
+    const newBonus = bonus !== undefined ? Number(bonus) : Number(p.bonus || 0);
+    const newOtherDed = other_deductions !== undefined ? Number(other_deductions) : Number(p.other_deductions || 0);
+
+    const baseGross = Number(p.basic_pay) + Number(p.hra) + Number(p.special_allowance) + Number(p.conveyance) + Number(p.medical);
+    const newGross = Number((baseGross + newBonus).toFixed(2));
+    const newTotalDeductions = Number((Number(p.pf_deduction) + Number(p.esi_deduction) + Number(p.pt_deduction) + Number(p.tds_deduction) + newOtherDed).toFixed(2));
+    const newNetSalary = Math.max(0, Number((newGross - newTotalDeductions).toFixed(2)));
+
+    const updateQ = `
+      UPDATE hrms_payrolls
+      SET 
+        status = COALESCE($1, status),
+        payment_date = COALESCE($2, payment_date),
+        payment_mode = COALESCE($3, payment_mode),
+        bonus = $4,
+        other_deductions = $5,
+        gross_earnings = $6,
+        total_deductions = $7,
+        net_salary = $8,
+        notes = COALESCE($9, notes),
+        updated_at = NOW()
+      WHERE id = $10
+      RETURNING *
+    `;
+
+    const result = await pool.query(updateQ, [
+      status || null,
+      payment_date || (status === 'paid' ? new Date().toISOString().slice(0, 10) : null),
+      payment_mode || null,
+      newBonus,
+      newOtherDed,
+      newGross,
+      newTotalDeductions,
+      newNetSalary,
+      notes || null,
+      id
+    ]);
+
+    res.json({ success: true, message: 'Payroll updated successfully', payroll: result.rows[0] });
+  } catch (error) {
+    console.error('Update payroll error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update payroll record' });
+  }
+});
+
+// View Full Detailed Payslip
+app.get('/api/hrms/payroll/payslip/:id', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const payslipQ = await pool.query(`
+      SELECT 
+        p.*,
+        u.name AS employee_name,
+        u.email AS employee_email,
+        u.department,
+        u.position,
+        ep.employee_code,
+        ep.joining_date,
+        ep.bank_name,
+        ep.bank_account_no,
+        ep.bank_ifsc,
+        ep.pan_number,
+        ep.uan_number,
+        ep.esi_number
+      FROM hrms_payrolls p
+      JOIN admin_users u ON u.id = p.user_id
+      LEFT JOIN hrms_employee_profiles ep ON ep.user_id = u.id
+      WHERE p.id = $1
+    `, [id]);
+
+    if (!payslipQ.rows.length) return res.status(404).json({ success: false, message: 'Payslip not found' });
+    const p = payslipQ.rows[0];
+
+    // Non-admin can only view their own payslip
+    if (!isAdmin(req) && Number(req.user.sub) !== Number(p.user_id)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthName = monthNames[p.month] || `Month ${p.month}`;
+
+    const earnings = [
+      { name: 'Basic Salary', amount: Number(p.basic_pay) },
+      { name: 'House Rent Allowance (HRA)', amount: Number(p.hra) },
+      { name: 'Special Allowance', amount: Number(p.special_allowance) },
+      { name: 'Conveyance Allowance', amount: Number(p.conveyance) },
+      { name: 'Medical Allowance', amount: Number(p.medical) },
+    ];
+    if (Number(p.bonus) > 0) earnings.push({ name: 'Performance Bonus / Incentives', amount: Number(p.bonus) });
+
+    const deductions = [
+      { name: 'Provident Fund (EPF)', amount: Number(p.pf_deduction) },
+      { name: 'Employee State Insurance (ESIC)', amount: Number(p.esi_deduction) },
+      { name: 'Professional Tax (PT)', amount: Number(p.pt_deduction) },
+      { name: 'Income Tax (TDS)', amount: Number(p.tds_deduction) },
+    ];
+    if (Number(p.other_deductions) > 0) deductions.push({ name: 'Other Deductions', amount: Number(p.other_deductions) });
+
+    res.json({
+      success: true,
+      payslip: {
+        ...p,
+        monthName,
+        company: {
+          name: 'Zorvixe Technologies',
+          tagline: 'Enterprise Software & Cloud Engineering Solutions',
+          address: 'Cyber Towers, HITEC City, Hyderabad, Telangana 500081',
+          email: 'info@zorvixetechnologies.in',
+          website: 'www.zorvixetechnologies.in'
+        },
+        earnings,
+        deductions,
+        netPayInWords: numberToWords(p.net_salary)
+      }
+    });
+  } catch (error) {
+    console.error('Payslip detail error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve payslip' });
+  }
+});
+
+// Employee Self-Service: My Payslips
+app.get('/api/hrms/payroll/my-payslips', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const { rows } = await pool.query(
+      `SELECT * FROM hrms_payrolls WHERE user_id = $1 ORDER BY year DESC, month DESC`,
+      [userId]
+    );
+    res.json({ success: true, payslips: rows });
+  } catch (error) {
+    console.error('My payslips error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch personal payslips' });
+  }
+});
+
+/* ----------------------- 4. Recruitment & Compliance ----------------------- */
+
+// Get all job openings
+app.get('/api/hrms/recruitment/jobs', requireAuth, async (req, res) => {
+  try {
+    const q = `
+      SELECT 
+        j.*,
+        COUNT(c.id) AS applicants_count
+      FROM hrms_job_openings j
+      LEFT JOIN candidates c ON c.job_id = j.id
+      GROUP BY j.id
+      ORDER BY j.created_at DESC
+    `;
+    const { rows } = await pool.query(q);
+    res.json({ success: true, jobs: rows });
+  } catch (error) {
+    console.error('Recruitment jobs error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch job openings' });
+  }
+});
+
+// Create Job Opening
+app.post('/api/hrms/recruitment/jobs', requireAdmin, async (req, res) => {
+  try {
+    const { title, department, experience_required, job_type, vacancies, location, salary_range, description, requirements, status } = req.body || {};
+    if (!title || !department) return res.status(400).json({ success: false, message: 'Title and department are required' });
+
+    const q = `
+      INSERT INTO hrms_job_openings (title, department, experience_required, job_type, vacancies, location, salary_range, description, requirements, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [
+      title, department, experience_required || null, job_type || 'Full-time',
+      vacancies || 1, location || 'Hyderabad / Remote', salary_range || null,
+      description || null, requirements || null, status || 'open'
+    ]);
+    res.status(201).json({ success: true, message: 'Job opening created', job: rows[0] });
+  } catch (error) {
+    console.error('Create job error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create job opening' });
+  }
+});
+
+// Update Job Opening
+app.put('/api/hrms/recruitment/jobs/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { title, department, experience_required, job_type, vacancies, location, salary_range, description, requirements, status } = req.body || {};
+
+    const q = `
+      UPDATE hrms_job_openings
+      SET title = COALESCE($1, title), department = COALESCE($2, department), experience_required = COALESCE($3, experience_required),
+          job_type = COALESCE($4, job_type), vacancies = COALESCE($5, vacancies), location = COALESCE($6, location),
+          salary_range = COALESCE($7, salary_range), description = COALESCE($8, description), requirements = COALESCE($9, requirements),
+          status = COALESCE($10, status), updated_at = NOW()
+      WHERE id = $11
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [
+      title, department, experience_required, job_type, vacancies, location, salary_range, description, requirements, status, id
+    ]);
+    res.json({ success: true, message: 'Job opening updated', job: rows[0] });
+  } catch (error) {
+    console.error('Update job error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update job opening' });
+  }
+});
+
+// Delete Job Opening
+app.delete('/api/hrms/recruitment/jobs/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await pool.query(`DELETE FROM hrms_job_openings WHERE id = $1`, [id]);
+    res.json({ success: true, message: 'Job opening deleted' });
+  } catch (error) {
+    console.error('Delete job error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete job opening' });
+  }
+});
+
+// Candidate Pipeline
+app.get('/api/hrms/recruitment/pipeline', requireAdmin, async (req, res) => {
+  try {
+    const q = `
+      SELECT 
+        c.*,
+        j.title AS job_title,
+        j.department AS job_department
+      FROM candidates c
+      LEFT JOIN hrms_job_openings j ON j.id = c.job_id
+      ORDER BY c.created_at DESC
+    `;
+    const { rows } = await pool.query(q);
+
+    const stages = {
+      applied: [],
+      screening: [],
+      interview: [],
+      offer: [],
+      hired: [],
+      rejected: []
+    };
+
+    rows.forEach(c => {
+      const stage = (c.stage || 'applied').toLowerCase();
+      if (stages[stage]) stages[stage].push(c);
+      else stages.applied.push(c);
+    });
+
+    res.json({ success: true, candidates: rows, stages });
+  } catch (error) {
+    console.error('Recruitment pipeline error:', error);
+    res.status(500).json({ success: false, message: 'Failed to load recruitment pipeline' });
+  }
+});
+
+// Update candidate stage, interview date, notes, rating
+app.patch('/api/hrms/recruitment/candidate/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { stage, interview_date, interview_notes, rating, expected_salary } = req.body || {};
+
+    const q = `
+      UPDATE candidates
+      SET stage = COALESCE($1, stage),
+          interview_date = COALESCE($2, interview_date),
+          interview_notes = COALESCE($3, interview_notes),
+          rating = COALESCE($4, rating),
+          expected_salary = COALESCE($5, expected_salary)
+      WHERE id = $6
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [stage || null, interview_date || null, interview_notes || null, rating || null, expected_salary || null, id]);
+    res.json({ success: true, message: 'Candidate status updated', candidate: rows[0] });
+  } catch (error) {
+    console.error('Update candidate stage error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update candidate' });
+  }
+});
+
+// 1-Click Convert Hired Candidate to Employee
+app.post('/api/hrms/recruitment/hire/:id', requireAdmin, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const candidateId = Number(req.params.id);
+    const candQ = await client.query(`SELECT * FROM candidates WHERE id = $1`, [candidateId]);
+    if (!candQ.rows.length) return res.status(404).json({ success: false, message: 'Candidate not found' });
+    const c = candQ.rows[0];
+
+    // Check if user already exists with email
+    const existingUser = await client.query(`SELECT id FROM admin_users WHERE email = $1`, [c.email.toLowerCase()]);
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ success: false, message: `An employee account already exists with email ${c.email}` });
+    }
+
+    await client.query('BEGIN');
+
+    // Create user with default temporary password
+    const tempPassword = `Zorvixe@${Math.floor(1000 + Math.random() * 9000)}`;
+    const hash = await bcrypt.hash(tempPassword, 10);
+    const username = (c.email.split('@')[0] || c.name.replace(/\s+/g, '').toLowerCase()) + Math.floor(10 + Math.random() * 89);
+
+    const userInsert = await client.query(`
+      INSERT INTO admin_users (name, email, username, password_hash, role, position, phone, is_active)
+      VALUES ($1, $2, $3, $4, 'employee', $5, $6, TRUE)
+      RETURNING *
+    `, [c.name, c.email.toLowerCase(), username, hash, c.position || 'Software Engineer', c.phone]);
+
+    const newUser = userInsert.rows[0];
+
+    // Create profile
+    const empCode = `ZOR-EMP-${String(newUser.id).padStart(3, '0')}`;
+    await client.query(`
+      INSERT INTO hrms_employee_profiles (user_id, employee_code, employment_type, joining_date)
+      VALUES ($1, $2, 'full_time', CURRENT_DATE)
+    `, [newUser.id, empCode]);
+
+    // Create salary structure
+    await client.query(`
+      INSERT INTO hrms_salary_structures (user_id, ctc_annual, basic_monthly, hra_monthly, special_allowance_monthly, effective_from)
+      VALUES ($1, 600000, 25000, 10000, 10000, CURRENT_DATE)
+    `, [newUser.id]);
+
+    // Update candidate stage to hired
+    await client.query(`UPDATE candidates SET stage = 'hired', status = 'approved' WHERE id = $1`, [candidateId]);
+
+    // Send Welcome Email
+    sendUserWelcomeEmail({
+      toEmail: newUser.email,
+      name: newUser.name,
+      username: newUser.username,
+      plainPassword: tempPassword,
+      role: 'employee'
+    }).catch(err => console.error('[Mailer] Welcome email error:', err));
+
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      message: `Candidate ${c.name} hired successfully as Employee (${empCode})! Welcome credentials have been emailed.`,
+      user: newUser,
+      tempPassword
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Hire candidate error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to hire candidate' });
+  } finally {
+    client.release();
+  }
+});
+
+// Compliance & Statutory Tracker
+app.get('/api/hrms/compliance', requireAuth, async (req, res) => {
+  try {
+    const { category, status } = req.query;
+    let whereClauses = [];
+    let params = [];
+
+    if (category) {
+      params.push(category);
+      whereClauses.push(`category = $${params.length}`);
+    }
+    if (status) {
+      params.push(status);
+      whereClauses.push(`status = $${params.length}`);
+    }
+
+    const whereStr = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const q = `SELECT * FROM hrms_compliance_records ${whereStr} ORDER BY due_date ASC NULLS LAST`;
+    const { rows } = await pool.query(q, params);
+
+    res.json({ success: true, records: rows });
+  } catch (error) {
+    console.error('Compliance error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve compliance records' });
+  }
+});
+
+// Update compliance status
+app.patch('/api/hrms/compliance/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { status, due_date, notes } = req.body || {};
+
+    const q = `
+      UPDATE hrms_compliance_records
+      SET status = COALESCE($1, status),
+          due_date = COALESCE($2, due_date),
+          notes = COALESCE($3, notes),
+          updated_at = NOW()
+      WHERE id = $4
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [status || null, due_date || null, notes || null, id]);
+    res.json({ success: true, message: 'Compliance record updated', record: rows[0] });
+  } catch (error) {
+    console.error('Update compliance error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update compliance record' });
+  }
+});
+
+/* ----------------------- 5. Workforce Insights Analytics ----------------------- */
+
+app.get('/api/hrms/insights', requireAuth, async (req, res) => {
+  try {
+    // 1. Headcount KPIs
+    const headcountQ = await pool.query(`
+      SELECT 
+        COUNT(*) AS total_employees,
+        COUNT(*) FILTER (WHERE is_active = TRUE) AS active_employees,
+        COUNT(*) FILTER (WHERE role = 'admin') AS admin_count,
+        COUNT(*) FILTER (WHERE role = 'employee') AS employee_count,
+        COUNT(*) FILTER (WHERE created_at >= (NOW() - INTERVAL '30 days')) AS new_hires_month
+      FROM admin_users
+    `);
+
+    // 2. Department Breakdown
+    const deptQ = await pool.query(`
+      SELECT 
+        COALESCE(department, 'General / Other') AS department,
+        COUNT(*)::int AS count
+      FROM admin_users
+      WHERE is_active = TRUE
+      GROUP BY COALESCE(department, 'General / Other')
+      ORDER BY count DESC
+    `);
+
+    // 3. Designation Breakdown
+    const posQ = await pool.query(`
+      SELECT 
+        COALESCE(position, 'Team Member') AS position,
+        COUNT(*)::int AS count
+      FROM admin_users
+      WHERE is_active = TRUE
+      GROUP BY COALESCE(position, 'Team Member')
+      ORDER BY count DESC
+      LIMIT 6
+    `);
+
+    // 4. Attendance Rate This Month
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    const attRateQ = await pool.query(`
+      SELECT 
+        COUNT(*) AS total_punches,
+        COUNT(*) FILTER (WHERE status = 'present') AS present_count,
+        COUNT(*) FILTER (WHERE status = 'late') AS late_count,
+        COUNT(*) FILTER (WHERE status = 'half_day') AS half_day_count,
+        COALESCE(SUM(total_hours), 0) AS total_hours_worked
+      FROM hrms_attendance
+      WHERE EXTRACT(MONTH FROM date) = $1 AND EXTRACT(YEAR FROM date) = $2
+    `, [currentMonth, currentYear]);
+
+    // 5. Payroll Spend Analytics
+    const payrollSpendQ = await pool.query(`
+      SELECT 
+        COALESCE(SUM(gross_earnings), 0) AS total_gross_spend,
+        COALESCE(SUM(net_salary), 0) AS total_net_disbursed,
+        COALESCE(SUM(pf_deduction), 0) AS total_pf_contribution,
+        COALESCE(SUM(esi_deduction), 0) AS total_esi_contribution,
+        COALESCE(SUM(tds_deduction), 0) AS total_tds_deducted,
+        COALESCE(AVG(net_salary), 0) AS avg_salary
+      FROM hrms_payrolls
+      WHERE month = $1 AND year = $2
+    `, [currentMonth, currentYear]);
+
+    // 6. Recruitment Funnel Stats
+    const recFunnelQ = await pool.query(`
+      SELECT 
+        COUNT(*) AS total_candidates,
+        COUNT(*) FILTER (WHERE stage = 'applied') AS applied,
+        COUNT(*) FILTER (WHERE stage = 'screening') AS screening,
+        COUNT(*) FILTER (WHERE stage = 'interview') AS interview,
+        COUNT(*) FILTER (WHERE stage = 'offer') AS offer,
+        COUNT(*) FILTER (WHERE stage = 'hired') AS hired,
+        COUNT(*) FILTER (WHERE stage = 'rejected') AS rejected
+      FROM candidates
+    `);
+
+    // 7. Leave Usage
+    const leaveQ = await pool.query(`
+      SELECT 
+        leave_type,
+        COUNT(*)::int AS requests_count,
+        COALESCE(SUM(total_days), 0)::int AS total_days_taken
+      FROM leaves
+      WHERE status = 'approved' AND EXTRACT(YEAR FROM start_date) = $1
+      GROUP BY leave_type
+    `, [currentYear]);
+
+    res.json({
+      success: true,
+      headcount: headcountQ.rows[0] || {},
+      departmentDistribution: deptQ.rows || [],
+      designationDistribution: posQ.rows || [],
+      attendanceMetrics: attRateQ.rows[0] || {},
+      payrollMetrics: payrollSpendQ.rows[0] || {},
+      recruitmentFunnel: recFunnelQ.rows[0] || {},
+      leaveMetrics: leaveQ.rows || []
+    });
+  } catch (error) {
+    console.error('Workforce insights error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate workforce insights' });
+  }
+});
+
+/* ----------------------- 6. CRM Deals & Activities ----------------------- */
+
+// Get CRM Overview & Pipeline Stats
+app.get('/api/crm/stats', requireAuth, async (req, res) => {
+  try {
+    const dealsQ = await pool.query(`
+      SELECT 
+        COUNT(*) AS total_deals,
+        COALESCE(SUM(value), 0) AS total_pipeline_value,
+        COUNT(*) FILTER (WHERE stage = 'won') AS won_count,
+        COALESCE(SUM(value) FILTER (WHERE stage = 'won'), 0) AS won_value,
+        COUNT(*) FILTER (WHERE stage = 'lead') AS leads_count,
+        COUNT(*) FILTER (WHERE stage IN ('proposal', 'negotiation')) AS in_progress_count
+      FROM crm_deals
+    `);
+
+    const clientsCountQ = await pool.query(`SELECT COUNT(*) AS total_clients FROM clients`);
+    const contactsCountQ = await pool.query(`SELECT COUNT(*) AS total_contacts FROM contacts`);
+
+    res.json({
+      success: true,
+      stats: {
+        ...(dealsQ.rows[0] || {}),
+        totalClients: Number(clientsCountQ.rows[0]?.total_clients || 0),
+        totalContacts: Number(contactsCountQ.rows[0]?.total_contacts || 0),
+      }
+    });
+  } catch (error) {
+    console.error('CRM stats error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch CRM statistics' });
+  }
+});
+
+// List Deals
+app.get('/api/crm/deals', requireAuth, async (req, res) => {
+  try {
+    const { stage, client_id } = req.query;
+    let whereClauses = [];
+    let params = [];
+
+    if (stage) {
+      params.push(stage);
+      whereClauses.push(`d.stage = $${params.length}`);
+    }
+    if (client_id) {
+      params.push(client_id);
+      whereClauses.push(`d.client_id = $${params.length}`);
+    }
+
+    const whereStr = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    const q = `
+      SELECT 
+        d.*,
+        c.name AS client_name,
+        co.name AS contact_name,
+        u.name AS assigned_user_name
+      FROM crm_deals d
+      LEFT JOIN clients c ON c.id = d.client_id
+      LEFT JOIN contacts co ON co.id = d.contact_id
+      LEFT JOIN admin_users u ON u.id = d.assigned_to
+      ${whereStr}
+      ORDER BY d.created_at DESC
+    `;
+    const { rows } = await pool.query(q, params);
+
+    // Group into Kanban stages
+    const stages = {
+      lead: [],
+      contacted: [],
+      proposal: [],
+      negotiation: [],
+      won: [],
+      lost: []
+    };
+
+    rows.forEach(d => {
+      const st = (d.stage || 'lead').toLowerCase();
+      if (stages[st]) stages[st].push(d);
+      else stages.lead.push(d);
+    });
+
+    res.json({ success: true, deals: rows, stages });
+  } catch (error) {
+    console.error('CRM deals error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve CRM deals' });
+  }
+});
+
+// Create Deal
+app.post('/api/crm/deals', requireAuth, async (req, res) => {
+  try {
+    const { title, client_id, contact_id, value, stage, probability, expected_close_date, assigned_to, description } = req.body || {};
+    if (!title) return res.status(400).json({ success: false, message: 'Deal title is required' });
+
+    const q = `
+      INSERT INTO crm_deals (title, client_id, contact_id, value, stage, probability, expected_close_date, assigned_to, description)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [
+      title,
+      client_id || null,
+      contact_id || null,
+      value || 0,
+      stage || 'lead',
+      probability !== undefined ? probability : 50,
+      expected_close_date || null,
+      assigned_to || req.user.sub,
+      description || null
+    ]);
+
+    res.status(201).json({ success: true, message: 'Deal created successfully', deal: rows[0] });
+  } catch (error) {
+    console.error('Create deal error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create deal' });
+  }
+});
+
+// Update Deal
+app.patch('/api/crm/deals/:id', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { title, value, stage, probability, expected_close_date, assigned_to, description } = req.body || {};
+
+    const q = `
+      UPDATE crm_deals
+      SET title = COALESCE($1, title),
+          value = COALESCE($2, value),
+          stage = COALESCE($3, stage),
+          probability = COALESCE($4, probability),
+          expected_close_date = COALESCE($5, expected_close_date),
+          assigned_to = COALESCE($6, assigned_to),
+          description = COALESCE($7, description),
+          updated_at = NOW()
+      WHERE id = $8
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [title, value, stage, probability, expected_close_date, assigned_to, description, id]);
+    res.json({ success: true, message: 'Deal updated successfully', deal: rows[0] });
+  } catch (error) {
+    console.error('Update deal error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update deal' });
+  }
+});
+
+// Delete Deal
+app.delete('/api/crm/deals/:id', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await pool.query(`DELETE FROM crm_deals WHERE id = $1`, [id]);
+    res.json({ success: true, message: 'Deal deleted successfully' });
+  } catch (error) {
+    console.error('Delete deal error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete deal' });
+  }
+});
+
+// List CRM Activities
+app.get('/api/crm/activities', requireAuth, async (req, res) => {
+  try {
+    const { deal_id, client_id } = req.query;
+    let whereClauses = [];
+    let params = [];
+
+    if (deal_id) {
+      params.push(deal_id);
+      whereClauses.push(`a.deal_id = $${params.length}`);
+    }
+    if (client_id) {
+      params.push(client_id);
+      whereClauses.push(`a.client_id = $${params.length}`);
+    }
+
+    const whereStr = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const q = `
+      SELECT 
+        a.*,
+        u.name AS user_name,
+        d.title AS deal_title,
+        c.name AS client_name
+      FROM crm_activities a
+      LEFT JOIN admin_users u ON u.id = a.user_id
+      LEFT JOIN crm_deals d ON d.id = a.deal_id
+      LEFT JOIN clients c ON c.id = a.client_id
+      ${whereStr}
+      ORDER BY a.created_at DESC
+      LIMIT 100
+    `;
+    const { rows } = await pool.query(q, params);
+    res.json({ success: true, activities: rows });
+  } catch (error) {
+    console.error('CRM activities error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve CRM activities' });
+  }
+});
+
+// Create CRM Activity
+app.post('/api/crm/activities', requireAuth, async (req, res) => {
+  try {
+    const { deal_id, client_id, type, title, description, due_date } = req.body || {};
+    if (!title) return res.status(400).json({ success: false, message: 'Activity title is required' });
+
+    const q = `
+      INSERT INTO crm_activities (deal_id, client_id, user_id, type, title, description, due_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [
+      deal_id || null,
+      client_id || null,
+      req.user.sub,
+      type || 'note',
+      title,
+      description || null,
+      due_date || null
+    ]);
+    res.status(201).json({ success: true, message: 'Activity logged successfully', activity: rows[0] });
+  } catch (error) {
+    console.error('Create activity error:', error);
+    res.status(500).json({ success: false, message: 'Failed to log activity' });
+  }
+});
+
+// Toggle / Update CRM Activity
+app.patch('/api/crm/activities/:id', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { completed, due_date } = req.body || {};
+
+    const q = `
+      UPDATE crm_activities
+      SET completed = COALESCE($1, completed),
+          due_date = COALESCE($2, due_date)
+      WHERE id = $3
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [completed !== undefined ? completed : null, due_date || null, id]);
+    res.json({ success: true, message: 'Activity updated', activity: rows[0] });
+  } catch (error) {
+    console.error('Update activity error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update activity' });
+  }
+});
+
+// Delete CRM Activity
+app.delete('/api/crm/activities/:id', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await pool.query('DELETE FROM crm_activities WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Activity deleted' });
+  } catch (error) {
+    console.error('Delete activity error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete activity' });
   }
 });
 

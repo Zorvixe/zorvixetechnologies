@@ -1,0 +1,394 @@
+/* ==========================================================
+   Atlassian Jira Software Design System: Payroll & Payslips
+   ========================================================== */
+
+.payroll-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  color: #172b4d;
+}
+
+/* Jira Iconic Underline Subtabs Navigation */
+.payroll-subtabs-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px !important;
+  border-bottom: 2px solid #ebecf0;
+  background: transparent;
+  padding: 0;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.subtab-btn {
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #42526e;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: -2px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.subtab-btn:hover {
+  color: #0052cc;
+  background: rgba(9, 30, 66, 0.04);
+  border-radius: 3px 3px 0 0;
+}
+
+.subtab-btn.active {
+  color: #0052cc;
+  font-weight: 600;
+  border-bottom: 2px solid #0052cc;
+  background: transparent;
+}
+
+/* Jira Controls Bar */
+.payroll-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+  flex-wrap: wrap;
+  gap: 12px !important;
+}
+
+.period-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #5e6c84;
+  flex-wrap: wrap;
+
+}
+
+.select-period {
+  height: 32px;
+  padding: 0 10px;
+  border: 1.5px solid #dfe1e6;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #172b4d;
+  outline: none;
+  background: #fafbfc;
+  font-family: inherit;
+}
+
+.select-period:focus {
+  border-color: #4c9aff;
+  background: #ffffff;
+}
+
+.btn-generate-payroll {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #0052cc;
+  color: #ffffff;
+  border: none;
+  padding: 0 14px;
+  border-radius: 3px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-family: inherit;
+}
+
+.btn-generate-payroll:hover:not(:disabled) {
+  background: #0065ff;
+}
+
+/* Jira Summary Tiles */
+.payroll-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px !important;
+  margin-bottom: 10px;
+  margin-top: 10px;
+}
+
+.p-sum-card {
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+}
+
+.p-sum-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #5e6c84;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.p-sum-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: #172b4d;
+  letter-spacing: -0.01em;
+}
+
+.p-sum-sub {
+  font-size: 11.5px;
+  color: #626f86;
+  margin-top: 3px;
+}
+
+.card-gross {
+  border-left: 3px solid #0052cc;
+}
+
+.card-ded {
+  border-left: 3px solid #de350b;
+}
+
+.card-net {
+  border-left: 3px solid #006644;
+}
+
+/* Jira Table */
+.payroll-table-wrap,
+.structures-table-wrap {
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  overflow-x: auto;
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+}
+
+.payroll-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.payroll-table th {
+  background: #f4f5f7;
+  color: #5e6c84;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-bottom: 1px solid #dfe1e6;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.payroll-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #ebecf0;
+  color: #172b4d;
+  vertical-align: middle;
+}
+
+.payroll-table tr:hover {
+  background: #fafbfc;
+}
+
+.p-emp-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.p-emp-cell strong {
+  font-weight: 600;
+  color: #172b4d;
+}
+
+.p-emp-code {
+  font-size: 11px;
+  color: #5e6c84;
+  font-family: monospace;
+}
+
+.lop-tag {
+  color: #bf2600;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bonus-tag {
+  color: #006644;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.net-salary-highlight {
+  color: #006644;
+  font-size: 13.5px;
+  font-weight: 700;
+  background: #e3fcef;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* Jira Status Lozenges */
+.p-status-badge {
+  display: inline-flex;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.p-status-draft {
+  background: #dfe1e6;
+  color: #42526e;
+}
+
+.p-status-processed {
+  background: #deebff;
+  color: #0052cc;
+}
+
+.p-status-paid {
+  background: #e3fcef;
+  color: #006644;
+}
+
+.p-actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-p-action {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.btn-view-slip {
+  background: #f4f5f7;
+  color: #0052cc;
+  border-color: #dfe1e6;
+}
+
+.btn-view-slip:hover {
+  background: #deebff;
+}
+
+.btn-mark-paid {
+  background: #e3fcef;
+  color: #006644;
+  border-color: #abf5d1;
+}
+
+.btn-mark-paid:hover {
+  background: #abf5d1;
+}
+
+.btn-adjust {
+  background: #f4f5f7;
+  color: #42526e;
+  border-color: #dfe1e6;
+}
+
+.btn-adjust:hover {
+  background: #ebecf0;
+}
+
+/* My Payslips Grid */
+.my-payslips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.payslip-summary-card {
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 16px;
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ps-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ps-month {
+  font-size: 14px;
+  font-weight: 600;
+  color: #172b4d;
+}
+
+.ps-net-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: #006644;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ps-card-meta {
+  font-size: 12px;
+  color: #5e6c84;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #fafbfc;
+  padding: 8px;
+  border-radius: 3px;
+  border: 1px solid #ebecf0;
+}
+
+.btn-download-payslip {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #f4f5f7;
+  color: #0052cc;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  margin-top: 4px;
+  font-family: inherit;
+}
+
+.btn-download-payslip:hover {
+  background: #deebff;
+  border-color: #4c9aff;
+}

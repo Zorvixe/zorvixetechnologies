@@ -23,6 +23,8 @@ import LinkedInChatWidget from './components/LinkedInChatWidget';
 import MobileBottomNav from './components/MobileBottomNav';
 
 import LeaveManagement from "./pages/LeaveManagement/LeaveManagement"
+import HRMS from './pages/HRMS';
+import CRM from './pages/CRM';
 
 
 import './App.css';
@@ -75,6 +77,13 @@ function Shell() {
     profile: 'My Account',
     notifications: 'Notifications',
     'user-tickets': 'Tickets Activity',
+    hrms: 'HRMS & Payroll',
+    attendance: 'Attendance Management',
+    payroll: 'Payroll & Payslips',
+    employees: 'Employee Records',
+    recruitment: 'Recruitment & Compliance',
+    'workforce-insights': 'Workforce Insights',
+    crm: 'CRM & Pipeline',
   };
   const currentTitle = titleMap[safePath] || 'Dashboard';
 
@@ -129,6 +138,17 @@ function Shell() {
           <Route path="/profile" element={<Navigate to="/account" replace />} />
           <Route path="/notifications" element={<Notification />} />
           <Route path="/user-tickets" element={<UserTicket />} />
+
+          {/* HRMS & Payroll Suite */}
+          <Route path="/hrms" element={<HRMS />} />
+          <Route path="/attendance" element={<HRMS defaultTab="attendance" />} />
+          <Route path="/payroll" element={<HRMS defaultTab="payroll" />} />
+          <Route path="/employees" element={<HRMS defaultTab="employees" />} />
+          <Route path="/recruitment" element={<HRMS defaultTab="recruitment" />} />
+          <Route path="/workforce-insights" element={<HRMS defaultTab="workforce-insights" />} />
+
+          {/* CRM & Sales Pipeline */}
+          <Route path="/crm" element={<CRM />} />
 
           <Route path="*" element={<Navigate to="/stats" />} />
         </Routes>

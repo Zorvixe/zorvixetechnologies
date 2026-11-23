@@ -1,0 +1,190 @@
+/* ==========================================================
+   Atlassian Jira Software Design System: HRMS Suite
+   ========================================================== */
+
+.jira-hrms-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  color: #172b4d;
+}
+
+/* Jira Project Header */
+.jira-page-header {
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 16px 20px 0 20px;
+  border: 1px solid #dfe1e6;
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 1rem;
+
+}
+
+/* Breadcrumbs */
+.jira-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #5e6c84;
+  font-weight: 500;
+}
+
+.jira-bc-sep {
+  color: #8993a4;
+}
+
+.jira-bc-current {
+  color: #172b4d;
+  font-weight: 600;
+}
+
+/* Title Row */
+.jira-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.jira-title-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jira-project-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(9, 30, 66, 0.2);
+}
+
+.jira-avatar-hrms {
+  background: linear-gradient(135deg, #0052cc 0%, #0747a6 100%);
+}
+
+.jira-project-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #172b4d;
+  margin: 0;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.jira-project-key {
+  font-size: 12px;
+  color: #5e6c84;
+  font-weight: 500;
+}
+
+/* Jira Iconic Underline Tabs Navigation Bar */
+.jira-tabs-nav-bar {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin-top: 6px;
+}
+
+.jira-tabs-nav-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.jira-tabs-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: -2px;
+  /* align with border-bottom */
+}
+
+.jira-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 14px;
+  color: #42526e;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.jira-tab-btn:hover {
+  color: #0052cc;
+  background: rgba(9, 30, 66, 0.04);
+  border-radius: 3px 3px 0 0;
+}
+
+.jira-tab-btn.active {
+  color: #0052cc;
+  font-weight: 600;
+  border-bottom: 4px solid #0052cc;
+  background: transparent;
+}
+
+.jira-tab-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.jira-tab-label {
+  line-height: 1.2;
+}
+
+.jira-tab-count {
+  background: #ebecf0;
+  color: #42526e;
+  border-radius: 10px;
+  font-size: 11px;
+  padding: 1px 6px;
+  font-weight: 600;
+}
+
+.jira-tab-btn.active .jira-tab-count {
+  background: #deebff;
+  color: #0052cc;
+}
+
+/* Tab Content */
+.jira-tab-content-area {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .jira-page-header {
+    padding: 14px 14px 0 14px;
+  }
+
+  .jira-project-title {
+    font-size: 18px;
+  }
+
+  .jira-tab-btn {
+    padding: 8px 10px;
+    font-size: 12.5px;
+    gap: 6px;
+  }
+}

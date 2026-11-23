@@ -1,0 +1,751 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  apiCrmStats,
+  apiListDeals,
+  apiCreateDeal,
+  apiUpdateDeal,
+  apiDeleteDeal,
+  apiListCrmActivities,
+  apiCreateCrmActivity,
+  apiUpdateCrmActivity,
+  apiDeleteCrmActivity,
+  apiListClients
+} from '../api';
+import './CRM.css';
+
+export default function CRM() {
+  const [activeTab, setActiveTab] = useState('pipeline'); // 'pipeline' | 'activities' | 'summary'
+  const [stats, setStats] = useState(null);
+  const [dealsData, setDealsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Clients list for dropdowns
+  const [clients, setClients] = useState([]);
+
+  // Activities
+  const [activities, setActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+
+  // Jira Quick Filters
+  const [boardSearch, setBoardSearch] = useState('');
+  const [quickFilter, setQuickFilter] = useState('all'); // 'all' | 'high_val' | 'high_prob'
+
+  // Create Deal Modal
+  const [showDealModal, setShowDealModal] = useState(false);
+  const [dealForm, setDealForm] = useState({
+    title: '',
+    client_id: '',
+    value: 150000,
+    stage: 'lead',
+    probability: 60,
+    expected_close_date: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+    description: ''
+  });
+  const [savingDeal, setSavingDeal] = useState(false);
+
+  // Create Activity Modal
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [activityForm, setActivityForm] = useState({
+    deal_id: '',
+    client_id: '',
+    type: 'call',
+    title: '',
+    description: '',
+    due_date: new Date(Date.now() + 86400000).toISOString().slice(0, 16)
+  });
+  const [savingActivity, setSavingActivity] = useState(false);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await apiCrmStats();
+      setStats(res.stats || null);
+    } catch (err) {
+      console.error('Failed to load CRM stats:', err);
+    }
+  }, []);
+
+  const fetchDeals = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiListDeals();
+      setDealsData(res.stages || {});
+    } catch (err) {
+      console.error('Failed to load deals:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchActivities = useCallback(async () => {
+    setActivitiesLoading(true);
+    try {
+      const res = await apiListCrmActivities();
+      setActivities(res.activities || []);
+    } catch (err) {
+      console.error('Failed to load activities:', err);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  }, []);
+
+  const fetchClients = useCallback(async () => {
+    try {
+      const res = await apiListClients();
+      setClients(res.clients || []);
+    } catch (err) {
+      console.error('Failed to load clients:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+    fetchDeals();
+    fetchActivities();
+    fetchClients();
+  }, [fetchStats, fetchDeals, fetchActivities, fetchClients]);
+
+  const handleCreateDeal = async (e) => {
+    e.preventDefault();
+    if (!dealForm.title) return alert('Please enter deal title');
+    setSavingDeal(true);
+    try {
+      await apiCreateDeal(dealForm);
+      alert('Deal added to pipeline!');
+      setShowDealModal(false);
+      setDealForm({
+        title: '',
+        client_id: '',
+        value: 150000,
+        stage: 'lead',
+        probability: 60,
+        expected_close_date: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+        description: ''
+      });
+      fetchDeals();
+      fetchStats();
+    } catch (err) {
+      alert(err.message || 'Failed to create deal');
+    } finally {
+      setSavingDeal(false);
+    }
+  };
+
+  const handleStageMove = async (dealId, nextStage) => {
+    try {
+      await apiUpdateDeal(dealId, { stage: nextStage });
+      fetchDeals();
+      fetchStats();
+    } catch (err) {
+      alert(err.message || 'Failed to move deal');
+    }
+  };
+
+  const handleDeleteDeal = async (dealId) => {
+    if (!window.confirm('Delete this deal from CRM?')) return;
+    try {
+      await apiDeleteDeal(dealId);
+      fetchDeals();
+      fetchStats();
+    } catch (err) {
+      alert(err.message || 'Failed to delete deal');
+    }
+  };
+
+  const handleCreateActivity = async (e) => {
+    e.preventDefault();
+    if (!activityForm.title) return alert('Please enter activity title');
+    setSavingActivity(true);
+    try {
+      await apiCreateCrmActivity(activityForm);
+      alert('Activity logged successfully');
+      setShowActivityModal(false);
+      setActivityForm({
+        deal_id: '',
+        client_id: '',
+        type: 'call',
+        title: '',
+        description: '',
+        due_date: new Date(Date.now() + 86400000).toISOString().slice(0, 16)
+      });
+      fetchActivities();
+    } catch (err) {
+      alert(err.message || 'Failed to log activity');
+    } finally {
+      setSavingActivity(false);
+    }
+  };
+
+  const handleToggleActivity = async (actId, currentCompleted) => {
+    try {
+      await apiUpdateCrmActivity(actId, { completed: !currentCompleted });
+      fetchActivities();
+    } catch (err) {
+      alert(err.message || 'Failed to toggle status');
+    }
+  };
+
+  const handleDeleteActivity = async (id) => {
+    if (!window.confirm('Delete this activity log?')) return;
+    try {
+      await apiDeleteCrmActivity(id);
+      fetchActivities();
+    } catch (err) {
+      alert(err.message || 'Failed to delete activity');
+    }
+  };
+
+  const fmtCurrency = (val) => `₹${Number(val || 0).toLocaleString('en-IN')}`;
+
+  const dealStages = [
+    { key: 'lead', label: 'LEAD INQUIRIES', color: '#42526e', icon: '📥' },
+    { key: 'contacted', label: 'CONTACTED', color: '#0052cc', icon: '📞' },
+    { key: 'proposal', label: 'PROPOSAL SENT', color: '#ffab00', icon: '📄' },
+    { key: 'negotiation', label: 'NEGOTIATION', color: '#6554c0', icon: '🤝' },
+    { key: 'won', label: 'CLOSED WON', color: '#006644', icon: '🏆' },
+    { key: 'lost', label: 'CLOSED LOST', color: '#bf2600', icon: '📁' }
+  ];
+
+  return (
+    <div className="jira-crm-container">
+      {/* Atlassian Jira Project Header */}
+      <div className="jira-crm-header">
+        <div className="jira-breadcrumbs">
+          <span>Projects</span>
+          <span className="jira-bc-sep">/</span>
+          <span>Zorvixe CRM</span>
+          <span className="jira-bc-sep">/</span>
+          <span className="jira-bc-current">Sales Deals Pipeline</span>
+        </div>
+
+        <div className="jira-title-row">
+          <div className="jira-title-left">
+            <div className="jira-project-avatar jira-avatar-crm">
+              <span>CRM</span>
+            </div>
+            <div>
+              <h1 className="jira-project-title">Sales Deals & Opportunities</h1>
+              <span className="jira-project-key">ZORVIXE-CRM • Kanban Board</span>
+            </div>
+          </div>
+
+          <div className="jira-header-actions">
+            <button className="jira-btn jira-btn-primary" onClick={() => setShowDealModal(true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <span>Create Deal</span>
+            </button>
+            <button className="jira-btn jira-btn-secondary" onClick={() => setShowActivityModal(true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+              <span>Log Activity</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Jira Underline Navigation Tabs */}
+        <div className="jira-tabs-nav-bar">
+          <div className="jira-tabs-list">
+            <button
+              type="button"
+              className={`jira-tab-btn ${activeTab === 'pipeline' ? 'active' : ''}`}
+              onClick={() => setActiveTab('pipeline')}
+            >
+              <span className="jira-tab-icon">📋</span>
+              <span className="jira-tab-label">Kanban Board</span>
+              <span className="jira-tab-count">{stats?.total_deals || 0}</span>
+            </button>
+            <button
+              type="button"
+              className={`jira-tab-btn ${activeTab === 'activities' ? 'active' : ''}`}
+              onClick={() => setActiveTab('activities')}
+            >
+              <span className="jira-tab-icon">⚡</span>
+              <span className="jira-tab-label">Activities & Follow-ups</span>
+              <span className="jira-tab-count">{activities.length}</span>
+            </button>
+            <button
+              type="button"
+              className={`jira-tab-btn ${activeTab === 'summary' ? 'active' : ''}`}
+              onClick={() => setActiveTab('summary')}
+            >
+              <span className="jira-tab-icon">📊</span>
+              <span className="jira-tab-label">Revenue Summary</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Jira Filter Toolbar (The iconic Jira Board Filter Bar) */}
+      {activeTab === 'pipeline' && (
+        <div className="jira-board-toolbar">
+          <div className="jira-search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#626f86" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search this board..."
+              value={boardSearch}
+              onChange={(e) => setBoardSearch(e.target.value)}
+            />
+            {boardSearch && (
+              <button type="button" className="jira-search-clear" onClick={() => setBoardSearch('')}>×</button>
+            )}
+          </div>
+
+          <div className="jira-quick-filters">
+            <span className="jira-filter-label">Quick Filters:</span>
+            <button
+              type="button"
+              className={`jira-filter-pill ${quickFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setQuickFilter('all')}
+            >
+              All Deals
+            </button>
+            <button
+              type="button"
+              className={`jira-filter-pill ${quickFilter === 'high_val' ? 'active' : ''}`}
+              onClick={() => setQuickFilter(quickFilter === 'high_val' ? 'all' : 'high_val')}
+            >
+              High Value (≥ ₹2L)
+            </button>
+            <button
+              type="button"
+              className={`jira-filter-pill ${quickFilter === 'high_prob' ? 'active' : ''}`}
+              onClick={() => setQuickFilter(quickFilter === 'high_prob' ? 'all' : 'high_prob')}
+            >
+              Win Prob (≥ 70%)
+            </button>
+          </div>
+
+          {stats && (
+            <div className="jira-pipeline-stat-lozenge">
+              <span className="stat-label">Total Pipeline:</span>
+              <span className="stat-val">{fmtCurrency(stats.total_pipeline_value)}</span>
+              <span className="stat-sep">•</span>
+              <span className="stat-label">Won:</span>
+              <span className="stat-val won">{fmtCurrency(stats.won_value)}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW 1: JIRA KANBAN BOARD */}
+      {activeTab === 'pipeline' && (
+        <div className="jira-kanban-board-canvas">
+          {loading ? (
+            <div> <div className="loader_container">
+              <p className="loader_spinner"></p>
+              <p>Loading Please Wait...</p>
+            </div>
+            </div>
+          ) : (
+            <div className="jira-kanban-board">
+              {dealStages.map((st) => {
+                const allStageDeals = dealsData?.[st.key] || [];
+                const stageDeals = allStageDeals.filter((d) => {
+                  if (boardSearch.trim()) {
+                    const q = boardSearch.toLowerCase();
+                    const matchTitle = (d.title || '').toLowerCase().includes(q);
+                    const matchClient = (d.client_name || d.contact_name || '').toLowerCase().includes(q);
+                    if (!matchTitle && !matchClient) return false;
+                  }
+                  if (quickFilter === 'high_val' && Number(d.value || 0) < 200000) return false;
+                  if (quickFilter === 'high_prob' && Number(d.probability || 0) < 70) return false;
+                  return true;
+                });
+
+                const stageTotalVal = stageDeals.reduce((sum, d) => sum + Number(d.value || 0), 0);
+
+                return (
+                  <div className="jira-kanban-col" key={st.key}>
+                    <div className="jira-col-header">
+                      <div className="jira-col-title-wrap">
+                        <span className="jira-col-title">{st.label}</span>
+                        <span className="jira-col-count">{stageDeals.length}</span>
+                      </div>
+                      <span className="jira-col-val">{fmtCurrency(stageTotalVal)}</span>
+                    </div>
+
+                    <div className="jira-col-cards-list">
+                      {stageDeals.length === 0 ? (
+                        <div className="jira-col-empty">
+                          <span>No deals</span>
+                        </div>
+                      ) : (
+                        stageDeals.map((deal) => {
+                          const stIdx = dealStages.findIndex((s) => s.key === (deal.stage || 'lead'));
+                          const probVal = Math.min(100, Math.max(0, deal.probability || 50));
+                          const initials = (deal.client_name || deal.contact_name || 'ZC').slice(0, 2).toUpperCase();
+
+                          return (
+                            <div className="jira-card" key={deal.id}>
+                              {/* Top row: Type Icon + Issue Key + Delete */}
+                              <div className="jira-card-top-row">
+                                <div className="jira-issue-key-wrap">
+                                  <span className="jira-issue-type-icon">💼</span>
+                                  <span className="jira-issue-key">DEAL-{deal.id}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="jira-card-del-btn"
+                                  onClick={() => handleDeleteDeal(deal.id)}
+                                  title="Delete Deal"
+                                >
+                                  ×
+                                </button>
+                              </div>
+
+                              {/* Title */}
+                              <h4 className="jira-card-title">{deal.title}</h4>
+
+                              {/* Client Tag */}
+                              <div className="jira-client-tag">
+                                <span className="jira-client-icon">🏢</span>
+                                <span>{deal.client_name || deal.contact_name || 'Independent Client'}</span>
+                              </div>
+
+                              {/* Value & Probability */}
+                              <div className="jira-card-meta-row">
+                                <span className="jira-lozenge jira-lozenge-success">
+                                  {fmtCurrency(deal.value)}
+                                </span>
+                                <span className={`jira-lozenge ${probVal >= 70 ? 'jira-lozenge-info' : 'jira-lozenge-default'}`}>
+                                  {probVal}% Win
+                                </span>
+                              </div>
+
+                              {deal.expected_close_date && (
+                                <div className="jira-card-date">
+                                  <span>📅 Target: {new Date(deal.expected_close_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                </div>
+                              )}
+
+                              {deal.description && (
+                                <p className="jira-card-desc">{deal.description}</p>
+                              )}
+
+                              {/* Card Footer: Fast Stage Navigation & Assignee */}
+                              <div className="jira-card-footer">
+                                <div className="jira-stage-arrows">
+                                  <button
+                                    type="button"
+                                    className="jira-arrow-btn"
+                                    disabled={stIdx <= 0}
+                                    onClick={() => handleStageMove(deal.id, dealStages[stIdx - 1].key)}
+                                    title="Move to previous stage"
+                                  >
+                                    ←
+                                  </button>
+                                  <select
+                                    value={deal.stage || 'lead'}
+                                    onChange={(e) => handleStageMove(deal.id, e.target.value)}
+                                    className="jira-stage-select"
+                                  >
+                                    {dealStages.map((s) => (
+                                      <option key={s.key} value={s.key}>
+                                        {s.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    type="button"
+                                    className="jira-arrow-btn"
+                                    disabled={stIdx >= dealStages.length - 1}
+                                    onClick={() => handleStageMove(deal.id, dealStages[stIdx + 1].key)}
+                                    title="Advance to next stage"
+                                  >
+                                    →
+                                  </button>
+                                </div>
+                                <div className="jira-card-avatar" title={deal.client_name || 'Client'}>
+                                  {initials}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW 2: ACTIVITIES & FOLLOW-UPS (JIRA ISSUE LIST STYLE) */}
+      {activeTab === 'activities' && (
+        <div className="jira-activities-panel">
+          <div className="jira-section-header">
+            <div>
+              <h3 className="jira-sec-title">Client Engagements & Follow-ups</h3>
+              <p className="jira-sec-sub">Tracked calls, meetings, product demos, and client commitments</p>
+            </div>
+            <button className="jira-btn jira-btn-primary" onClick={() => setShowActivityModal(true)}>
+              + Log Activity
+            </button>
+          </div>
+
+          <div className="jira-issue-list">
+            {activitiesLoading ? (
+              <div className="jira-loading-state">Loading activities...</div>
+            ) : activities.length === 0 ? (
+              <div className="jira-empty-state">No activities recorded yet. Click "Log Activity" to add one!</div>
+            ) : (
+              activities.map((act) => {
+                const typeIcons = { call: '📞', meeting: '🤝', email: '✉️', note: '📝', task: '✅' };
+                return (
+                  <div className={`jira-issue-row ${act.completed ? 'completed' : ''}`} key={act.id}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(act.completed)}
+                      onChange={() => handleToggleActivity(act.id, act.completed)}
+                      className="jira-issue-checkbox"
+                    />
+                    <span className="jira-issue-type-icon">{typeIcons[act.type] || '📝'}</span>
+                    <span className="jira-issue-key">ACT-{act.id}</span>
+                    <div className="jira-issue-main">
+                      <span className={`jira-issue-summary ${act.completed ? 'strike' : ''}`}>{act.title}</span>
+                      {act.description && <p className="jira-issue-desc">{act.description}</p>}
+                    </div>
+                    <span className="jira-lozenge jira-lozenge-default">{act.type?.toUpperCase()}</span>
+                    <span className="jira-issue-client">🏢 {act.client_name || act.deal_title || 'Client'}</span>
+                    {act.due_date && (
+                      <span className="jira-issue-due">
+                        ⏰ {new Date(act.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="jira-issue-del-btn"
+                      onClick={() => handleDeleteActivity(act.id)}
+                      title="Delete activity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 3: REVENUE SUMMARY & KPIS */}
+      {activeTab === 'summary' && stats && (
+        <div className="jira-summary-panel">
+          <div className="jira-section-header">
+            <div>
+              <h3 className="jira-sec-title">CRM & Pipeline Performance</h3>
+              <p className="jira-sec-sub">Aggregated win metrics, active stage volumes, and deal distribution</p>
+            </div>
+          </div>
+
+          <div className="jira-kpi-row">
+            <div className="jira-kpi-tile">
+              <span className="kpi-label">TOTAL PIPELINE VALUE</span>
+              <span className="kpi-val text-blue">{fmtCurrency(stats.total_pipeline_value)}</span>
+              <span className="kpi-sub">{stats.total_deals || 0} active opportunities</span>
+            </div>
+            <div className="jira-kpi-tile">
+              <span className="kpi-label">CLOSED WON REVENUE</span>
+              <span className="kpi-val text-green">{fmtCurrency(stats.won_value)}</span>
+              <span className="kpi-sub">{stats.won_count || 0} successfully closed deals</span>
+            </div>
+            <div className="jira-kpi-tile">
+              <span className="kpi-label">ACTIVE NEGOTIATIONS</span>
+              <span className="kpi-val text-amber">{stats.in_progress_count || 0}</span>
+              <span className="kpi-sub">In Proposal & Contract Negotiation</span>
+            </div>
+            <div className="jira-kpi-tile">
+              <span className="kpi-label">CLIENT PORTFOLIO</span>
+              <span className="kpi-val">{stats.totalClients || 0}</span>
+              <span className="kpi-sub">{stats.totalContacts || 0} connected client contacts</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE DEAL MODAL (JIRA DIALOG STYLE) */}
+      {showDealModal && (
+        <div className="jira-modal-backdrop" onClick={() => setShowDealModal(false)}>
+          <div className="jira-modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="jira-modal-header">
+              <h3>Create Deal</h3>
+              <button className="jira-modal-close" onClick={() => setShowDealModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleCreateDeal} className="jira-modal-form">
+              <div className="jira-form-group">
+                <label>Deal Summary / Title *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Enterprise Cloud Infrastructure & Support Contract"
+                  value={dealForm.title}
+                  onChange={(e) => setDealForm({ ...dealForm, title: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="jira-form-row">
+                <div className="jira-form-group">
+                  <label>Associated Client</label>
+                  <select
+                    value={dealForm.client_id}
+                    onChange={(e) => setDealForm({ ...dealForm, client_id: e.target.value })}
+                  >
+                    <option value="">Select Client (Optional)</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="jira-form-group">
+                  <label>Deal Value (₹) *</label>
+                  <input
+                    type="number"
+                    value={dealForm.value}
+                    onChange={(e) => setDealForm({ ...dealForm, value: Number(e.target.value) })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="jira-form-row">
+                <div className="jira-form-group">
+                  <label>Initial Stage</label>
+                  <select
+                    value={dealForm.stage}
+                    onChange={(e) => setDealForm({ ...dealForm, stage: e.target.value })}
+                  >
+                    {dealStages.map((s) => (
+                      <option key={s.key} value={s.key}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="jira-form-group">
+                  <label>Win Probability (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={dealForm.probability}
+                    onChange={(e) => setDealForm({ ...dealForm, probability: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              <div className="jira-form-group">
+                <label>Target Closing Date</label>
+                <input
+                  type="date"
+                  value={dealForm.expected_close_date}
+                  onChange={(e) => setDealForm({ ...dealForm, expected_close_date: e.target.value })}
+                />
+              </div>
+
+              <div className="jira-form-group">
+                <label>Scope / Notes</label>
+                <textarea
+                  rows="3"
+                  placeholder="Client requirements, deliverables, budget details..."
+                  value={dealForm.description}
+                  onChange={(e) => setDealForm({ ...dealForm, description: e.target.value })}
+                />
+              </div>
+
+              <div className="jira-modal-footer">
+                <button type="button" className="jira-btn jira-btn-subtle" onClick={() => setShowDealModal(false)}>Cancel</button>
+                <button type="submit" className="jira-btn jira-btn-primary" disabled={savingDeal}>
+                  {savingDeal ? 'Creating...' : 'Create Deal'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE ACTIVITY MODAL */}
+      {showActivityModal && (
+        <div className="jira-modal-backdrop" onClick={() => setShowActivityModal(false)}>
+          <div className="jira-modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="jira-modal-header">
+              <h3>Log Client Activity</h3>
+              <button className="jira-modal-close" onClick={() => setShowActivityModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleCreateActivity} className="jira-modal-form">
+              <div className="jira-form-group">
+                <label>Activity Type</label>
+                <select
+                  value={activityForm.type}
+                  onChange={(e) => setActivityForm({ ...activityForm, type: e.target.value })}
+                >
+                  <option value="call">📞 Phone Call</option>
+                  <option value="meeting">🤝 Client Meeting / Pitch</option>
+                  <option value="email">✉️ Email Follow-up</option>
+                  <option value="note">📝 Strategic Note</option>
+                  <option value="task">✅ Action Item</option>
+                </select>
+              </div>
+
+              <div className="jira-form-group">
+                <label>Summary / Subject *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Discussed SLA terms and cloud infrastructure pricing"
+                  value={activityForm.title}
+                  onChange={(e) => setActivityForm({ ...activityForm, title: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="jira-form-group">
+                <label>Associated Client</label>
+                <select
+                  value={activityForm.client_id}
+                  onChange={(e) => setActivityForm({ ...activityForm, client_id: e.target.value })}
+                >
+                  <option value="">Select Client (Optional)</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="jira-form-group">
+                <label>Due Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={activityForm.due_date}
+                  onChange={(e) => setActivityForm({ ...activityForm, due_date: e.target.value })}
+                />
+              </div>
+
+              <div className="jira-form-group">
+                <label>Notes</label>
+                <textarea
+                  rows="3"
+                  placeholder="Key discussion points, customer feedback, next steps..."
+                  value={activityForm.description}
+                  onChange={(e) => setActivityForm({ ...activityForm, description: e.target.value })}
+                />
+              </div>
+
+              <div className="jira-modal-footer">
+                <button type="button" className="jira-btn jira-btn-subtle" onClick={() => setShowActivityModal(false)}>Cancel</button>
+                <button type="submit" className="jira-btn jira-btn-primary" disabled={savingActivity}>
+                  {savingActivity ? 'Logging...' : 'Save Activity'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
