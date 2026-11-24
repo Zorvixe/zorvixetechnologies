@@ -3,18 +3,66 @@ import {
   apiCrmStats,
   apiListDeals,
   apiCreateDeal,
-  apiUpdateDeal,
   apiDeleteDeal,
   apiListCrmActivities,
   apiCreateCrmActivity,
-  apiUpdateCrmActivity,
-  apiDeleteCrmActivity,
-  apiListClients
+  apiListClients,
+  apiUpdateDealStage
 } from '../api';
+
+import LeadsTab from './crm/LeadsTab';
+import AccountsTab from './crm/AccountsTab';
+import ContactsTab from './crm/ContactsTab';
+import QuotesTab from './crm/QuotesTab';
+import SalesAnalyticsTab from './crm/SalesAnalyticsTab';
+import AutomationTab from './crm/AutomationTab';
+import SendEmailModal from './crm/SendEmailModal';
+import CrmHomeTab from './crm/CrmHomeTab';
+import WorkqueueTab from './crm/WorkqueueTab';
+import ActivitiesCalendarTab from './crm/ActivitiesCalendarTab';
+import {
+  HomeIcon,
+  WorkqueueIcon,
+  PipelineIcon,
+  LeadsIcon,
+  BuildingIcon,
+  UsersIcon,
+  QuotesIcon,
+  ChartIcon,
+  SettingsIcon,
+  PhoneIcon,
+  HandshakeIcon,
+  AwardIcon,
+  FolderIcon,
+  CalendarIcon
+} from '../components/CrmHrmsIcons';
+
 import './CRM.css';
 
-export default function CRM() {
-  const [activeTab, setActiveTab] = useState('pipeline'); // 'pipeline' | 'activities' | 'summary'
+export default function CRM({ defaultTab }) {
+  const getInitialTab = () => {
+    if (defaultTab && ['home', 'workqueue', 'pipeline', 'leads', 'accounts', 'contacts', 'quotes', 'activities', 'analytics', 'automation'].includes(defaultTab)) {
+      return defaultTab;
+    }
+    const hash = window.location.hash.replace('#', '');
+    if (['home', 'workqueue', 'pipeline', 'leads', 'accounts', 'contacts', 'quotes', 'activities', 'analytics', 'automation'].includes(hash)) {
+      return hash;
+    }
+    return 'home';
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+
+  useEffect(() => {
+    if (defaultTab && ['home', 'workqueue', 'pipeline', 'leads', 'accounts', 'contacts', 'quotes', 'activities', 'analytics', 'automation'].includes(defaultTab)) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
+
+  const handleTabChange = (tabKey) => {
+    setActiveTab(tabKey);
+    window.location.hash = tabKey;
+  };
   const [stats, setStats] = useState(null);
   const [dealsData, setDealsData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -24,11 +72,26 @@ export default function CRM() {
 
   // Activities
   const [activities, setActivities] = useState([]);
-  const [activitiesLoading, setActivitiesLoading] = useState(false);
 
   // Jira Quick Filters
   const [boardSearch, setBoardSearch] = useState('');
   const [quickFilter, setQuickFilter] = useState('all'); // 'all' | 'high_val' | 'high_prob'
+
+  // Send Email Modal State
+  const [emailModalConfig, setEmailModalConfig] = useState({
+    isOpen: false,
+    recipient: {},
+    relatedType: 'deal',
+    relatedId: null
+  });
+
+  // Lost Deal Reason Modal State
+  const [lostDealModal, setLostDealModal] = useState({
+    isOpen: false,
+    dealId: null,
+    reason: 'Price Too High',
+    notes: ''
+  });
 
   // Create Deal Modal
   const [showDealModal, setShowDealModal] = useState(false);
@@ -77,14 +140,11 @@ export default function CRM() {
   }, []);
 
   const fetchActivities = useCallback(async () => {
-    setActivitiesLoading(true);
     try {
       const res = await apiListCrmActivities();
       setActivities(res.activities || []);
     } catch (err) {
       console.error('Failed to load activities:', err);
-    } finally {
-      setActivitiesLoading(false);
     }
   }, []);
 
@@ -131,12 +191,38 @@ export default function CRM() {
   };
 
   const handleStageMove = async (dealId, nextStage) => {
+    if (nextStage === 'lost') {
+      setLostDealModal({
+        isOpen: true,
+        dealId,
+        reason: 'Price Too High',
+        notes: ''
+      });
+      return;
+    }
     try {
-      await apiUpdateDeal(dealId, { stage: nextStage });
+      await apiUpdateDealStage(dealId, { stage: nextStage });
       fetchDeals();
       fetchStats();
     } catch (err) {
       alert(err.message || 'Failed to move deal');
+    }
+  };
+
+  const handleConfirmLostDeal = async (e) => {
+    e.preventDefault();
+    if (!lostDealModal.dealId) return;
+    try {
+      await apiUpdateDealStage(lostDealModal.dealId, {
+        stage: 'lost',
+        loss_reason: lostDealModal.reason,
+        loss_notes: lostDealModal.notes
+      });
+      setLostDealModal({ isOpen: false, dealId: null, reason: 'Price Too High', notes: '' });
+      fetchDeals();
+      fetchStats();
+    } catch (err) {
+      alert(err.message || 'Failed to update deal');
     }
   };
 
@@ -175,34 +261,15 @@ export default function CRM() {
     }
   };
 
-  const handleToggleActivity = async (actId, currentCompleted) => {
-    try {
-      await apiUpdateCrmActivity(actId, { completed: !currentCompleted });
-      fetchActivities();
-    } catch (err) {
-      alert(err.message || 'Failed to toggle status');
-    }
-  };
-
-  const handleDeleteActivity = async (id) => {
-    if (!window.confirm('Delete this activity log?')) return;
-    try {
-      await apiDeleteCrmActivity(id);
-      fetchActivities();
-    } catch (err) {
-      alert(err.message || 'Failed to delete activity');
-    }
-  };
-
   const fmtCurrency = (val) => `₹${Number(val || 0).toLocaleString('en-IN')}`;
 
   const dealStages = [
-    { key: 'lead', label: 'LEAD INQUIRIES', color: '#42526e', icon: '📥' },
-    { key: 'contacted', label: 'CONTACTED', color: '#0052cc', icon: '📞' },
-    { key: 'proposal', label: 'PROPOSAL SENT', color: '#ffab00', icon: '📄' },
-    { key: 'negotiation', label: 'NEGOTIATION', color: '#6554c0', icon: '🤝' },
-    { key: 'won', label: 'CLOSED WON', color: '#006644', icon: '🏆' },
-    { key: 'lost', label: 'CLOSED LOST', color: '#bf2600', icon: '📁' }
+    { key: 'lead', label: 'LEAD INQUIRIES', color: '#42526e', icon: LeadsIcon },
+    { key: 'contacted', label: 'CONTACTED', color: '#0052cc', icon: PhoneIcon },
+    { key: 'proposal', label: 'PROPOSAL SENT', color: '#ffab00', icon: QuotesIcon },
+    { key: 'negotiation', label: 'NEGOTIATION', color: '#6554c0', icon: HandshakeIcon },
+    { key: 'won', label: 'CLOSED WON', color: '#006644', icon: AwardIcon },
+    { key: 'lost', label: 'CLOSED LOST', color: '#bf2600', icon: FolderIcon }
   ];
 
   return (
@@ -250,29 +317,85 @@ export default function CRM() {
           <div className="jira-tabs-list">
             <button
               type="button"
-              className={`jira-tab-btn ${activeTab === 'pipeline' ? 'active' : ''}`}
-              onClick={() => setActiveTab('pipeline')}
+              className={`jira-tab-btn ${activeTab === 'home' ? 'active' : ''}`}
+              onClick={() => handleTabChange('home')}
             >
-              <span className="jira-tab-icon">📋</span>
-              <span className="jira-tab-label">Kanban Board</span>
+              <span className="jira-tab-icon"><HomeIcon size={16} /></span>
+              <span className="jira-tab-label">Home Cockpit</span>
+            </button>
+            <button
+              type="button"
+              className={`jira-tab-btn ${activeTab === 'workqueue' ? 'active' : ''}`}
+              onClick={() => handleTabChange('workqueue')}
+            >
+              <span className="jira-tab-icon"><WorkqueueIcon size={16} /></span>
+              <span className="jira-tab-label">Workqueue</span>
+            </button>
+            <button
+              type="button"
+              className={`jira-tab-btn ${activeTab === 'pipeline' ? 'active' : ''}`}
+              onClick={() => handleTabChange('pipeline')}
+            >
+              <span className="jira-tab-icon"><PipelineIcon size={16} /></span>
+              <span className="jira-tab-label">Deals Pipeline</span>
               <span className="jira-tab-count">{stats?.total_deals || 0}</span>
             </button>
             <button
               type="button"
-              className={`jira-tab-btn ${activeTab === 'activities' ? 'active' : ''}`}
-              onClick={() => setActiveTab('activities')}
+              className={`jira-tab-btn ${activeTab === 'leads' ? 'active' : ''}`}
+              onClick={() => handleTabChange('leads')}
             >
-              <span className="jira-tab-icon">⚡</span>
-              <span className="jira-tab-label">Activities & Follow-ups</span>
+              <span className="jira-tab-icon"><LeadsIcon size={16} /></span>
+              <span className="jira-tab-label">Leads Pool</span>
+            </button>
+            <button
+              type="button"
+              className={`jira-tab-btn ${activeTab === 'accounts' ? 'active' : ''}`}
+              onClick={() => handleTabChange('accounts')}
+            >
+              <span className="jira-tab-icon"><BuildingIcon size={16} /></span>
+              <span className="jira-tab-label">Accounts (360°)</span>
+            </button>
+            <button
+              type="button"
+              className={`jira-tab-btn ${activeTab === 'contacts' ? 'active' : ''}`}
+              onClick={() => handleTabChange('contacts')}
+            >
+              <span className="jira-tab-icon"><UsersIcon size={16} /></span>
+              <span className="jira-tab-label">B2B Contacts</span>
+            </button>
+            <button
+              type="button"
+              className={`jira-tab-btn ${activeTab === 'quotes' ? 'active' : ''}`}
+              onClick={() => handleTabChange('quotes')}
+            >
+              <span className="jira-tab-icon"><QuotesIcon size={16} /></span>
+              <span className="jira-tab-label">Quotes & Products</span>
+            </button>
+            <button
+              type="button"
+              className={`jira-tab-btn ${activeTab === 'activities' ? 'active' : ''}`}
+              onClick={() => handleTabChange('activities')}
+            >
+              <span className="jira-tab-icon"><CalendarIcon size={16} /></span>
+              <span className="jira-tab-label">Activities & Calendar</span>
               <span className="jira-tab-count">{activities.length}</span>
             </button>
             <button
               type="button"
-              className={`jira-tab-btn ${activeTab === 'summary' ? 'active' : ''}`}
-              onClick={() => setActiveTab('summary')}
+              className={`jira-tab-btn ${activeTab === 'analytics' || activeTab === 'summary' ? 'active' : ''}`}
+              onClick={() => handleTabChange('analytics')}
             >
-              <span className="jira-tab-icon">📊</span>
-              <span className="jira-tab-label">Revenue Summary</span>
+              <span className="jira-tab-icon"><ChartIcon size={16} /></span>
+              <span className="jira-tab-label">Forecasting & Funnel</span>
+            </button>
+            <button
+              type="button"
+              className={`jira-tab-btn ${activeTab === 'automation' ? 'active' : ''}`}
+              onClick={() => handleTabChange('automation')}
+            >
+              <span className="jira-tab-icon"><SettingsIcon size={16} /></span>
+              <span className="jira-tab-label">Automation & Templates</span>
             </button>
           </div>
         </div>
@@ -365,6 +488,7 @@ export default function CRM() {
                   <div className="jira-kanban-col" key={st.key}>
                     <div className="jira-col-header">
                       <div className="jira-col-title-wrap">
+                        {st.icon && <st.icon size={14} color={st.color} />}
                         <span className="jira-col-title">{st.label}</span>
                         <span className="jira-col-count">{stageDeals.length}</span>
                       </div>
@@ -381,6 +505,7 @@ export default function CRM() {
                           const stIdx = dealStages.findIndex((s) => s.key === (deal.stage || 'lead'));
                           const probVal = Math.min(100, Math.max(0, deal.probability || 50));
                           const initials = (deal.client_name || deal.contact_name || 'ZC').slice(0, 2).toUpperCase();
+                          const daysInactive = Math.floor((Date.now() - new Date(deal.updated_at || deal.created_at || Date.now()).getTime()) / 86400000);
 
                           return (
                             <div className="jira-card" key={deal.id}>
@@ -409,7 +534,7 @@ export default function CRM() {
                                 <span>{deal.client_name || deal.contact_name || 'Independent Client'}</span>
                               </div>
 
-                              {/* Value & Probability */}
+                              {/* Value, Probability & Rotting Alert */}
                               <div className="jira-card-meta-row">
                                 <span className="jira-lozenge jira-lozenge-success">
                                   {fmtCurrency(deal.value)}
@@ -417,6 +542,11 @@ export default function CRM() {
                                 <span className={`jira-lozenge ${probVal >= 70 ? 'jira-lozenge-info' : 'jira-lozenge-default'}`}>
                                   {probVal}% Win
                                 </span>
+                                {daysInactive >= 14 && deal.stage !== 'won' && deal.stage !== 'lost' && (
+                                  <span className="jira-lozenge jira-lozenge-danger" title="No activity updates for 14+ days">
+                                    ⚠️ {daysInactive}d stagnant
+                                  </span>
+                                )}
                               </div>
 
                               {deal.expected_close_date && (
@@ -429,7 +559,7 @@ export default function CRM() {
                                 <p className="jira-card-desc">{deal.description}</p>
                               )}
 
-                              {/* Card Footer: Fast Stage Navigation & Assignee */}
+                              {/* Card Footer: Fast Stage Navigation, Email & Assignee */}
                               <div className="jira-card-footer">
                                 <div className="jira-stage-arrows">
                                   <button
@@ -462,8 +592,31 @@ export default function CRM() {
                                     →
                                   </button>
                                 </div>
-                                <div className="jira-card-avatar" title={deal.client_name || 'Client'}>
-                                  {initials}
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <button
+                                    type="button"
+                                    className="jira-deal-email-btn"
+                                    onClick={() => setEmailModalConfig({
+                                      isOpen: true,
+                                      recipient: {
+                                        email: deal.client_email,
+                                        name: deal.client_name,
+                                        company: deal.client_name,
+                                        dealTitle: deal.title,
+                                        amount: deal.value,
+                                        category: deal.stage === 'proposal' ? 'proposal' : deal.stage === 'negotiation' ? 'negotiation' : 'sales'
+                                      },
+                                      relatedType: 'deal',
+                                      relatedId: deal.id
+                                    })}
+                                    title="Send Email to Client"
+                                  >
+                                    ✉️
+                                  </button>
+                                  <div className="jira-card-avatar" title={deal.client_name || 'Client'}>
+                                    {initials}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -479,98 +632,34 @@ export default function CRM() {
         </div>
       )}
 
-      {/* VIEW 2: ACTIVITIES & FOLLOW-UPS (JIRA ISSUE LIST STYLE) */}
+      {/* MODULE: ZOHO ACTIVITIES & CALENDAR WORKSPACE (Photos 1, 4, 5, 6, 7) */}
       {activeTab === 'activities' && (
-        <div className="jira-activities-panel">
-          <div className="jira-section-header">
-            <div>
-              <h3 className="jira-sec-title">Client Engagements & Follow-ups</h3>
-              <p className="jira-sec-sub">Tracked calls, meetings, product demos, and client commitments</p>
-            </div>
-            <button className="jira-btn jira-btn-primary" onClick={() => setShowActivityModal(true)}>
-              + Log Activity
-            </button>
-          </div>
-
-          <div className="jira-issue-list">
-            {activitiesLoading ? (
-              <div className="jira-loading-state">Loading activities...</div>
-            ) : activities.length === 0 ? (
-              <div className="jira-empty-state">No activities recorded yet. Click "Log Activity" to add one!</div>
-            ) : (
-              activities.map((act) => {
-                const typeIcons = { call: '📞', meeting: '🤝', email: '✉️', note: '📝', task: '✅' };
-                return (
-                  <div className={`jira-issue-row ${act.completed ? 'completed' : ''}`} key={act.id}>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(act.completed)}
-                      onChange={() => handleToggleActivity(act.id, act.completed)}
-                      className="jira-issue-checkbox"
-                    />
-                    <span className="jira-issue-type-icon">{typeIcons[act.type] || '📝'}</span>
-                    <span className="jira-issue-key">ACT-{act.id}</span>
-                    <div className="jira-issue-main">
-                      <span className={`jira-issue-summary ${act.completed ? 'strike' : ''}`}>{act.title}</span>
-                      {act.description && <p className="jira-issue-desc">{act.description}</p>}
-                    </div>
-                    <span className="jira-lozenge jira-lozenge-default">{act.type?.toUpperCase()}</span>
-                    <span className="jira-issue-client">🏢 {act.client_name || act.deal_title || 'Client'}</span>
-                    {act.due_date && (
-                      <span className="jira-issue-due">
-                        ⏰ {new Date(act.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      className="jira-issue-del-btn"
-                      onClick={() => handleDeleteActivity(act.id)}
-                      title="Delete activity"
-                    >
-                      ×
-                    </button>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
+        <ActivitiesCalendarTab onSelectActivity={(act) => {}} />
       )}
 
-      {/* VIEW 3: REVENUE SUMMARY & KPIS */}
-      {activeTab === 'summary' && stats && (
-        <div className="jira-summary-panel">
-          <div className="jira-section-header">
-            <div>
-              <h3 className="jira-sec-title">CRM & Pipeline Performance</h3>
-              <p className="jira-sec-sub">Aggregated win metrics, active stage volumes, and deal distribution</p>
-            </div>
-          </div>
+      {/* MODULE 0: HOME COCKPIT */}
+      {activeTab === 'home' && <CrmHomeTab onNavigateTab={handleTabChange} />}
 
-          <div className="jira-kpi-row">
-            <div className="jira-kpi-tile">
-              <span className="kpi-label">TOTAL PIPELINE VALUE</span>
-              <span className="kpi-val text-blue">{fmtCurrency(stats.total_pipeline_value)}</span>
-              <span className="kpi-sub">{stats.total_deals || 0} active opportunities</span>
-            </div>
-            <div className="jira-kpi-tile">
-              <span className="kpi-label">CLOSED WON REVENUE</span>
-              <span className="kpi-val text-green">{fmtCurrency(stats.won_value)}</span>
-              <span className="kpi-sub">{stats.won_count || 0} successfully closed deals</span>
-            </div>
-            <div className="jira-kpi-tile">
-              <span className="kpi-label">ACTIVE NEGOTIATIONS</span>
-              <span className="kpi-val text-amber">{stats.in_progress_count || 0}</span>
-              <span className="kpi-sub">In Proposal & Contract Negotiation</span>
-            </div>
-            <div className="jira-kpi-tile">
-              <span className="kpi-label">CLIENT PORTFOLIO</span>
-              <span className="kpi-val">{stats.totalClients || 0}</span>
-              <span className="kpi-sub">{stats.totalContacts || 0} connected client contacts</span>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* MODULE 0.5: WORKQUEUE WORKSPACE */}
+      {activeTab === 'workqueue' && <WorkqueueTab onSelectDeal={(d) => {}} onSelectLead={(l) => {}} />}
+
+      {/* MODULE 2: LEADS & 1-CLICK CONVERSION */}
+      {activeTab === 'leads' && <LeadsTab />}
+
+      {/* MODULE 3: ACCOUNTS (ORGANIZATIONS 360°) */}
+      {activeTab === 'accounts' && <AccountsTab />}
+
+      {/* MODULE 4: B2B CONTACTS */}
+      {activeTab === 'contacts' && <ContactsTab />}
+
+      {/* MODULE 5: QUOTES & PRODUCTS (CPQ) */}
+      {activeTab === 'quotes' && <QuotesTab />}
+
+      {/* MODULE 6: SALES ANALYTICS & FORECASTING */}
+      {(activeTab === 'analytics' || activeTab === 'summary') && <SalesAnalyticsTab />}
+
+      {/* MODULE 7: AUTOMATION, EMAIL TEMPLATES & WEBFORMS */}
+      {activeTab === 'automation' && <AutomationTab />}
 
       {/* CREATE DEAL MODAL (JIRA DIALOG STYLE) */}
       {showDealModal && (
@@ -740,6 +829,69 @@ export default function CRM() {
                 <button type="button" className="jira-btn jira-btn-subtle" onClick={() => setShowActivityModal(false)}>Cancel</button>
                 <button type="submit" className="jira-btn jira-btn-primary" disabled={savingActivity}>
                   {savingActivity ? 'Logging...' : 'Save Activity'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PHASE 2: SEND EMAIL MODAL */}
+      <SendEmailModal
+        isOpen={emailModalConfig.isOpen}
+        onClose={() => setEmailModalConfig({ ...emailModalConfig, isOpen: false })}
+        defaultRecipient={emailModalConfig.recipient}
+        relatedType={emailModalConfig.relatedType}
+        relatedId={emailModalConfig.relatedId}
+        onSuccess={() => {
+          fetchActivities();
+        }}
+      />
+
+      {/* PHASE 2: LOST DEAL REASON MODAL (BLUEPRINT RULE VALIDATION) */}
+      {lostDealModal.isOpen && (
+        <div className="jira-modal-backdrop" onClick={() => setLostDealModal({ ...lostDealModal, isOpen: false })}>
+          <div className="jira-modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="jira-modal-header">
+              <h3>Mandatory Loss Reason Required</h3>
+              <button className="jira-modal-close" onClick={() => setLostDealModal({ ...lostDealModal, isOpen: false })}>×</button>
+            </div>
+            <form onSubmit={handleConfirmLostDeal} className="jira-modal-form">
+              <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: '#5e6c84' }}>
+                Per Zorvixe sales workflow rules, please specify why this deal was marked lost to ensure accurate forecasting analytics.
+              </p>
+              <div className="jira-form-group">
+                <label>Primary Reason for Loss *</label>
+                <select
+                  value={lostDealModal.reason}
+                  onChange={(e) => setLostDealModal({ ...lostDealModal, reason: e.target.value })}
+                  required
+                >
+                  <option value="Price Too High">Price Too High / Budget Constraints</option>
+                  <option value="Competitor Won">Competitor Selected</option>
+                  <option value="Project Cancelled">Project Cancelled / Deprioritized</option>
+                  <option value="Timeline Mismatch">Timeline / Delivery Date Mismatch</option>
+                  <option value="Feature / Scope Gap">Feature or Scope Capability Gap</option>
+                  <option value="Other">Other / Unspecified</option>
+                </select>
+              </div>
+
+              <div className="jira-form-group">
+                <label>Loss Debrief Notes</label>
+                <textarea
+                  rows="3"
+                  placeholder="Details on client decision, competitor pricing, or future re-engagement timing..."
+                  value={lostDealModal.notes}
+                  onChange={(e) => setLostDealModal({ ...lostDealModal, notes: e.target.value })}
+                />
+              </div>
+
+              <div className="jira-modal-footer">
+                <button type="button" className="jira-btn jira-btn-subtle" onClick={() => setLostDealModal({ ...lostDealModal, isOpen: false })}>
+                  Cancel
+                </button>
+                <button type="submit" className="jira-btn jira-btn-danger">
+                  Confirm Deal Lost
                 </button>
               </div>
             </form>

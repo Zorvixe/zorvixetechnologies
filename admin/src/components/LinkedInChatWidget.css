@@ -35,6 +35,7 @@
   flex-direction: column;
   overflow: hidden;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  touch-action: pan-y;
 }
 
 .linkedin-messaging-dock.collapsed {
@@ -1089,3 +1090,634 @@
     height: 70vh;
   }
 }
+
+/* Zoho Cliq Presence & Status Popover (Matches Photos 1 & 2) */
+.cliq-status-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 320px;
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 10px;
+  box-shadow: 0 12px 36px rgba(9, 30, 66, 0.25);
+  z-index: 10005;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  animation: fadeInModal 0.15s ease-out;
+  overflow: hidden;
+}
+
+/* Top bar matching Photos 1 & 2 */
+.cliq-popover-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f4f5f7;
+  border-bottom: 1px solid #dfe1e6;
+}
+
+.cliq-top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #172b4d;
+}
+
+.cliq-popover-user-icon {
+  display: flex;
+  align-items: center;
+  color: #5e6c84;
+}
+
+.cliq-top-bar-name {
+  font-weight: 700;
+  color: #172b4d;
+}
+
+.cliq-top-bar-status {
+  color: #00875a;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.cliq-top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cliq-top-icon-btn {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  color: #5e6c84;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cliq-top-icon-btn:hover {
+  background: #ebecf0;
+  color: #172b4d;
+}
+
+.cliq-top-icon-btn.cliq-close-btn {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.cliq-user-profile-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 8px 16px;
+  text-align: center;
+}
+
+.cliq-large-avatar-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #deebff;
+  color: #0052cc;
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 6px rgba(9, 30, 66, 0.08);
+}
+
+.cliq-presence-dot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2.5px solid #ffffff;
+}
+
+.cliq-presence-dot.available { background: #36b37e; }
+.cliq-presence-dot.away { background: #ffab00; }
+.cliq-presence-dot.busy { background: #ff5630; }
+.cliq-presence-dot.invisible { background: #97a0af; }
+.cliq-presence-dot.dnd { background: #bf2600; }
+
+.cliq-user-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #172b4d;
+  margin: 0;
+}
+
+.cliq-status-dropdown-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 16px 12px 16px;
+}
+
+.cliq-status-select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid #dfe1e6;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #172b4d;
+  transition: all 0.15s ease;
+}
+
+.cliq-status-select-btn:hover {
+  background: #f4f5f7;
+  border-color: #c1c7d0;
+}
+
+.cliq-caret {
+  color: #5e6c84;
+  font-size: 12px;
+}
+
+.cliq-status-options-menu {
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(9, 30, 66, 0.15);
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  animation: fadeInModal 0.1s ease-out;
+}
+
+.cliq-menu-label-italic {
+  font-size: 11px;
+  font-style: italic;
+  color: #6b778c;
+  padding: 4px 14px 6px 14px;
+}
+
+.cliq-status-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  color: #172b4d;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+  width: 100%;
+}
+
+.cliq-status-option:hover {
+  background: #f4f5f7;
+}
+
+.cliq-status-option.selected {
+  background: #f0f7ff;
+}
+
+.cliq-status-option-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cliq-opt-text-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.cliq-opt-title {
+  font-weight: 600;
+  color: #172b4d;
+  font-size: 13px;
+}
+
+.cliq-opt-sub {
+  font-size: 11px;
+  color: #6b778c;
+  margin-top: 2px;
+}
+
+.cliq-checkmark {
+  color: #0052cc;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.cliq-status-option.dnd-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cliq-dnd-select {
+  padding: 3px 6px;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  font-size: 11px;
+  background: #ffffff;
+  color: #172b4d;
+  cursor: pointer;
+}
+
+/* Action Menu Items (Photos 1 & 2) */
+.cliq-action-menu-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #ebecf0;
+  padding: 6px 8px;
+}
+
+.cliq-action-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #172b4d;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.cliq-action-menu-item:hover {
+  background: #f4f5f7;
+}
+
+.cliq-action-menu-item svg {
+  color: #5e6c84;
+}
+
+.cliq-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid #ebecf0;
+  padding: 12px 16px 16px 16px;
+  background: #fafbfc;
+}
+
+.cliq-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #172b4d;
+  font-weight: 500;
+}
+
+.cliq-switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+
+.cliq-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.cliq-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #c1c7d0;
+  transition: .2s;
+  border-radius: 18px;
+}
+
+.cliq-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .2s;
+  border-radius: 50%;
+}
+
+.cliq-switch input:checked + .cliq-slider {
+  background-color: #0052cc;
+}
+
+.cliq-switch input:checked + .cliq-slider:before {
+  transform: translateX(14px);
+}
+
+/* ---------------- Main Dock Body Enhancements (Photo 5) ---------------- */
+.cliq-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 10px 12px;
+  background: #f4f5f7;
+  border: 1px solid #dfe1e6;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.cliq-search-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cliq-search-icon-btn {
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b778c;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.cliq-search-icon-btn:hover {
+  background: #dfe1e6;
+  color: #172b4d;
+}
+
+.cliq-tabs {
+  display: flex;
+  border-bottom: 1px solid #dfe1e6;
+  padding: 0 12px;
+  gap: 8px;
+}
+
+.cliq-tabs .filter-tab-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5e6c84;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.cliq-tabs .filter-tab-btn.active {
+  color: #0052cc;
+  border-bottom-color: #0052cc;
+}
+
+.cliq-conversations-list {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  min-height: 280px;
+}
+
+.cliq-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.cliq-watermark-icon {
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.cliq-empty-text {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #5e6c84;
+  margin: 0;
+  max-width: 260px;
+}
+
+/* Floating Action Button (+) (Photo 5) */
+.cliq-fab-add-btn {
+  position: absolute;
+  bottom: 56px;
+  right: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #0052cc;
+  color: #ffffff;
+  border: none;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 82, 204, 0.4);
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.cliq-fab-add-btn:hover {
+  background: #0747a6;
+  transform: scale(1.08);
+}
+
+/* Bottom Navigation Dock Bar (Photo 5) */
+.cliq-dock-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: #ffffff;
+  border-top: 1px solid #dfe1e6;
+  padding: 6px 0;
+}
+
+.cliq-footer-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: #5e6c84;
+  transition: all 0.15s ease;
+}
+
+.cliq-footer-tab:hover {
+  color: #172b4d;
+}
+
+.cliq-footer-tab.active {
+  color: #0052cc;
+  font-weight: 700;
+}
+
+.cliq-footer-tab svg {
+  display: block;
+}
+
+.dock-sub-status {
+  font-size: 11px;
+  color: #5e6c84;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dock-sub-status .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.dock-sub-status .status-dot.available { background: #36b37e; }
+.dock-sub-status .status-dot.away { background: #ffab00; }
+.dock-sub-status .status-dot.busy { background: #ff5630; }
+.dock-sub-status .status-dot.invisible { background: #97a0af; }
+.dock-sub-status .status-dot.dnd { background: #bf2600; }
+
+/* ==========================================================================
+   TUCKED EDGE TAB (Mobile & Small Screen Swipe-to-Edge)
+   ========================================================================== */
+.cliq-tucked-edge-tab {
+  pointer-events: auto;
+  position: fixed;
+  right: 0;
+  bottom: 24px;
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-right: none;
+  border-radius: 24px 0 0 24px;
+  padding: 6px 10px 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: -4px 4px 16px rgba(9, 30, 66, 0.16);
+  cursor: pointer;
+  z-index: 10000;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+  user-select: none;
+  touch-action: pan-y;
+  animation: slideInFromRight 0.22s ease-out;
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.cliq-tucked-edge-tab:hover,
+.cliq-tucked-edge-tab:active {
+  background: #f4f5f7;
+  transform: translateX(-3px);
+}
+
+.cliq-tucked-content {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  position: relative;
+}
+
+.cliq-tucked-arrow {
+  color: #0052cc;
+  font-size: 11px;
+  font-weight: 700;
+  animation: bounceLeftArrow 1.5s infinite ease-in-out;
+}
+
+@keyframes bounceLeftArrow {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-3px); }
+}
+
+.cliq-tucked-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.cliq-tucked-badge {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  background: #de350b;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 8px;
+  border: 1.5px solid #ffffff;
+  line-height: 1.2;
+}
+
+.cliq-tucked-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #172b4d;
+  letter-spacing: -0.01em;
+}
+
+.dock-swipe-hide-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 5px 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.dock-swipe-hide-btn:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+@media (max-width: 768px) {
+  .cliq-tucked-edge-tab {
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+}
+

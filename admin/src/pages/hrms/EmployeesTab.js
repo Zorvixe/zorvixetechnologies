@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiListEmployees, apiGetEmployee, apiUpdateEmployee } from '../../api';
+import { UserIcon, BuildingIcon, BankIcon } from '../../components/CrmHrmsIcons';
 import './EmployeesTab.css';
 
 export default function EmployeesTab({ isAdmin, user }) {
@@ -205,7 +206,7 @@ export default function EmployeesTab({ isAdmin, user }) {
               <form onSubmit={handleSaveProfile} className="profile-form-body">
                 {/* Section 1: Personal Details */}
                 <div className="profile-section-card">
-                  <h5 className="section-subtitle">👤 Personal Information</h5>
+                  <h5 className="section-subtitle"><UserIcon size={16} style={{ marginRight: '6px' }} /> Personal Information</h5>
                   <div className="form-grid-3">
                     <div className="form-group">
                       <label>Full Name</label>
@@ -304,7 +305,7 @@ export default function EmployeesTab({ isAdmin, user }) {
 
                 {/* Section 2: Employment Details */}
                 <div className="profile-section-card">
-                  <h5 className="section-subtitle">🏢 Employment Details</h5>
+                  <h5 className="section-subtitle"><BuildingIcon size={16} style={{ marginRight: '6px' }} /> Employment Details</h5>
                   <div className="form-grid-3">
                     <div className="form-group">
                       <label>Employee Code</label>
@@ -368,7 +369,7 @@ export default function EmployeesTab({ isAdmin, user }) {
 
                 {/* Section 3: Banking & Statutory Compliance */}
                 <div className="profile-section-card">
-                  <h5 className="section-subtitle">🏦 Banking & Statutory Information</h5>
+                  <h5 className="section-subtitle"><BankIcon size={16} style={{ marginRight: '6px' }} /> Banking & Statutory Information</h5>
                   <div className="form-grid-3">
                     <div className="form-group">
                       <label>Bank Name</label>

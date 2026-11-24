@@ -146,8 +146,15 @@
 }
 
 .jira-tab-icon {
-  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
+  font-size: 15px;
+}
+
+.jira-tab-icon svg {
+  display: block;
 }
 
 .jira-tab-label {

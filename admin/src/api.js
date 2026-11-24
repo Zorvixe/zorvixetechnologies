@@ -94,6 +94,23 @@ export const apiDeleteUser = (id) => request(`/api/admin/users/${id}`, { method:
 /* --------------------------- Candidates --------------------------- */
 export const getCandidates = () => request("/api/admin/candidates")
 export const createCandidate = (body) => request("/api/admin/candidates", { method: "POST", body })
+export const apiParseCandidateResume = async (file) => {
+  const formData = new FormData()
+  formData.append("resume", file)
+  const token = getToken()
+  const res = await fetch(`${API_BASE_URL}/api/admin/candidates/parse-resume`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  })
+  const data = await res.json()
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || "Failed to parse resume")
+  }
+  return data
+}
 export const generateCandidateLink = (candidateId) =>
   request("/api/admin/candidate-links", { method: "POST", body: { candidateId } })
 export const toggleCandidateLink = (candidateId, active) =>
@@ -411,6 +428,53 @@ export const apiListCrmActivities = (params) => request("/api/crm/activities", {
 export const apiCreateCrmActivity = (body) => request("/api/crm/activities", { method: "POST", body });
 export const apiUpdateCrmActivity = (id, body) => request(`/api/crm/activities/${id}`, { method: "PATCH", body });
 export const apiDeleteCrmActivity = (id) => request(`/api/crm/activities/${id}`, { method: "DELETE" });
+
+/* --------------------------- Zoho-Grade Enterprise CRM APIs --------------------------- */
+// Leads
+export const apiListLeads = (params) => request("/api/crm/leads", { params });
+export const apiGetLead = (id) => request(`/api/crm/leads/${id}`);
+export const apiCreateLead = (body) => request("/api/crm/leads", { method: "POST", body });
+export const apiUpdateLead = (id, body) => request(`/api/crm/leads/${id}`, { method: "PUT", body });
+export const apiDeleteLead = (id) => request(`/api/crm/leads/${id}`, { method: "DELETE" });
+export const apiConvertLead = (id, body) => request(`/api/crm/leads/${id}/convert`, { method: "POST", body });
+
+// Accounts (Clients 360)
+export const apiListAccounts = (params) => request("/api/crm/accounts", { params });
+export const apiGetAccount360 = (id) => request(`/api/crm/accounts/${id}/360`);
+export const apiCreateAccount = (body) => request("/api/crm/accounts", { method: "POST", body });
+
+// B2B Contacts
+export const apiListCrmContacts = (params) => request("/api/crm/contacts", { params });
+export const apiCreateCrmContact = (body) => request("/api/crm/contacts", { method: "POST", body });
+export const apiDeleteCrmContact = (id) => request(`/api/crm/contacts/${id}`, { method: "DELETE" });
+
+// Products & Services Catalog
+export const apiListProducts = (params) => request("/api/crm/products", { params });
+export const apiCreateProduct = (body) => request("/api/crm/products", { method: "POST", body });
+
+// Quotations (CPQ)
+export const apiListQuotes = (params) => request("/api/crm/quotes", { params });
+export const apiGetQuote = (id) => request(`/api/crm/quotes/${id}`);
+export const apiCreateQuote = (body) => request("/api/crm/quotes", { method: "POST", body });
+export const apiUpdateQuoteStatus = (id, status) => request(`/api/crm/quotes/${id}/status`, { method: "PATCH", body: { status } });
+export const apiDeleteQuote = (id) => request(`/api/crm/quotes/${id}`, { method: "DELETE" });
+
+// Sales Analytics & Funnel
+export const apiCrmAnalytics = () => request("/api/crm/analytics");
+
+// CRM Phase 2: Email Templates & Communication Engine
+export const apiListEmailTemplates = () => request("/api/crm/email-templates");
+export const apiCreateEmailTemplate = (body) => request("/api/crm/email-templates", { method: "POST", body });
+export const apiUpdateEmailTemplate = (id, body) => request(`/api/crm/email-templates/${id}`, { method: "PUT", body });
+export const apiDeleteEmailTemplate = (id) => request(`/api/crm/email-templates/${id}`, { method: "DELETE" });
+export const apiSendCrmEmail = (body) => request("/api/crm/send-email", { method: "POST", body });
+export const apiListCrmEmails = (params) => request("/api/crm/emails", { params });
+
+// CRM Team Members for Rep Assignment
+export const apiListCrmTeam = () => request("/api/crm/team");
+
+// CRM Deals Stage & Loss Reasons Automation
+export const apiUpdateDealStage = (id, body) => request(`/api/crm/deals/${id}/stage`, { method: "PATCH", body });
 
 /* --------------------------- Helpers --------------------------- */
 export const formatDate = (d) => {

@@ -1,0 +1,245 @@
+/* ==========================================================
+   Enterprise CRM: Sales Analytics & Forecasting Styles
+   ========================================================== */
+
+.crm-analytics-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  color: #172b4d;
+}
+
+.analytics-loading {
+  text-align: center;
+  padding: 50px 20px;
+  color: #5e6c84;
+  font-size: 13px;
+  background: #ffffff;
+  border: 1px dashed #dfe1e6;
+  border-radius: 4px;
+}
+
+/* KPI Grid */
+.analytics-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.kpi-card {
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #5e6c84;
+  letter-spacing: 0.04em;
+}
+
+.kpi-pill {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.pill-blue { background: #deebff; color: #0747a6; }
+.pill-purple { background: #eae6ff; color: #403294; }
+.pill-green { background: #e3fcef; color: #006644; }
+.pill-amber { background: #fff0b3; color: #172b4d; }
+
+.kpi-main-val {
+  font-size: 22px;
+  font-weight: 700;
+  color: #172b4d;
+  letter-spacing: -0.01em;
+  margin-bottom: 3px;
+}
+
+.kpi-sub-text {
+  font-size: 11.5px;
+  color: #5e6c84;
+}
+
+/* Two-column layout */
+.analytics-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.analytics-panel {
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebecf0;
+}
+
+.panel-header h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #172b4d;
+  margin: 0 0 2px 0;
+}
+
+.panel-sub {
+  font-size: 12px;
+  color: #5e6c84;
+}
+
+/* Funnel Container */
+.crm-funnel-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.funnel-bar-step {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.funnel-bar {
+  padding: 8px 14px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(9, 30, 66, 0.08);
+}
+
+.f-step-1 { background: #f4f5f7; color: #172b4d; }
+.f-step-2 { background: #deebff; color: #0747a6; }
+.f-step-3 { background: #fff0b3; color: #172b4d; }
+.f-step-4 { background: #eae6ff; color: #403294; }
+.f-step-5 { background: #e3fcef; color: #006644; border-color: #abf5d1; }
+
+/* Reps list */
+.reps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rep-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fafbfc;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  padding: 10px 14px;
+}
+
+.rep-rank {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0052cc;
+  background: #deebff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rep-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rep-info strong {
+  font-size: 13px;
+  color: #172b4d;
+}
+
+.rep-meta {
+  font-size: 11.5px;
+  color: #5e6c84;
+}
+
+.rep-revenue strong {
+  font-size: 14px;
+  color: #006644;
+}
+
+/* Loss reasons grid */
+.loss-reasons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.loss-reason-card {
+  background: #fafbfc;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.loss-reason-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #172b4d;
+}
+
+.loss-reason-val {
+  font-size: 15px;
+  color: #bf2600;
+  font-weight: 700;
+}
+
+.loss-amount {
+  font-size: 11.5px;
+  color: #5e6c84;
+}
+
+.empty-panel {
+  text-align: center;
+  padding: 24px;
+  color: #8993a4;
+  font-size: 12.5px;
+}
+
+@media (max-width: 900px) {
+  .analytics-two-col {
+    grid-template-columns: 1fr;
+  }
+}

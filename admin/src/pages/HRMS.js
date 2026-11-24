@@ -8,6 +8,14 @@ import EmployeesTab from './hrms/EmployeesTab';
 import RecruitmentComplianceTab from './hrms/RecruitmentComplianceTab';
 import WorkforceInsightsTab from './hrms/WorkforceInsightsTab';
 import LeaveManagement from './LeaveManagement/LeaveManagement';
+import {
+  ClockIcon,
+  PayrollIcon,
+  UsersIcon,
+  BriefcaseIcon,
+  ChartIcon,
+  CalendarIcon
+} from '../components/CrmHrmsIcons';
 
 import './HRMS.css';
 
@@ -45,12 +53,12 @@ export default function HRMS({ defaultTab }) {
   };
 
   const tabs = [
-    { key: 'attendance', label: 'Attendance', icon: '⏱️', count: null },
-    { key: 'payroll', label: 'Payroll & Payslips', icon: '💵', count: null },
-    { key: 'employees', label: 'Employees Directory', icon: '👥', count: null },
-    { key: 'recruitment', label: 'Recruitment & Compliance', icon: '🎯', count: null },
-    { key: 'workforce-insights', label: 'Workforce Insights', icon: '📊', count: null },
-    { key: 'leaves', label: 'Leave Portal', icon: '🏖️', count: null }
+    { key: 'attendance', label: 'Attendance', icon: ClockIcon, count: null },
+    { key: 'payroll', label: 'Payroll & Payslips', icon: PayrollIcon, count: null },
+    { key: 'employees', label: 'Employees Directory', icon: UsersIcon, count: null },
+    { key: 'recruitment', label: 'Recruitment & Compliance', icon: BriefcaseIcon, count: null },
+    { key: 'workforce-insights', label: 'Workforce Insights', icon: ChartIcon, count: null },
+    { key: 'leaves', label: 'Leave Portal', icon: CalendarIcon, count: null }
   ];
 
   return (
@@ -87,7 +95,7 @@ export default function HRMS({ defaultTab }) {
                 className={`jira-tab-btn ${activeTab === tab.key ? 'active' : ''}`}
                 onClick={() => handleTabChange(tab.key)}
               >
-                <span className="jira-tab-icon">{tab.icon}</span>
+                <span className="jira-tab-icon">{tab.icon ? <tab.icon size={16} /> : null}</span>
                 <span className="jira-tab-label">{tab.label}</span>
                 {tab.count !== null && <span className="jira-tab-count">{tab.count}</span>}
               </button>

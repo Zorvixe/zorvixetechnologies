@@ -1,0 +1,343 @@
+/* WorkqueueTab.css - Zoho CRM Workqueue workspace */
+.workqueue-container {
+  display: flex;
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: calc(100vh - 200px);
+  box-shadow: 0 1px 3px rgba(9, 30, 66, 0.04);
+}
+
+/* Sidebar Navigation */
+.workqueue-sidebar {
+  width: 280px;
+  background: #f8f9fa;
+  border-right: 1px solid #dfe1e6;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 860px) {
+  .workqueue-container {
+    flex-direction: column;
+  }
+  .workqueue-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #dfe1e6;
+  }
+}
+
+.wq-nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wq-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  padding: 0 4px;
+}
+
+.wq-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #172b4d;
+}
+
+.wq-activity-filter-select {
+  font-size: 11px;
+  padding: 2px 6px;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #42526e;
+}
+
+.wq-settings-btn {
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  color: #5e6c84;
+}
+
+.wq-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5e6c84;
+  text-transform: uppercase;
+  margin: 10px 0 4px 6px;
+  letter-spacing: 0.3px;
+}
+
+.wq-nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wq-nav-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: #172b4d;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.wq-nav-item:hover {
+  background: #ebecf0;
+}
+
+.wq-nav-item.active {
+  background: #deebff;
+  color: #0052cc;
+  font-weight: 600;
+}
+
+.wq-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wq-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.wq-icon svg {
+  display: block;
+}
+
+.wq-count-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: #dfe1e6;
+  color: #172b4d;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+.wq-count-badge.muted {
+  background: #f4f5f7;
+  color: #6b778c;
+}
+
+.wq-nav-item.active .wq-count-badge {
+  background: #0052cc;
+  color: #ffffff;
+}
+
+/* Main Content Area */
+.workqueue-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wq-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #dfe1e6;
+  background: #fafbfc;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.wq-title-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wq-view-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #172b4d;
+}
+
+.wq-title-pill {
+  font-size: 11px;
+  background: #ebecf0;
+  color: #42526e;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.wq-records-scope-select {
+  padding: 4px 8px;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #ffffff;
+  color: #172b4d;
+  font-weight: 500;
+}
+
+.wq-tool-icon-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.wq-tool-icon-btn:hover {
+  background: #ebecf0;
+}
+
+.wq-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wq-search-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.wq-search-box input {
+  border: none;
+  outline: none;
+  font-size: 12px;
+  width: 140px;
+}
+
+.wq-filter-btn {
+  padding: 5px 12px;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #42526e;
+  cursor: pointer;
+}
+
+/* Table */
+.wq-table-container {
+  flex: 1;
+  overflow: auto;
+}
+
+.wq-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.wq-table th {
+  background: #f4f5f7;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5e6c84;
+  text-transform: uppercase;
+  border-bottom: 1px solid #dfe1e6;
+  white-space: nowrap;
+}
+
+.wq-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #ebecf0;
+  color: #172b4d;
+  white-space: nowrap;
+}
+
+.wq-row:hover {
+  background: #fafbfc;
+}
+
+.wq-date-chip {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.wq-deal-link {
+  color: #0052cc;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wq-deal-link:hover {
+  text-decoration: underline;
+}
+
+.wq-amount-text {
+  font-weight: 600;
+  color: #172b4d;
+}
+
+.wq-stage-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #ebecf0;
+  color: #42526e;
+}
+
+.wq-table-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #dfe1e6;
+  background: #fafbfc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #5e6c84;
+}
+
+.wq-pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wq-page-btn {
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.wq-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

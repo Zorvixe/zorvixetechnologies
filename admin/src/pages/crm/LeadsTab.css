@@ -1,0 +1,562 @@
+/* ==========================================================
+   Enterprise CRM: Leads Management Styles
+   ========================================================== */
+
+.crm-leads-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  color: #172b4d;
+}
+
+/* Toolbar */
+.leads-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 10px 14px;
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.leads-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fafbfc;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  padding: 0 10px;
+  height: 32px;
+  flex: 1;
+  min-width: 240px;
+  max-width: 380px;
+  transition: all 0.15s ease;
+}
+
+.leads-search-box:focus-within {
+  background: #ffffff;
+  border-color: #4c9aff;
+  box-shadow: 0 0 0 1px #4c9aff;
+}
+
+.leads-search-box svg {
+  color: #5e6c84;
+  flex-shrink: 0;
+}
+
+.leads-search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  width: 100%;
+  color: #172b4d;
+  font-family: inherit;
+}
+
+.leads-filter-dropdowns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.leads-select {
+  height: 32px;
+  border: 1px solid #dfe1e6;
+  background: #fafbfc;
+  border-radius: 3px;
+  padding: 0 24px 0 8px;
+  font-size: 12.5px;
+  color: #172b4d;
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.leads-select:focus {
+  border-color: #4c9aff;
+  background: #ffffff;
+}
+
+.btn-create-lead {
+  height: 32px;
+  background: #0052cc;
+  color: #ffffff;
+  border: none;
+  border-radius: 3px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.btn-create-lead:hover {
+  background: #0065ff;
+}
+
+/* Table */
+.leads-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+}
+
+.leads-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.leads-table th {
+  background: #f4f5f7;
+  color: #5e6c84;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 12px;
+  border-bottom: 1px solid #dfe1e6;
+  white-space: nowrap;
+}
+
+.leads-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #ebecf0;
+  color: #172b4d;
+  vertical-align: middle;
+}
+
+.leads-table tr:hover td {
+  background: #fafbfc;
+}
+
+.lead-row-converted {
+  background: #fbfcfd;
+  opacity: 0.85;
+}
+
+.table-state-msg {
+  text-align: center;
+  padding: 36px !important;
+  color: #5e6c84;
+  font-size: 13px;
+}
+
+/* Cell Elements */
+.lead-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lead-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #0052cc;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.lead-name-text {
+  font-weight: 600;
+  color: #172b4d;
+}
+
+.lead-date-sub {
+  font-size: 11px;
+  color: #5e6c84;
+}
+
+.lead-company {
+  font-weight: 600;
+  color: #172b4d;
+}
+
+.lead-industry {
+  font-size: 11.5px;
+  color: #5e6c84;
+}
+
+/* Score badge */
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.score-high { background: #e3fcef; color: #006644; }
+.score-med { background: #deebff; color: #0747a6; }
+.score-low { background: #fff0b3; color: #172b4d; }
+
+.source-pill {
+  background: #f4f5f7;
+  color: #42526e;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border: 1px solid #dfe1e6;
+}
+
+/* Status lozenges */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-new { background: #deebff; color: #0747a6; }
+.status-qualified { background: #e3fcef; color: #006644; }
+.status-contacted { background: #eae6ff; color: #403294; }
+.status-attempted_to_contact { background: #fff0b3; color: #172b4d; }
+.status-lost, .status-junk { background: #ffebe6; color: #bf2600; }
+.status-converted { background: #e3fcef; color: #006644; }
+
+.contact-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lead-email {
+  color: #0052cc;
+  font-size: 12px;
+}
+
+.lead-phone {
+  color: #5e6c84;
+  font-size: 11.5px;
+  font-family: monospace;
+}
+
+/* Action Buttons */
+.lead-action-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-convert-lead {
+  height: 26px;
+  background: #006644;
+  color: #ffffff;
+  border: none;
+  border-radius: 3px;
+  padding: 0 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.btn-convert-lead:hover {
+  background: #00875a;
+}
+
+.converted-tag {
+  background: #e3fcef;
+  color: #006644;
+  border: 1px solid #abf5d1;
+  padding: 3px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.btn-action-icon {
+  width: 26px;
+  height: 26px;
+  background: #f4f5f7;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-action-icon:hover {
+  background: #ebecf0;
+}
+
+.btn-action-icon.text-danger:hover {
+  background: #ffebe6;
+  border-color: #ffbdad;
+}
+
+/* Modals */
+.crm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 30, 66, 0.54);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 16px;
+}
+
+.crm-modal-card {
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  box-shadow: 0 8px 30px rgba(9, 30, 66, 0.25);
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.crm-modal-card.crm-modal-lg {
+  max-width: 680px;
+}
+
+.crm-modal-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid #ebecf0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+}
+
+.crm-modal-header h4 {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: #172b4d;
+  margin: 0;
+}
+
+.crm-modal-header.convert-modal-header {
+  background: #e3fcef;
+  border-bottom-color: #abf5d1;
+}
+
+.crm-modal-header.convert-modal-header h4 {
+  color: #006644;
+}
+
+.crm-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #5e6c84;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 3px;
+}
+
+.crm-modal-close:hover {
+  background: rgba(9, 30, 66, 0.08);
+  color: #172b4d;
+}
+
+.crm-modal-form {
+  padding: 18px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: calc(90vh - 120px);
+}
+
+.crm-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.crm-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.crm-form-group label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5e6c84;
+}
+
+.crm-form-group input,
+.crm-form-group select {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #dfe1e6;
+  background: #ffffff;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #172b4d;
+  outline: none;
+  font-family: inherit;
+}
+
+.crm-form-group textarea {
+  padding: 8px 10px;
+  border: 1px solid #dfe1e6;
+  background: #ffffff;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #172b4d;
+  outline: none;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.crm-form-group input:focus,
+.crm-form-group select:focus,
+.crm-form-group textarea:focus {
+  border-color: #4c9aff;
+  box-shadow: 0 0 0 1px #4c9aff;
+}
+
+/* Convert summary box */
+.convert-summary-box {
+  background: #f4f5f7;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+}
+
+.convert-summary-box p {
+  margin: 0 0 6px 0;
+  font-weight: 600;
+  color: #172b4d;
+}
+
+.convert-summary-box ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.deal-create-checkbox-wrap {
+  padding: 4px 0;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #172b4d;
+  cursor: pointer;
+}
+
+.convert-deal-fields {
+  background: #fafbfc;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.crm-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #ebecf0;
+  margin-top: 4px;
+}
+
+.btn-modal-cancel {
+  height: 32px;
+  background: transparent;
+  border: 1px solid #dfe1e6;
+  color: #42526e;
+  border-radius: 3px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-modal-cancel:hover {
+  background: rgba(9, 30, 66, 0.04);
+}
+
+.btn-modal-submit {
+  height: 32px;
+  background: #0052cc;
+  border: none;
+  color: #ffffff;
+  border-radius: 3px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-modal-submit:hover:not(:disabled) {
+  background: #0065ff;
+}
+
+.btn-modal-convert {
+  height: 32px;
+  background: #006644;
+  border: none;
+  color: #ffffff;
+  border-radius: 3px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-modal-convert:hover:not(:disabled) {
+  background: #00875a;
+}
+
+@media (max-width: 640px) {
+  .crm-form-row {
+    grid-template-columns: 1fr;
+  }
+}

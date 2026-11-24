@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiWorkforceInsights } from '../../api';
+import { BuildingIcon, BriefcaseIcon, ZapIcon, DollarIcon, TargetIcon } from '../../components/CrmHrmsIcons';
 import './WorkforceInsightsTab.css';
 
 export default function WorkforceInsightsTab({ isAdmin, user }) {
@@ -101,7 +102,7 @@ export default function WorkforceInsightsTab({ isAdmin, user }) {
         {/* Department Distribution */}
         <div className="insights-panel">
           <div className="panel-header">
-            <h4>🏢 Department Distribution</h4>
+            <h4><BuildingIcon size={16} style={{ marginRight: '6px' }} /> Department Distribution</h4>
             <span className="panel-sub">Workforce headcount across business units</span>
           </div>
 
@@ -133,14 +134,14 @@ export default function WorkforceInsightsTab({ isAdmin, user }) {
         {/* Roles & Designations */}
         <div className="insights-panel">
           <div className="panel-header">
-            <h4>💼 Role & Seniority Distribution</h4>
+            <h4><BriefcaseIcon size={16} style={{ marginRight: '6px' }} /> Role & Seniority Distribution</h4>
             <span className="panel-sub">Key functional roles across teams</span>
           </div>
 
           <div className="pos-list">
             {designationDistribution.map((p, idx) => (
               <div className="pos-item" key={idx}>
-                <div className="pos-icon">⚡</div>
+                <div className="pos-icon"><ZapIcon size={14} color="#0052cc" /></div>
                 <div className="pos-info">
                   <span className="pos-title">{p.position}</span>
                   <span className="pos-meta">{p.count} Team Members</span>
@@ -157,7 +158,7 @@ export default function WorkforceInsightsTab({ isAdmin, user }) {
         {/* Payroll Statutory Contribution */}
         <div className="insights-panel">
           <div className="panel-header">
-            <h4>💵 Monthly Compensation & Deductions Breakdown</h4>
+            <h4><DollarIcon size={16} style={{ marginRight: '6px' }} /> Monthly Compensation & Deductions Breakdown</h4>
             <span className="panel-sub">Statutory contributions and take-home disbursement</span>
           </div>
 
@@ -184,7 +185,7 @@ export default function WorkforceInsightsTab({ isAdmin, user }) {
         {/* Recruitment Funnel Visual */}
         <div className="insights-panel">
           <div className="panel-header">
-            <h4>🎯 Recruitment ATS Conversion Funnel</h4>
+            <h4><TargetIcon size={16} style={{ marginRight: '6px' }} /> Recruitment ATS Conversion Funnel</h4>
             <span className="panel-sub">End-to-end applicant conversion rate</span>
           </div>
 
@@ -211,7 +212,7 @@ export default function WorkforceInsightsTab({ isAdmin, user }) {
             </div>
             <div className="funnel-step">
               <div className="funnel-bar bg-green" style={{ width: '22%' }}>
-                <span>Hired 🎉: {recruitmentFunnel.hired || 0}</span>
+                <span>Hired: {recruitmentFunnel.hired || 0}</span>
               </div>
             </div>
           </div>

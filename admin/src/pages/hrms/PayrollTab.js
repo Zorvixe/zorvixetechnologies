@@ -9,6 +9,15 @@ import {
   apiUpdateSalaryStructure
 } from '../../api';
 import PayslipModal from './PayslipModal';
+import {
+  DollarIcon,
+  SettingsIcon,
+  FileTextIcon,
+  CheckIcon,
+  CalendarIcon,
+  PrinterIcon,
+  ChartIcon
+} from '../../components/CrmHrmsIcons';
 import './PayrollTab.css';
 
 export default function PayrollTab({ isAdmin, user }) {
@@ -25,6 +34,8 @@ export default function PayrollTab({ isAdmin, user }) {
   // My payslips (for non-admin or personal view)
   const [myPayslips, setMyPayslips] = useState([]);
   const [activeSubTab, setActiveSubTab] = useState(isAdmin ? 'runs' : 'my_payslips');
+  const [payslipYearFilter, setPayslipYearFilter] = useState('all');
+  const [payslipViewMode, setPayslipViewMode] = useState('cards'); // 'cards' | 'table'
 
   // Payslip Modal
   const [selectedPayslipData, setSelectedPayslipData] = useState(null);
@@ -240,14 +251,16 @@ export default function PayrollTab({ isAdmin, user }) {
               className={`subtab-btn ${activeSubTab === 'runs' ? 'active' : ''}`}
               onClick={() => setActiveSubTab('runs')}
             >
-              💵 Monthly Payroll Runs
+              <DollarIcon size={14} style={{ marginRight: '6px' }} />
+              Monthly Payroll Runs
             </button>
             <button
               type="button"
               className={`subtab-btn ${activeSubTab === 'structures' ? 'active' : ''}`}
               onClick={() => setActiveSubTab('structures')}
             >
-              ⚙️ Salary Structures
+              <SettingsIcon size={14} style={{ marginRight: '6px' }} />
+              Salary Structures
             </button>
           </>
         )}
@@ -256,7 +269,8 @@ export default function PayrollTab({ isAdmin, user }) {
           className={`subtab-btn ${activeSubTab === 'my_payslips' ? 'active' : ''}`}
           onClick={() => setActiveSubTab('my_payslips')}
         >
-          📄 My Payslips
+          <FileTextIcon size={14} style={{ marginRight: '6px' }} />
+          My Payslips
         </button>
       </div>
 
@@ -401,7 +415,8 @@ export default function PayrollTab({ isAdmin, user }) {
                             disabled={payslipLoading}
                             title="View / Print Payslip"
                           >
-                            📄 {payslipLoading ? 'Loading...' : 'Slip'}
+                            <FileTextIcon size={12} style={{ marginRight: '4px' }} />
+                            {payslipLoading ? 'Loading...' : 'Slip'}
                           </button>
                           {p.status !== 'paid' && (
                             <button
@@ -409,7 +424,8 @@ export default function PayrollTab({ isAdmin, user }) {
                               onClick={() => handleMarkPaid(p.id)}
                               title="Mark as Paid"
                             >
-                              ✓ Pay
+                              <CheckIcon size={12} style={{ marginRight: '4px' }} />
+                              Pay
                             </button>
                           )}
                           <button
@@ -417,7 +433,7 @@ export default function PayrollTab({ isAdmin, user }) {
                             onClick={() => openAdjustModal(p)}
                             title="Adjust Bonus / Deductions"
                           >
-                            ⚙️
+                            <SettingsIcon size={12} />
                           </button>
                         </div>
                       </td>
@@ -494,52 +510,258 @@ export default function PayrollTab({ isAdmin, user }) {
       )}
 
       {/* VIEW 3: MY PAYSLIPS (EMPLOYEE SELF SERVICE) */}
-      {activeSubTab === 'my_payslips' && (
-        <div className="my-payslips-section">
-          <div className="section-header-row">
-            <div>
-              <h3 className="section-title">My Payslip History</h3>
-              <p className="section-sub">View, verify, and download your monthly salary statements</p>
-            </div>
-          </div>
+      {activeSubTab === 'my_payslips' && (() => {
+        const totalEarnings = myPayslips.reduce((sum, p) => sum + Number(p.net_salary || 0), 0);
+        const totalDeductions = myPayslips.reduce((sum, p) => sum + Number(p.total_deductions || 0), 0);
+        const latestSalary = myPayslips.length > 0 ? myPayslips[0].net_salary : 0;
+        const yearsList = [...new Set(myPayslips.map((p) => p.year))].sort((a, b) => b - a);
+        const filteredPayslips = myPayslips.filter((p) => {
+          if (payslipYearFilter !== 'all' && String(p.year) !== String(payslipYearFilter)) {
+            return false;
+          }
+          return true;
+        });
 
-          {myPayslips.length === 0 ? (
-            <div className="empty-payslips-box">
-              <div className="empty-icon">📂</div>
-              <h4>No Payslips Available</h4>
-              <p>Your monthly payslips will appear here once processed by the HR & Accounts department.</p>
-            </div>
-          ) : (
-            <div className="my-payslips-grid">
-              {myPayslips.map((ps) => (
-                <div className="payslip-summary-card" key={ps.id}>
-                  <div className="ps-card-top">
-                    <span className="ps-month">{monthNames[ps.month]} {ps.year}</span>
-                    <span className={`p-status-badge p-status-${ps.status}`}>{ps.status}</span>
-                  </div>
-                  <div className="ps-net-figure">
-                    <span className="net-currency">₹</span>
-                    <span className="net-val">{Number(ps.net_salary || 0).toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="ps-card-meta">
-                    <div>Gross: {fmtCurrency(ps.gross_earnings)}</div>
-                    <div>Deductions: -{fmtCurrency(ps.total_deductions)}</div>
-                    <div>Paid Days: {ps.paid_days} days</div>
-                  </div>
-                  <button className="btn-download-payslip" onClick={() => openPayslip(ps.id)}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <polyline points="7 10 12 15 17 10"></polyline>
-                      <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    <span>View & Download Payslip</span>
-                  </button>
+        return (
+          <div className="my-payslips-section">
+            {/* Header Controls Bar */}
+            <div className="payslip-header-bar">
+              <div className="payslip-header-left">
+                <div className="payslip-header-icon">
+                  <FileTextIcon size={22} color="#0052cc" />
                 </div>
-              ))}
+                <div>
+                  <h3 className="section-title">My Payslip & Compensation History</h3>
+                  <p className="section-sub">View, verify, and download official monthly salary statements & tax reports</p>
+                </div>
+              </div>
+
+              <div className="payslip-header-tools">
+                {yearsList.length > 1 && (
+                  <div className="payslip-year-select-wrap">
+                    <span className="tool-label">Year:</span>
+                    <select
+                      className="select-period"
+                      value={payslipYearFilter}
+                      onChange={(e) => setPayslipYearFilter(e.target.value)}
+                    >
+                      <option value="all">All Statements</option>
+                      {yearsList.map((yr) => (
+                        <option key={yr} value={yr}>{yr}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {myPayslips.length > 0 && (
+                  <div className="view-mode-toggle">
+                    <button
+                      type="button"
+                      className={`btn-mode-toggle ${payslipViewMode === 'cards' ? 'active' : ''}`}
+                      onClick={() => setPayslipViewMode('cards')}
+                      title="Cards Grid View"
+                    >
+                      Cards
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn-mode-toggle ${payslipViewMode === 'table' ? 'active' : ''}`}
+                      onClick={() => setPayslipViewMode('table')}
+                      title="Statements Table View"
+                    >
+                      Table
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Quick Metrics Ribbon (Only if employee has statements) */}
+            {myPayslips.length > 0 && (
+              <div className="payslip-kpi-ribbon">
+                <div className="payslip-kpi-card card-highlight">
+                  <div className="kpi-icon-pill">
+                    <DollarIcon size={16} color="#006644" />
+                  </div>
+                  <div>
+                    <span className="kpi-label">Latest Take-Home Pay</span>
+                    <div className="kpi-value text-success">{fmtCurrency(latestSalary)}</div>
+                    <span className="kpi-sub">
+                      {monthNames[myPayslips[0].month]} {myPayslips[0].year} Statement
+                    </span>
+                  </div>
+                </div>
+
+                <div className="payslip-kpi-card">
+                  <div className="kpi-icon-pill">
+                    <ChartIcon size={16} color="#0052cc" />
+                  </div>
+                  <div>
+                    <span className="kpi-label">Total Net Disbursed</span>
+                    <div className="kpi-value text-primary">{fmtCurrency(totalEarnings)}</div>
+                    <span className="kpi-sub">Across {myPayslips.length} statement(s)</span>
+                  </div>
+                </div>
+
+                <div className="payslip-kpi-card">
+                  <div className="kpi-icon-pill">
+                    <SettingsIcon size={16} color="#de350b" />
+                  </div>
+                  <div>
+                    <span className="kpi-label">Statutory Deductions</span>
+                    <div className="kpi-value text-danger">-{fmtCurrency(totalDeductions)}</div>
+                    <span className="kpi-sub">EPF, ESIC, PT & TDS contributions</span>
+                  </div>
+                </div>
+
+                <div className="payslip-kpi-card">
+                  <div className="kpi-icon-pill">
+                    <CalendarIcon size={16} color="#6554c0" />
+                  </div>
+                  <div>
+                    <span className="kpi-label">Compliance & Tax Status</span>
+                    <div className="kpi-value text-purple">Compliant</div>
+                    <span className="kpi-sub">Tax Withholdings Tracked</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Main Content: Empty State vs Cards vs Table */}
+            {filteredPayslips.length === 0 ? (
+              <div className="empty-payslips-box">
+                <div className="empty-icon-wrap">
+                  <FileTextIcon size={44} color="#0052cc" />
+                </div>
+                <h4>No Payslips Available</h4>
+                <p>Your monthly salary statements and official payment advice will appear here automatically once processed by the Accounts & HR department.</p>
+                <div className="empty-help-pill">
+                  <span>Direct inquiries: <strong>zorvixetechnologies@gmail.com</strong></span>
+                </div>
+              </div>
+            ) : payslipViewMode === 'table' ? (
+              <div className="payroll-table-wrap">
+                <table className="payroll-table">
+                  <thead>
+                    <tr>
+                      <th>Pay Period</th>
+                      <th>Status</th>
+                      <th>Working / Paid Days</th>
+                      <th>Gross Earnings</th>
+                      <th>Deductions</th>
+                      <th>Net Disbursed</th>
+                      <th>Payment Date</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPayslips.map((ps) => (
+                      <tr key={ps.id}>
+                        <td>
+                          <strong className="ps-period-title">
+                            {monthNames[ps.month]} {ps.year}
+                          </strong>
+                        </td>
+                        <td>
+                          <span className={`p-status-badge p-status-${ps.status}`}>
+                            {ps.status}
+                          </span>
+                        </td>
+                        <td>
+                          <span>{ps.paid_days || 30} / {ps.working_days || 30} Days</span>
+                        </td>
+                        <td>
+                          <span className="text-muted">{fmtCurrency(ps.gross_earnings)}</span>
+                        </td>
+                        <td>
+                          <span className="text-danger">-{fmtCurrency(ps.total_deductions)}</span>
+                        </td>
+                        <td>
+                          <strong className="net-salary-highlight">{fmtCurrency(ps.net_salary)}</strong>
+                        </td>
+                        <td>
+                          <span className="text-muted">
+                            {ps.payment_date ? new Date(ps.payment_date).toLocaleDateString() : 'Auto Processed'}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn-p-action btn-view-slip"
+                            onClick={() => openPayslip(ps.id)}
+                            title="View / Print Salary Slip"
+                          >
+                            <FileTextIcon size={12} style={{ marginRight: '4px' }} />
+                            View Slip
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="my-payslips-grid">
+                {filteredPayslips.map((ps) => (
+                  <div className="payslip-summary-card" key={ps.id}>
+                    <div className="ps-card-top">
+                      <div className="ps-header-meta">
+                        <div className="ps-doc-icon">
+                          <FileTextIcon size={18} color="#0052cc" />
+                        </div>
+                        <div>
+                          <span className="ps-month">{monthNames[ps.month]} {ps.year}</span>
+                          <span className="ps-type-tag">Salary Statement</span>
+                        </div>
+                      </div>
+                      <span className={`p-status-badge p-status-${ps.status}`}>
+                        <CheckIcon size={10} style={{ marginRight: '3px' }} />
+                        {ps.status}
+                      </span>
+                    </div>
+
+                    <div className="ps-net-banner">
+                      <span className="net-caption">Net Disbursed Take-Home</span>
+                      <div className="ps-net-figure">
+                        <span className="net-currency">₹</span>
+                        <span className="net-val">{Number(ps.net_salary || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+
+                    <div className="ps-card-meta-grid">
+                      <div className="meta-box">
+                        <span className="meta-lbl">Gross Pay</span>
+                        <strong className="meta-val text-dark">{fmtCurrency(ps.gross_earnings)}</strong>
+                      </div>
+                      <div className="meta-box">
+                        <span className="meta-lbl">Total Deductions</span>
+                        <strong className="meta-val text-danger">-{fmtCurrency(ps.total_deductions)}</strong>
+                      </div>
+                      <div className="meta-box">
+                        <span className="meta-lbl">Paid Days</span>
+                        <strong className="meta-val">{ps.paid_days || 30} Days</strong>
+                      </div>
+                      <div className="meta-box">
+                        <span className="meta-lbl">Payment Mode</span>
+                        <strong className="meta-val">{ps.payment_mode || 'Bank Transfer'}</strong>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn-download-payslip"
+                      onClick={() => openPayslip(ps.id)}
+                    >
+                      <PrinterIcon size={14} />
+                      <span>View & Download Payslip</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* EDIT SALARY STRUCTURE MODAL */}
       {editingStructure && (

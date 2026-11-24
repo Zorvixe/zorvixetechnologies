@@ -1,0 +1,487 @@
+/* AutomationTab.css - Jira & Zoho style configuration & automation */
+.automation-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auto-subnav-bar {
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #dfe1e6;
+  padding: 6px 12px;
+}
+
+.auto-subnav-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.auto-subnav-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #42526e;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.auto-subnav-btn:hover {
+  background: #ebecf0;
+  color: #172b4d;
+}
+
+.auto-subnav-btn.active {
+  background: #deebff;
+  color: #0052cc;
+}
+
+.auto-content-panel {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #dfe1e6;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(9, 30, 66, 0.04);
+}
+
+.panel-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ebecf0;
+}
+
+.panel-header-row h3 {
+  margin: 0 0 6px 0;
+  font-size: 18px;
+  color: #172b4d;
+}
+
+.panel-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #5e6c84;
+  max-width: 700px;
+  line-height: 1.5;
+}
+
+/* Templates Grid */
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.template-card {
+  border: 1px solid #dfe1e6;
+  border-radius: 6px;
+  background: #fafbfc;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.template-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(9, 30, 66, 0.08);
+  background: #ffffff;
+  border-color: #b3bac5;
+}
+
+.template-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.tmpl-cat-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.tmpl-cat-badge.sales { background: #e3fcef; color: #006644; }
+.tmpl-cat-badge.lead_followup { background: #deebff; color: #0747a6; }
+.tmpl-cat-badge.proposal { background: #eae6ff; color: #403294; }
+.tmpl-cat-badge.negotiation { background: #fff0b3; color: #172b4d; }
+.tmpl-cat-badge.welcome { background: #e3fcef; color: #006644; }
+.tmpl-cat-badge.payment { background: #ffebe6; color: #bf2600; }
+
+.system-pill {
+  font-size: 9px;
+  background: #ebecf0;
+  color: #5e6c84;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+.template-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-icon-subtle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+
+.btn-icon-subtle:hover {
+  background: #ebecf0;
+}
+
+.btn-icon-subtle.danger:hover {
+  background: #ffebe6;
+}
+
+.template-name {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  color: #172b4d;
+}
+
+.template-subject {
+  font-size: 12px;
+  color: #172b4d;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.subj-label {
+  color: #5e6c84;
+  font-weight: 600;
+}
+
+.template-body-snippet {
+  font-size: 12px;
+  color: #5e6c84;
+  line-height: 1.5;
+  background: #ffffff;
+  border: 1px solid #ebecf0;
+  border-radius: 4px;
+  padding: 10px;
+  flex: 1;
+  white-space: pre-wrap;
+  max-height: 110px;
+  overflow-y: auto;
+}
+
+.template-card-footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #6b778c;
+}
+
+.footer-tag {
+  color: #0052cc;
+  font-weight: 600;
+}
+
+/* Webform Split Layout */
+.webforms-split-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .webforms-split-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.webform-controls-card,
+.webform-preview-card {
+  background: #fafbfc;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.webform-controls-card h4,
+.webform-preview-card h4 {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  color: #172b4d;
+}
+
+.ctrl-group {
+  margin-bottom: 14px;
+}
+
+.ctrl-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5e6c84;
+  margin-bottom: 4px;
+}
+
+.ctrl-group input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  font-size: 13px;
+  background: #ffffff;
+}
+
+.ctrl-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 14px;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #ebecf0;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #172b4d;
+  cursor: pointer;
+}
+
+.webhook-endpoint-info {
+  background: #deebff;
+  border-radius: 6px;
+  padding: 14px;
+  font-size: 12px;
+  color: #0747a6;
+}
+
+.webhook-endpoint-info code {
+  display: block;
+  margin: 6px 0;
+  background: #ffffff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #172b4d;
+  border: 1px solid #b3bac5;
+}
+
+.webhook-endpoint-info p {
+  margin: 0;
+  font-size: 11px;
+  color: #42526e;
+}
+
+/* Live Preview */
+.webform-live-box {
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(9, 30, 66, 0.08);
+}
+
+.webform-live-box h3 {
+  margin: 0 0 6px 0;
+  font-size: 17px;
+  color: #172b4d;
+}
+
+.preview-subtitle {
+  font-size: 13px;
+  color: #5e6c84;
+  margin: 0 0 18px 0;
+}
+
+.preview-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-row {
+  display: flex;
+  gap: 12px;
+}
+
+.preview-form-fields input,
+.preview-form-fields select,
+.preview-form-fields textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  font-size: 13px;
+  background: #f4f5f7;
+  color: #6b778c;
+}
+
+.preview-submit-btn {
+  padding: 10px;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+/* Rules Stack */
+.rules-cards-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rule-card {
+  display: flex;
+  gap: 18px;
+  background: #fafbfc;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  padding: 18px 20px;
+  transition: all 0.2s ease;
+}
+
+.rule-card:hover {
+  background: #ffffff;
+  border-color: #b3bac5;
+  box-shadow: 0 2px 8px rgba(9, 30, 66, 0.06);
+}
+
+.rule-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.rule-icon-box.won { background: #e3fcef; }
+.rule-icon-box.lost { background: #ffebe6; }
+.rule-icon-box.alert { background: #fff0b3; }
+.rule-icon-box.score { background: #eae6ff; }
+
+.rule-details {
+  flex: 1;
+}
+
+.rule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.rule-header h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #172b4d;
+}
+
+.rule-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.rule-status-badge.active {
+  background: #e3fcef;
+  color: #006644;
+}
+
+.rule-text {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #42526e;
+}
+
+.rule-actions-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #5e6c84;
+  line-height: 1.6;
+}
+
+/* Template Editor Modal */
+.template-editor-card {
+  max-width: 620px;
+  width: 95%;
+  background: #ffffff;
+  border-radius: 8px;
+}
+
+.template-form {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.template-form-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+.template-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.template-form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5e6c84;
+}
+
+.template-form-group input,
+.template-form-group select,
+.template-form-group textarea {
+  padding: 8px 12px;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #172b4d;
+}
+
+.template-form-group textarea {
+  resize: vertical;
+}
+
+.template-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ebecf0;
+}

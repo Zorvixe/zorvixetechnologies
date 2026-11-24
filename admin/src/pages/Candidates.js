@@ -9,6 +9,7 @@ import {
   formatDate,
   formatBytes,
   apiMe, // ✅ added
+  apiParseCandidateResume,
 } from "../api";
 import Topbar from "../components/Topbar"
 
@@ -25,6 +26,102 @@ export default function Candidates() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", position: "" });
   const [creating, setCreating] = useState(false);
   const [linkInfo, setLinkInfo] = useState(null);
+
+  // --- Resume Upload & Autofill State ---
+  const [resumeFile, setResumeFile] = useState(null);
+  const [resumeInfo, setResumeInfo] = useState(null);
+  const [resumeParsing, setResumeParsing] = useState(false);
+  const [resumeParsed, setResumeParsed] = useState(false);
+  const [extractedFields, setExtractedFields] = useState([]);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleRemoveResume = () => {
+    setResumeFile(null);
+    setResumeInfo(null);
+    setResumeParsing(false);
+    setResumeParsed(false);
+    setExtractedFields([]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleResumeSelect = async (file) => {
+    if (!file) return;
+    const validExtensions = [".pdf", ".doc", ".docx", ".txt"];
+    const ext = file.name ? "." + file.name.split(".").pop().toLowerCase() : "";
+    if (
+      !validExtensions.includes(ext) &&
+      !file.type.includes("pdf") &&
+      !file.type.includes("document") &&
+      !file.type.includes("text")
+    ) {
+      showToast("Please upload a PDF, DOC, DOCX, or TXT file", "error");
+      return;
+    }
+
+    setResumeFile(file);
+    setResumeParsing(true);
+    setResumeParsed(false);
+    setExtractedFields([]);
+
+    try {
+      const data = await apiParseCandidateResume(file);
+      setResumeInfo(data.file || null);
+      const extracted = data.extracted || {};
+      const filled = [];
+
+      setForm((prev) => {
+        const next = { ...prev };
+        if (extracted.name && extracted.name.trim()) {
+          next.name = extracted.name.trim();
+          filled.push("Name");
+        }
+        if (extracted.email && extracted.email.trim()) {
+          next.email = extracted.email.trim().toLowerCase();
+          filled.push("Email");
+        }
+        if (extracted.phone && extracted.phone.trim()) {
+          next.phone = extracted.phone.trim();
+          filled.push("Phone");
+        }
+        if (extracted.position && extracted.position.trim()) {
+          next.position = extracted.position.trim();
+          filled.push("Position");
+        }
+        return next;
+      });
+
+      setExtractedFields(filled);
+      setResumeParsed(true);
+      if (filled.length > 0) {
+        showToast(`Resume parsed! Autofilled: ${filled.join(", ")}`, "success");
+      } else {
+        showToast("Resume attached. Candidate details can be entered below.", "info");
+      }
+    } catch (err) {
+      console.error("Resume parse error:", err);
+      showToast(err.message || "Failed to extract from resume, but file is attached", "error");
+    } finally {
+      setResumeParsing(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleResumeSelect(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragOver(false);
+  };
 
   // --- Toast (bottom-right) ---
   const toastTimer = useRef(null)
@@ -87,8 +184,9 @@ export default function Candidates() {
       if (!form.phone || !/^[6-9]\d{9}$/.test(form.phone)) throw new Error("Phone must start 6-9 and be 10 digits");
       if (!form.position || form.position.trim().length < 2) throw new Error("Position must be at least 2 characters");
 
-      await createCandidate(form);
+      await createCandidate({ ...form, resume_file: resumeInfo });
       setForm({ name: "", email: "", phone: "", position: "" });
+      handleRemoveResume();
       setShowForm(false);
       const modalEl = document.getElementById('create_candidate');
       if (modalEl) {
@@ -198,6 +296,128 @@ export default function Candidates() {
               </div>
 
               <div className="modal-body">
+                {/* Optional Resume Upload Dropzone */}
+                <div className="candidate-resume-section mb-3">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <label className="form-label mb-0 fw-semibold text-secondary small d-flex align-items-center gap-1">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                      </svg>
+                      Upload Resume (Optional)
+                    </label>
+                    <span className="badge bg-light text-muted border" style={{ fontSize: "11px" }}>Autofills Candidate Details</span>
+                  </div>
+
+                  {!resumeFile ? (
+                    <div
+                      className={`candidate-resume-dropzone ${dragOver ? "drag-over" : ""}`}
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                        style={{ display: "none" }}
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleResumeSelect(e.target.files[0])
+                          }
+                        }}
+                      />
+                      <div className="resume-drop-icon">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                      </div>
+                      <div className="resume-drop-text">
+                        <span className="fw-semibold text-primary">Click to upload resume</span> or drag & drop
+                      </div>
+                      <div className="resume-drop-subtext">
+                        PDF, DOC, DOCX, TXT (up to 5MB) • Auto-extracts name, email, phone & role
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="candidate-resume-card">
+                      <div className="d-flex align-items-center justify-content-between">
+                        <div className="d-flex align-items-center gap-2 overflow-hidden">
+                          <div className="resume-file-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                              <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                          </div>
+                          <div className="resume-file-info text-truncate">
+                            <div className="fw-semibold text-dark text-truncate small">
+                              {resumeFile.name}
+                            </div>
+                            <div className="text-muted" style={{ fontSize: "11px" }}>
+                              {formatBytes(resumeFile.size || 0)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                          {resumeParsing ? (
+                            <span className="badge bg-warning-subtle text-warning d-flex align-items-center gap-1">
+                              <span className="spinner-border spinner-border-sm" role="status" style={{ width: "11px", height: "11px" }}></span>
+                              Parsing...
+                            </span>
+                          ) : resumeParsed ? (
+                            <span className="badge bg-success-subtle text-success border border-success-subtle">
+                              ✓ Autofilled
+                            </span>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger p-1"
+                            title="Remove resume"
+                            onClick={handleRemoveResume}
+                            style={{ lineHeight: 1 }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      {resumeParsing && (
+                        <div className="resume-parsing-indicator mt-2">
+                          <div className="progress" style={{ height: "4px" }}>
+                            <div className="progress-bar progress-bar-striped progress-bar-animated bg-primary" style={{ width: "100%" }}></div>
+                          </div>
+                          <div className="text-muted text-center mt-1" style={{ fontSize: "11px" }}>
+                            Analyzing resume and extracting candidate details...
+                          </div>
+                        </div>
+                      )}
+
+                      {resumeParsed && extractedFields.length > 0 && (
+                        <div className="resume-autofill-hint mt-2 p-2 bg-success-subtle rounded border border-success-subtle">
+                          <div className="d-flex align-items-center justify-content-between">
+                            <span className="text-success fw-medium small">
+                              ✨ Extracted: {extractedFields.join(", ")}
+                            </span>
+                            <span className="text-muted" style={{ fontSize: "10.5px" }}>
+                              Editable below
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="row g-3">
                   <div className="col-12 col-md-6">
                     <label htmlFor="cFullName" className="form-label">

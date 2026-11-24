@@ -15,6 +15,7 @@ const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
 const crypto = require('crypto')
+const zlib = require('zlib')
 
 // Email notification services
 const {
@@ -59,12 +60,17 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
     const ok =
       file.mimetype === "application/pdf" ||
       file.mimetype === "image/jpeg" ||
       file.mimetype === "image/png" ||
-      file.mimetype === "image/jpg";
-    cb(ok ? null : new Error("Only JPG/PNG/PDF allowed"), ok);
+      file.mimetype === "image/jpg" ||
+      file.mimetype === "application/msword" ||
+      file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      file.mimetype === "text/plain" ||
+      ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx', '.txt'].includes(ext);
+    cb(ok ? null : new Error("Only PDF, DOC, DOCX, TXT and image files are allowed"), ok);
   },
 });
 
@@ -779,6 +785,190 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
       CREATE INDEX IF NOT EXISTS idx_crm_activities_deal ON crm_activities(deal_id);
     `);
 
+    // 9. Comprehensive Zoho-Grade Enterprise CRM Tables
+    await client.query(`
+      -- Alter existing clients & deals tables for deeper CRM intelligence
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS industry VARCHAR(100);
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS website VARCHAR(200);
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS annual_revenue NUMERIC(15,2);
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS address TEXT;
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS city VARCHAR(100);
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'India';
+
+      ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS loss_reason VARCHAR(100);
+      ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS deal_type VARCHAR(50) DEFAULT 'new_business';
+
+      ALTER TABLE crm_activities ADD COLUMN IF NOT EXISTS duration_minutes INTEGER DEFAULT 15;
+      ALTER TABLE crm_activities ADD COLUMN IF NOT EXISTS outcome VARCHAR(50);
+      ALTER TABLE crm_activities ADD COLUMN IF NOT EXISTS priority VARCHAR(20) DEFAULT 'normal';
+
+      -- CRM Leads Pool
+      CREATE TABLE IF NOT EXISTS crm_leads (
+        id BIGSERIAL PRIMARY KEY,
+        first_name VARCHAR(100) NOT NULL,
+        last_name VARCHAR(100),
+        company VARCHAR(150),
+        email VARCHAR(255),
+        phone VARCHAR(50),
+        source VARCHAR(50) DEFAULT 'Website',
+        status VARCHAR(50) DEFAULT 'new',
+        industry VARCHAR(100),
+        annual_revenue NUMERIC(15,2),
+        lead_score INTEGER DEFAULT 10,
+        assigned_to BIGINT REFERENCES admin_users(id) ON DELETE SET NULL,
+        description TEXT,
+        is_converted BOOLEAN DEFAULT FALSE,
+        converted_at TIMESTAMPTZ,
+        converted_client_id BIGINT REFERENCES clients(id) ON DELETE SET NULL,
+        converted_contact_id BIGINT,
+        converted_deal_id BIGINT REFERENCES crm_deals(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_crm_leads_status ON crm_leads(status);
+      CREATE INDEX IF NOT EXISTS idx_crm_leads_converted ON crm_leads(is_converted);
+
+      -- CRM B2B Contacts (linked to clients/accounts)
+      CREATE TABLE IF NOT EXISTS crm_contacts (
+        id BIGSERIAL PRIMARY KEY,
+        client_id BIGINT REFERENCES clients(id) ON DELETE CASCADE,
+        name VARCHAR(120) NOT NULL,
+        email VARCHAR(160),
+        phone VARCHAR(50),
+        position VARCHAR(100),
+        department VARCHAR(100),
+        is_primary BOOLEAN DEFAULT FALSE,
+        linkedin_url VARCHAR(255),
+        notes TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_crm_contacts_client ON crm_contacts(client_id);
+
+      -- CRM Products & Services Catalog
+      CREATE TABLE IF NOT EXISTS crm_products (
+        id BIGSERIAL PRIMARY KEY,
+        code VARCHAR(50) UNIQUE NOT NULL,
+        name VARCHAR(150) NOT NULL,
+        category VARCHAR(100) DEFAULT 'Software',
+        unit_price NUMERIC(12,2) NOT NULL DEFAULT 0,
+        tax_percentage NUMERIC(5,2) DEFAULT 18.0,
+        is_active BOOLEAN DEFAULT TRUE,
+        description TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      -- CRM Quotations (CPQ)
+      CREATE TABLE IF NOT EXISTS crm_quotes (
+        id BIGSERIAL PRIMARY KEY,
+        quote_number VARCHAR(50) UNIQUE NOT NULL,
+        subject VARCHAR(200) NOT NULL,
+        deal_id BIGINT REFERENCES crm_deals(id) ON DELETE SET NULL,
+        client_id BIGINT REFERENCES clients(id) ON DELETE CASCADE,
+        contact_id BIGINT REFERENCES crm_contacts(id) ON DELETE SET NULL,
+        valid_until DATE,
+        status VARCHAR(30) DEFAULT 'draft',
+        subtotal NUMERIC(12,2) DEFAULT 0,
+        discount_percentage NUMERIC(5,2) DEFAULT 0,
+        discount_amount NUMERIC(12,2) DEFAULT 0,
+        tax_amount NUMERIC(12,2) DEFAULT 0,
+        grand_total NUMERIC(12,2) DEFAULT 0,
+        terms_and_conditions TEXT,
+        notes TEXT,
+        created_by BIGINT REFERENCES admin_users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_crm_quotes_client ON crm_quotes(client_id);
+      CREATE INDEX IF NOT EXISTS idx_crm_quotes_deal ON crm_quotes(deal_id);
+
+      -- Quote Line Items
+      CREATE TABLE IF NOT EXISTS crm_quote_items (
+        id BIGSERIAL PRIMARY KEY,
+        quote_id BIGINT REFERENCES crm_quotes(id) ON DELETE CASCADE,
+        product_id BIGINT REFERENCES crm_products(id) ON DELETE SET NULL,
+        description VARCHAR(255) NOT NULL,
+        quantity NUMERIC(10,2) NOT NULL DEFAULT 1,
+        unit_price NUMERIC(12,2) NOT NULL DEFAULT 0,
+        discount_percentage NUMERIC(5,2) DEFAULT 0,
+        tax_percentage NUMERIC(5,2) DEFAULT 18.0,
+        total_amount NUMERIC(12,2) NOT NULL DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_crm_quote_items_quote ON crm_quote_items(quote_id);
+
+      -- CRM Phase 2: Email Templates & Communication Logs
+      CREATE TABLE IF NOT EXISTS crm_email_templates (
+        id BIGSERIAL PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        category VARCHAR(50) DEFAULT 'sales',
+        subject VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        is_system BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS crm_emails (
+        id BIGSERIAL PRIMARY KEY,
+        recipient_email VARCHAR(160) NOT NULL,
+        recipient_name VARCHAR(150),
+        subject VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        related_type VARCHAR(30),
+        related_id BIGINT,
+        sent_by BIGINT REFERENCES admin_users(id) ON DELETE SET NULL,
+        status VARCHAR(20) DEFAULT 'sent',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_crm_emails_related ON crm_emails(related_type, related_id);
+
+      -- Extend leads & deals for UTM, assignments, loss notes
+      ALTER TABLE crm_leads ADD COLUMN IF NOT EXISTS utm_source VARCHAR(100);
+      ALTER TABLE crm_leads ADD COLUMN IF NOT EXISTS utm_medium VARCHAR(100);
+      ALTER TABLE crm_leads ADD COLUMN IF NOT EXISTS utm_campaign VARCHAR(100);
+      ALTER TABLE crm_leads ADD COLUMN IF NOT EXISTS assigned_to BIGINT REFERENCES admin_users(id) ON DELETE SET NULL;
+      ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS loss_notes TEXT;
+    `);
+
+    // Seed default Phase 2 Email Templates if table is empty
+    await client.query(`
+      INSERT INTO crm_email_templates (name, category, subject, body, is_system)
+      SELECT 'Initial Discovery & Capabilities Introduction', 'lead_followup', 'Zorvixe Technologies — Software Architecture & Digital Innovation for {Company}', 'Hi {Name},\n\nI noticed {Company}''s impressive work and wanted to reach out regarding your tech roadmap. At Zorvixe Technologies, we specialize in high-performance cloud architecture, fullstack applications, and automated AI workflow pipelines.\n\nCould we connect for a brief 15-minute discovery call this Thursday at 3 PM to explore how we can support your tech objectives?\n\nBest regards,\n{MyName}\nZorvixe Technologies\ncontact@zorvixe.com', TRUE
+      WHERE NOT EXISTS (SELECT 1 FROM crm_email_templates WHERE name = 'Initial Discovery & Capabilities Introduction');
+
+      INSERT INTO crm_email_templates (name, category, subject, body, is_system)
+      SELECT 'Commercial Proposal & Quotation Delivery', 'proposal', 'Commercial Proposal {QuoteNumber} for {Company} — Zorvixe Technologies', 'Dear {Name},\n\nThank you for sharing your requirements with us. Following our recent discussion, I have prepared proposal {QuoteNumber} for {Company} with an investment of {Amount}.\n\nYou can review the itemized scope and milestones in our proposal. Please let us know if you''d like to fine-tune any specifics.\n\nWarm regards,\n{MyName}\nZorvixe Technologies', TRUE
+      WHERE NOT EXISTS (SELECT 1 FROM crm_email_templates WHERE name = 'Commercial Proposal & Quotation Delivery');
+
+      INSERT INTO crm_email_templates (name, category, subject, body, is_system)
+      SELECT 'Contract Finalization & Negotiation', 'negotiation', 'Re: Contract Finalization & Onboarding for {Company}', 'Hi {Name},\n\nWe are excited about the prospect of partnering with {Company}. We have reviewed the feedback and can confirm the updated milestones and terms as discussed.\n\nPlease let us know if we are good to proceed with the master services agreement (MSA) so our engineering squad can begin sprint planning.\n\nBest regards,\n{MyName}\nZorvixe Technologies', TRUE
+      WHERE NOT EXISTS (SELECT 1 FROM crm_email_templates WHERE name = 'Contract Finalization & Negotiation');
+
+      INSERT INTO crm_email_templates (name, category, subject, body, is_system)
+      SELECT 'Deal Won & Project Kickoff Welcome', 'welcome', 'Welcome to Zorvixe Technologies! Project Kickoff & Next Steps for {Company}', 'Dear {Name},\n\nWelcome to Zorvixe Technologies! We are thrilled to kick off this project with {Company}.\n\nOur team is currently preparing your project board and environment setup. Your dedicated account manager and lead architect will schedule our official kickoff sync within 48 hours.\n\nWarm welcome,\n{MyName}\nZorvixe Technologies Team', TRUE
+      WHERE NOT EXISTS (SELECT 1 FROM crm_email_templates WHERE name = 'Deal Won & Project Kickoff Welcome');
+
+      INSERT INTO crm_email_templates (name, category, subject, body, is_system)
+      SELECT 'Milestone Payment Reminder', 'payment', 'Invoice & Milestone Payment Reminder — {Company}', 'Dear {Name},\n\nThis is a friendly reminder regarding the upcoming milestone payment for {Company} in reference to {QuoteNumber} for {Amount}.\n\nPlease let us know once the transfer is initiated so our accounts team can share the official tax receipt.\n\nThank you,\nFinance & Accounts Team\nZorvixe Technologies', TRUE
+      WHERE NOT EXISTS (SELECT 1 FROM crm_email_templates WHERE name = 'Milestone Payment Reminder');
+    `);
+
+    // Seed default products if empty
+    await client.query(`
+      INSERT INTO crm_products (code, name, category, unit_price, tax_percentage, description)
+      VALUES 
+        ('PROD-ENTERPRISE-APP', 'Enterprise Custom Software Development', 'Software', 350000.00, 18.00, 'End-to-end full stack web application architecture, dev & deployment'),
+        ('PROD-AI-INTEGRATION', 'AI Agents & Workflow Automation', 'Service', 180000.00, 18.00, 'Custom LLM agent pipelines, API orchestrations and process automation'),
+        ('PROD-CLOUD-DEVOPS', 'Cloud Infrastructure & DevOps Setup', 'Service', 95000.00, 18.00, 'AWS/GCP/Docker architecture, CI/CD pipelines and security audits'),
+        ('PROD-ANNUAL-MAINT', 'Annual Enterprise Support & SLA', 'Maintenance', 120000.00, 18.00, '24/7 uptime monitoring, security patches and dedicated dev support')
+      ON CONFLICT (code) DO NOTHING;
+    `);
+
+    // Clean up any old sample/test leads if present
+    await client.query(`
+      DELETE FROM crm_leads WHERE email IN ('vikram.sharma@apexretail.in', 'ananya@fincore.io');
+    `);
+
     // Ensure profiles & salary structures exist for any existing users
     await client.query(`
       INSERT INTO hrms_employee_profiles (user_id, employee_code, employment_type, joining_date)
@@ -815,15 +1005,9 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
       WHERE NOT EXISTS (SELECT 1 FROM hrms_compliance_records WHERE title = 'Labour Welfare Fund Compliance');
     `);
 
-    // Seed sample job openings if empty
+    // Clean up sample job openings if any
     await client.query(`
-      INSERT INTO hrms_job_openings (title, department, experience_required, job_type, vacancies, salary_range, description, requirements, status)
-      SELECT 'Senior Full Stack React / Node Developer', 'Engineering', '3-5 years', 'Full-time', 2, '₹8,00,000 - ₹14,00,000', 'Building scalable web applications, API integrations, and UI components with React & Node.js.', 'Proficient in React, Node.js, PostgreSQL, Tailwind/CSS, Docker.', 'open'
-      WHERE NOT EXISTS (SELECT 1 FROM hrms_job_openings WHERE title = 'Senior Full Stack React / Node Developer');
-
-      INSERT INTO hrms_job_openings (title, department, experience_required, job_type, vacancies, salary_range, description, requirements, status)
-      SELECT 'UI/UX Product Designer', 'Design', '2-4 years', 'Full-time', 1, '₹6,00,000 - ₹10,00,000', 'Designing modern web & mobile product interfaces, wireframes, prototypes in Figma.', 'Figma, Design Systems, User Research, Prototyping.', 'open'
-      WHERE NOT EXISTS (SELECT 1 FROM hrms_job_openings WHERE title = 'UI/UX Product Designer');
+      DELETE FROM hrms_job_openings WHERE title IN ('Senior Full Stack React / Node Developer', 'UI/UX Product Designer');
     `);
 
 
@@ -1963,9 +2147,294 @@ const generateCandidateId = () => {
   return `CAN-${ts}-${rand}`
 }
 
+function extractResumeText(filePath, mimetype, originalname) {
+  try {
+    const ext = path.extname(originalname || filePath).toLowerCase()
+    const buf = fs.readFileSync(filePath)
+
+    // TXT
+    if (ext === '.txt' || mimetype === 'text/plain') {
+      return buf.toString('utf8')
+    }
+
+    // DOCX (ZIP archive containing word/document.xml)
+    if (ext === '.docx' || mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      let pos = 0
+      while (pos < buf.length) {
+        const sig = buf.indexOf(Buffer.from([0x50, 0x4b, 0x03, 0x04]), pos)
+        if (sig === -1) break
+        if (sig + 30 > buf.length) break
+        const fnLen = buf.readUInt16LE(sig + 26)
+        const extraLen = buf.readUInt16LE(sig + 28)
+        const compMethod = buf.readUInt16LE(sig + 8)
+        const compSize = buf.readUInt32LE(sig + 18)
+        const fn = buf.slice(sig + 30, sig + 30 + fnLen).toString('utf8')
+        const dataStart = sig + 30 + fnLen + extraLen
+        if (fn === 'word/document.xml' && dataStart + compSize <= buf.length) {
+          const compData = buf.slice(dataStart, dataStart + compSize)
+          let xml = ''
+          try {
+            if (compMethod === 8) {
+              xml = zlib.inflateRawSync(compData).toString('utf8')
+            } else {
+              xml = compData.toString('utf8')
+            }
+          } catch {}
+          if (xml) {
+            return xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
+          }
+        }
+        pos = dataStart + compSize
+      }
+    }
+
+    // PDF extraction
+    if (ext === '.pdf' || mimetype === 'application/pdf') {
+      let fullText = ''
+      let pos = 0
+      while (pos < buf.length) {
+        let streamStart = buf.indexOf('stream\r\n', pos)
+        let offset = 8
+        if (streamStart === -1) {
+          streamStart = buf.indexOf('stream\n', pos)
+          offset = 7
+        }
+        if (streamStart === -1) break
+        streamStart += offset
+
+        const streamEnd = buf.indexOf('endstream', streamStart)
+        if (streamEnd === -1) break
+
+        const streamBuf = buf.slice(streamStart, streamEnd)
+        let inflated = null
+        try {
+          inflated = zlib.inflateSync(streamBuf)
+        } catch {
+          try {
+            inflated = zlib.inflateRawSync(streamBuf)
+          } catch {}
+        }
+
+        const content = inflated ? inflated.toString('latin1') : streamBuf.toString('latin1')
+        const tjRegex = /\(([^)]*)\)\s*Tj/g
+        let m
+        while ((m = tjRegex.exec(content)) !== null) {
+          fullText += m[1] + ' '
+        }
+        const arrayRegex = /\[([^\]]*)\]\s*TJ/g
+        while ((m = arrayRegex.exec(content)) !== null) {
+          const inner = m[1]
+          const innerRegex = /\(([^)]*)\)/g
+          let im
+          while ((im = innerRegex.exec(inner)) !== null) {
+            fullText += im[1]
+          }
+          fullText += ' '
+        }
+
+        pos = streamEnd + 9
+      }
+
+      // Raw regex search on buffer for email & phone if sparse
+      const raw = buf.toString('latin1')
+      const emailMatches = raw.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g)
+      if (emailMatches) fullText += ' ' + emailMatches.join(' ')
+      const phoneMatches = raw.match(/(?:(?:\+|00)?91[\s.-]*)?[6-9]\d{4}[\s.-]*\d{5}/g)
+      if (phoneMatches) fullText += ' ' + phoneMatches.join(' ')
+
+      if (fullText.trim().length > 0) return fullText
+    }
+
+    // Generic fallback for any other text/doc
+    return buf.toString('latin1')
+  } catch (err) {
+    console.error('extractResumeText error:', err)
+    return ''
+  }
+}
+
+function parseResumeDetails(rawText, filename = '') {
+  const result = {
+    name: '',
+    email: '',
+    phone: '',
+    position: '',
+  }
+
+  if (!rawText && !filename) return result
+
+  const clean = (rawText || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[\t\f\v]/g, ' ')
+    .replace(/[ ]{2,}/g, ' ')
+
+  const lines = clean
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 0)
+
+  // 1. Email
+  const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i
+  const emailMatch = clean.match(emailRegex)
+  if (emailMatch) {
+    result.email = emailMatch[1].toLowerCase().trim()
+  }
+
+  // 2. Phone (standard 10-digit phone starting 6-9)
+  const phoneCandidates = clean.match(/(?:(?:\+|00)?91[\s.-]*)?[6-9]\d{4}[\s.-]*\d{5}/g) ||
+                          clean.match(/(?:\+?\d{1,3}[\s.-]*)?\(?\d{2,4}\)?[\s.-]*\d{3,4}[\s.-]*\d{4}/g) || []
+  for (const pc of phoneCandidates) {
+    const digits = pc.replace(/\D/g, '')
+    let normalized = ''
+    if (digits.length === 10 && /^[6-9]/.test(digits)) {
+      normalized = digits
+    } else if (digits.length === 12 && digits.startsWith('91') && /^[6-9]/.test(digits.slice(2))) {
+      normalized = digits.slice(2)
+    } else if (digits.length > 10) {
+      const last10 = digits.slice(-10)
+      if (/^[6-9]/.test(last10)) normalized = last10
+    }
+    if (normalized) {
+      result.phone = normalized
+      break
+    }
+  }
+
+  // 3. Position / Role
+  const knownRoles = [
+    'Full Stack Developer',
+    'Frontend Developer',
+    'Backend Developer',
+    'Software Engineer',
+    'Software Developer',
+    'Web Developer',
+    'React Developer',
+    'Node.js Developer',
+    'MERN Stack Developer',
+    'Python Developer',
+    'Java Developer',
+    'DevOps Engineer',
+    'Cloud Architect',
+    'Mobile Application Developer',
+    'Android Developer',
+    'iOS Developer',
+    'Flutter Developer',
+    'UI/UX Designer',
+    'Product Designer',
+    'QA Engineer',
+    'Quality Assurance Engineer',
+    'Automation Tester',
+    'Data Scientist',
+    'Data Analyst',
+    'Machine Learning Engineer',
+    'AI Engineer',
+    'Business Analyst',
+    'Project Manager',
+    'Product Manager',
+    'Scrum Master',
+    'Digital Marketing Specialist',
+    'Marketing Manager',
+    'HR Manager',
+    'HR Executive',
+    'Talent Acquisition Specialist',
+    'Accountant',
+    'Sales Executive',
+    'Customer Success Manager'
+  ]
+
+  for (const role of knownRoles) {
+    const regex = new RegExp(`\\b${role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+    if (regex.test(clean)) {
+      result.position = role
+      break
+    }
+  }
+
+  if (!result.position) {
+    const posLabelRegex = /(?:role|position|designation|applying for|title|job title)\s*[:\-]\s*([a-zA-Z\s\/\-]{3,40})/i
+    const posMatch = clean.match(posLabelRegex)
+    if (posMatch && posMatch[1]) {
+      const candidatePos = posMatch[1].trim()
+      if (candidatePos.length >= 3 && !/^(the|and|for|with)$/i.test(candidatePos)) {
+        result.position = candidatePos
+      }
+    }
+  }
+
+  // 4. Name extraction
+  const nameBlacklist = [
+    'curriculum vitae', 'resume', 'bio-data', 'biodata', 'profile',
+    'summary', 'contact', 'personal info', 'personal details', 'experience',
+    'education', 'skills', 'objective', 'career objective', 'portfolio',
+    'page', 'page 1', 'page 2', 'about me', 'work experience'
+  ]
+
+  for (let i = 0; i < Math.min(lines.length, 8); i++) {
+    const line = lines[i].trim()
+    const lineLower = line.toLowerCase()
+    if (line.includes('@') || /\d{5,}/.test(line)) continue
+    if (nameBlacklist.some(b => lineLower === b || lineLower.startsWith(b + ':'))) continue
+    if (lineLower.includes('http') || lineLower.includes('linkedin.com') || lineLower.includes('github.com')) continue
+
+    const words = line.split(/\s+/).filter(Boolean)
+    if (words.length >= 2 && words.length <= 4) {
+      const isAlphaOnly = words.every(w => /^[A-Z][a-zA-Z.'-]*$/i.test(w))
+      if (isAlphaOnly && line.length >= 3 && line.length <= 40) {
+        result.name = words
+          .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(' ')
+        break
+      }
+    }
+  }
+
+  // Fallback for name from filename (e.g. John_Doe_Resume.pdf)
+  if (!result.name && filename) {
+    const cleanFn = filename
+      .replace(/\.[^/.]+$/, '')
+      .replace(/(?:resume|cv|biodata|profile|updated|latest|202[0-9]|zorvixe)/gi, '')
+      .replace(/[-_.]+/g, ' ')
+      .trim()
+    const fnWords = cleanFn.split(/\s+/).filter(w => w.length >= 2 && /^[a-zA-Z]+$/.test(w))
+    if (fnWords.length >= 2 && fnWords.length <= 4) {
+      result.name = fnWords.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+    }
+  }
+
+  return result
+}
+
+// Parse resume endpoint (ADMIN)
+app.post('/api/admin/candidates/parse-resume', requireAdmin, upload.single('resume'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No resume file uploaded' })
+  }
+  try {
+    const rawText = extractResumeText(req.file.path, req.file.mimetype, req.file.originalname)
+    const extracted = parseResumeDetails(rawText, req.file.originalname)
+
+    res.json({
+      success: true,
+      message: 'Resume parsed successfully',
+      extracted,
+      file: {
+        path: req.file.path,
+        originalname: req.file.originalname,
+        filename: req.file.filename,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      }
+    })
+  } catch (err) {
+    console.error('Parse resume error:', err)
+    res.status(500).json({ success: false, message: 'Failed to parse resume', error: err.message })
+  }
+})
+
 // Create candidate (ADMIN)
 app.post('/api/admin/candidates', requireAdmin, async (req, res) => {
-  const { name, email, phone, position } = req.body || {}
+  const { name, email, phone, position, resume_file } = req.body || {}
   const errors = {}
   if (!name || name.trim().length < 3) errors.name = 'Name must be at least 3 characters'
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Valid email is required'
@@ -1980,7 +2449,24 @@ app.post('/api/admin/candidates', requireAdmin, async (req, res) => {
        VALUES ($1,$2,$3,$4,$5) RETURNING *`,
       [name.trim(), email.trim().toLowerCase(), phone.trim(), position.trim(), cid]
     )
-    res.status(201).json({ success: true, candidate: result.rows[0] })
+    const candidate = result.rows[0]
+
+    // Link uploaded resume if provided
+    if (resume_file && resume_file.path && fs.existsSync(resume_file.path)) {
+      try {
+        await pool.query(
+          `INSERT INTO candidate_uploads (candidate_id, file_name, file_path, file_size)
+           VALUES ($1, $2, $3, $4)`,
+          [candidate.id, resume_file.originalname || path.basename(resume_file.path), resume_file.path, resume_file.size || 0]
+        )
+        await pool.query(`UPDATE candidates SET status = 'documents_uploaded' WHERE id = $1`, [candidate.id])
+        candidate.status = 'documents_uploaded'
+      } catch (upErr) {
+        console.error('Failed to attach resume to candidate:', upErr)
+      }
+    }
+
+    res.status(201).json({ success: true, candidate })
   } catch (e) {
     console.error('Create candidate error:', e)
     if (e.code === '23505') return res.status(400).json({ success: false, message: 'Duplicate candidate_id or email' })
@@ -7172,6 +7658,1125 @@ app.delete('/api/crm/activities/:id', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Delete activity error:', error);
     res.status(500).json({ success: false, message: 'Failed to delete activity' });
+  }
+});
+
+/* ----------------------- 7. Zoho-Grade Enterprise CRM APIs ----------------------- */
+
+// --- 7.1 CRM Leads Management & 1-Click Conversion ---
+
+// List Leads with search & filters
+app.get('/api/crm/leads', requireAuth, async (req, res) => {
+  try {
+    const { status, source, search, converted } = req.query;
+    let whereClauses = [];
+    let params = [];
+
+    if (converted !== undefined && converted !== '') {
+      params.push(converted === 'true');
+      whereClauses.push(`l.is_converted = $${params.length}`);
+    }
+
+    if (status) {
+      params.push(status);
+      whereClauses.push(`l.status = $${params.length}`);
+    }
+
+    if (source) {
+      params.push(source);
+      whereClauses.push(`l.source = $${params.length}`);
+    }
+
+    if (search) {
+      params.push(`%${search}%`);
+      whereClauses.push(`(l.first_name ILIKE $${params.length} OR l.last_name ILIKE $${params.length} OR l.company ILIKE $${params.length} OR l.email ILIKE $${params.length} OR l.phone ILIKE $${params.length})`);
+    }
+
+    const whereStr = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    const q = `
+      SELECT 
+        l.*,
+        u.name AS assigned_user_name,
+        c.name AS converted_client_name,
+        d.title AS converted_deal_title
+      FROM crm_leads l
+      LEFT JOIN admin_users u ON u.id = l.assigned_to
+      LEFT JOIN clients c ON c.id = l.converted_client_id
+      LEFT JOIN crm_deals d ON d.id = l.converted_deal_id
+      ${whereStr}
+      ORDER BY l.created_at DESC
+    `;
+    const { rows } = await pool.query(q, params);
+    res.json({ success: true, leads: rows });
+  } catch (error) {
+    console.error('List leads error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve leads' });
+  }
+});
+
+// Get single lead details
+app.get('/api/crm/leads/:id', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { rows } = await pool.query(`
+      SELECT l.*, u.name as assigned_user_name
+      FROM crm_leads l
+      LEFT JOIN admin_users u ON u.id = l.assigned_to
+      WHERE l.id = $1
+    `, [id]);
+    if (!rows.length) return res.status(404).json({ success: false, message: 'Lead not found' });
+    res.json({ success: true, lead: rows[0] });
+  } catch (error) {
+    console.error('Get lead error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve lead' });
+  }
+});
+
+// Create Lead
+app.post('/api/crm/leads', requireAuth, async (req, res) => {
+  try {
+    const {
+      first_name,
+      last_name,
+      company,
+      email,
+      phone,
+      source,
+      status,
+      industry,
+      annual_revenue,
+      lead_score,
+      assigned_to,
+      description
+    } = req.body || {};
+
+    if (!first_name) {
+      return res.status(400).json({ success: false, message: 'First name is required' });
+    }
+
+    const q = `
+      INSERT INTO crm_leads (
+        first_name, last_name, company, email, phone, source, status,
+        industry, annual_revenue, lead_score, assigned_to, description
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [
+      first_name,
+      last_name || null,
+      company || null,
+      email || null,
+      phone || null,
+      source || 'Website',
+      status || 'new',
+      industry || null,
+      annual_revenue ? Number(annual_revenue) : null,
+      lead_score !== undefined ? Number(lead_score) : 10,
+      assigned_to || req.user.sub,
+      description || null
+    ]);
+
+    res.status(201).json({ success: true, message: 'Lead created successfully', lead: rows[0] });
+  } catch (error) {
+    console.error('Create lead error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create lead' });
+  }
+});
+
+// Update Lead
+app.put('/api/crm/leads/:id', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const {
+      first_name,
+      last_name,
+      company,
+      email,
+      phone,
+      source,
+      status,
+      industry,
+      annual_revenue,
+      lead_score,
+      assigned_to,
+      description
+    } = req.body || {};
+
+    const q = `
+      UPDATE crm_leads
+      SET first_name = COALESCE($1, first_name),
+          last_name = COALESCE($2, last_name),
+          company = COALESCE($3, company),
+          email = COALESCE($4, email),
+          phone = COALESCE($5, phone),
+          source = COALESCE($6, source),
+          status = COALESCE($7, status),
+          industry = COALESCE($8, industry),
+          annual_revenue = COALESCE($9, annual_revenue),
+          lead_score = COALESCE($10, lead_score),
+          assigned_to = COALESCE($11, assigned_to),
+          description = COALESCE($12, description),
+          updated_at = NOW()
+      WHERE id = $13
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [
+      first_name,
+      last_name,
+      company,
+      email,
+      phone,
+      source,
+      status,
+      industry,
+      annual_revenue !== undefined ? Number(annual_revenue) : null,
+      lead_score !== undefined ? Number(lead_score) : null,
+      assigned_to,
+      description,
+      id
+    ]);
+
+    if (!rows.length) return res.status(404).json({ success: false, message: 'Lead not found' });
+    res.json({ success: true, message: 'Lead updated successfully', lead: rows[0] });
+  } catch (error) {
+    console.error('Update lead error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update lead' });
+  }
+});
+
+// Delete Lead
+app.delete('/api/crm/leads/:id', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await pool.query('DELETE FROM crm_leads WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Lead deleted' });
+  } catch (error) {
+    console.error('Delete lead error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete lead' });
+  }
+});
+
+// ⭐ Iconic Zoho CRM 1-Click Lead Conversion API
+app.post('/api/crm/leads/:id/convert', requireAuth, async (req, res) => {
+  const clientConn = await pool.connect();
+  try {
+    await clientConn.query('BEGIN');
+    const leadId = Number(req.params.id);
+    const { create_deal, deal_name, deal_amount, deal_stage, expected_close_date } = req.body || {};
+
+    const leadRes = await clientConn.query('SELECT * FROM crm_leads WHERE id = $1', [leadId]);
+    if (!leadRes.rows.length) {
+      await clientConn.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+    const lead = leadRes.rows[0];
+
+    if (lead.is_converted) {
+      await clientConn.query('ROLLBACK');
+      return res.status(400).json({ success: false, message: 'Lead is already converted' });
+    }
+
+    const fullName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'New Contact';
+    const companyName = lead.company || fullName;
+
+    // 1. Create or Find Client (Account)
+    let clientId = lead.converted_client_id;
+    if (!clientId) {
+      const existingClient = await clientConn.query(
+        'SELECT id FROM clients WHERE LOWER(company) = LOWER($1) OR LOWER(email) = LOWER($2) LIMIT 1',
+        [companyName, lead.email || '']
+      );
+      if (existingClient.rows.length) {
+        clientId = existingClient.rows[0].id;
+      } else {
+        const insertClient = await clientConn.query(
+          `INSERT INTO clients (name, email, phone, company, industry, annual_revenue)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+          [fullName, lead.email || 'contact@client.com', lead.phone || 'N/A', companyName, lead.industry || 'General', lead.annual_revenue || 0]
+        );
+        clientId = insertClient.rows[0].id;
+      }
+    }
+
+    // 2. Create B2B CRM Contact
+    const contactRes = await clientConn.query(
+      `INSERT INTO crm_contacts (client_id, name, email, phone, position, department, is_primary)
+       VALUES ($1, $2, $3, $4, $5, $6, TRUE) RETURNING id`,
+      [clientId, fullName, lead.email || null, lead.phone || null, 'Decision Maker', lead.industry || 'Operations']
+    );
+    const contactId = contactRes.rows[0].id;
+
+    // 3. Optionally Create Deal
+    let dealId = null;
+    if (create_deal) {
+      const dTitle = deal_name || `${companyName} - Enterprise Opportunity`;
+      const dAmount = Number(deal_amount || lead.annual_revenue || 150000);
+      const dStage = deal_stage || 'proposal';
+      const dClose = expected_close_date || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+
+      const dealRes = await clientConn.query(
+        `INSERT INTO crm_deals (title, client_id, contact_id, value, stage, probability, expected_close_date, assigned_to, description)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+        [dTitle, clientId, contactId, dAmount, dStage, 60, dClose, req.user.sub, `Converted from lead #${lead.id}: ${lead.description || ''}`]
+      );
+      dealId = dealRes.rows[0].id;
+
+      // Automatically create a kickoff follow-up activity
+      await clientConn.query(
+        `INSERT INTO crm_activities (deal_id, client_id, user_id, type, title, description, due_date)
+         VALUES ($1, $2, $3, 'call', $4, $5, NOW() + INTERVAL '1 day')`,
+        [dealId, clientId, req.user.sub, `Discovery Call with ${fullName}`, `Initial follow-up call after converting lead from ${lead.source || 'Website'}`]
+      );
+    }
+
+    // 4. Update Lead to Converted Status
+    await clientConn.query(
+      `UPDATE crm_leads
+       SET is_converted = TRUE,
+           status = 'converted',
+           converted_at = NOW(),
+           converted_client_id = $1,
+           converted_contact_id = $2,
+           converted_deal_id = $3
+       WHERE id = $4`,
+      [clientId, contactId, dealId, leadId]
+    );
+
+    await clientConn.query('COMMIT');
+    res.json({
+      success: true,
+      message: 'Lead converted successfully into Account, Contact, and Deal!',
+      conversion: {
+        client_id: clientId,
+        contact_id: contactId,
+        deal_id: dealId
+      }
+    });
+  } catch (error) {
+    await clientConn.query('ROLLBACK');
+    console.error('Convert lead error:', error);
+    res.status(500).json({ success: false, message: 'Failed to convert lead: ' + error.message });
+  } finally {
+    clientConn.release();
+  }
+});
+
+// --- 7.2 Accounts (Clients 360° View) ---
+
+// List Accounts with aggregated sales metrics
+app.get('/api/crm/accounts', requireAuth, async (req, res) => {
+  try {
+    const q = `
+      SELECT 
+        c.*,
+        COUNT(DISTINCT d.id) AS total_deals_count,
+        COALESCE(SUM(d.value), 0) AS total_pipeline_value,
+        COALESCE(SUM(d.value) FILTER (WHERE d.stage = 'won'), 0) AS total_won_value,
+        COUNT(DISTINCT co.id) AS total_contacts_count,
+        COUNT(DISTINCT a.id) FILTER (WHERE a.completed = FALSE) AS open_activities_count
+      FROM clients c
+      LEFT JOIN crm_deals d ON d.client_id = c.id
+      LEFT JOIN crm_contacts co ON co.client_id = c.id
+      LEFT JOIN crm_activities a ON a.client_id = c.id
+      GROUP BY c.id
+      ORDER BY c.created_at DESC
+    `;
+    const { rows } = await pool.query(q);
+    res.json({ success: true, accounts: rows });
+  } catch (error) {
+    console.error('List accounts error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve accounts' });
+  }
+});
+
+// 360° Account Full View (Account details + Contacts + Deals + Quotes + Activities)
+app.get('/api/crm/accounts/:id/360', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const clientRes = await pool.query('SELECT * FROM clients WHERE id = $1', [id]);
+    if (!clientRes.rows.length) return res.status(404).json({ success: false, message: 'Account not found' });
+
+    const [contactsRes, dealsRes, quotesRes, activitiesRes] = await Promise.all([
+      pool.query('SELECT * FROM crm_contacts WHERE client_id = $1 ORDER BY is_primary DESC, created_at DESC', [id]),
+      pool.query('SELECT * FROM crm_deals WHERE client_id = $1 ORDER BY created_at DESC', [id]),
+      pool.query('SELECT * FROM crm_quotes WHERE client_id = $1 ORDER BY created_at DESC', [id]),
+      pool.query(`
+        SELECT a.*, u.name as user_name, d.title as deal_title
+        FROM crm_activities a
+        LEFT JOIN admin_users u ON u.id = a.user_id
+        LEFT JOIN crm_deals d ON d.id = a.deal_id
+        WHERE a.client_id = $1
+        ORDER BY a.created_at DESC
+      `, [id])
+    ]);
+
+    res.json({
+      success: true,
+      account: clientRes.rows[0],
+      contacts: contactsRes.rows,
+      deals: dealsRes.rows,
+      quotes: quotesRes.rows,
+      activities: activitiesRes.rows
+    });
+  } catch (error) {
+    console.error('Account 360 error:', error);
+    res.status(500).json({ success: false, message: 'Failed to load 360 account view' });
+  }
+});
+
+// Create Account (Client)
+app.post('/api/crm/accounts', requireAuth, async (req, res) => {
+  try {
+    const { name, email, phone, company, industry, website, annual_revenue, address, city, country } = req.body || {};
+    if (!name && !company) return res.status(400).json({ success: false, message: 'Company or Contact name is required' });
+
+    const q = `
+      INSERT INTO clients (name, email, phone, company, industry, website, annual_revenue, address, city, country)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [
+      name || company,
+      email || 'contact@client.com',
+      phone || 'N/A',
+      company || name,
+      industry || 'Technology',
+      website || null,
+      annual_revenue ? Number(annual_revenue) : 0,
+      address || null,
+      city || null,
+      country || 'India'
+    ]);
+    res.status(201).json({ success: true, message: 'Account created successfully', account: rows[0] });
+  } catch (error) {
+    console.error('Create account error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create account' });
+  }
+});
+
+// --- 7.3 B2B Contacts ---
+
+// List B2B Contacts
+app.get('/api/crm/contacts', requireAuth, async (req, res) => {
+  try {
+    const { client_id } = req.query;
+    let whereStr = client_id ? 'WHERE co.client_id = $1' : '';
+    let params = client_id ? [client_id] : [];
+
+    const q = `
+      SELECT 
+        co.*,
+        c.company AS client_company,
+        c.name AS client_name
+      FROM crm_contacts co
+      LEFT JOIN clients c ON c.id = co.client_id
+      ${whereStr}
+      ORDER BY co.created_at DESC
+    `;
+    const { rows } = await pool.query(q, params);
+    res.json({ success: true, contacts: rows });
+  } catch (error) {
+    console.error('List contacts error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve contacts' });
+  }
+});
+
+// Create B2B Contact
+app.post('/api/crm/contacts', requireAuth, async (req, res) => {
+  try {
+    const { client_id, name, email, phone, position, department, is_primary, linkedin_url, notes } = req.body || {};
+    if (!name) return res.status(400).json({ success: false, message: 'Contact name is required' });
+
+    const q = `
+      INSERT INTO crm_contacts (client_id, name, email, phone, position, department, is_primary, linkedin_url, notes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [
+      client_id || null,
+      name,
+      email || null,
+      phone || null,
+      position || null,
+      department || null,
+      Boolean(is_primary),
+      linkedin_url || null,
+      notes || null
+    ]);
+    res.status(201).json({ success: true, message: 'Contact created successfully', contact: rows[0] });
+  } catch (error) {
+    console.error('Create contact error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create contact' });
+  }
+});
+
+// Delete B2B Contact
+app.delete('/api/crm/contacts/:id', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await pool.query('DELETE FROM crm_contacts WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Contact deleted' });
+  } catch (error) {
+    console.error('Delete contact error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete contact' });
+  }
+});
+
+// --- 7.4 Products & Services Catalog ---
+
+// List Products
+app.get('/api/crm/products', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM crm_products ORDER BY id ASC');
+    res.json({ success: true, products: rows });
+  } catch (error) {
+    console.error('List products error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve products' });
+  }
+});
+
+// Create Product
+app.post('/api/crm/products', requireAuth, async (req, res) => {
+  try {
+    const { code, name, category, unit_price, tax_percentage, description } = req.body || {};
+    if (!name || !code) return res.status(400).json({ success: false, message: 'Product code and name are required' });
+
+    const q = `
+      INSERT INTO crm_products (code, name, category, unit_price, tax_percentage, description)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [
+      code.toUpperCase(),
+      name,
+      category || 'Software',
+      Number(unit_price || 0),
+      Number(tax_percentage || 18.0),
+      description || null
+    ]);
+    res.status(201).json({ success: true, message: 'Product created successfully', product: rows[0] });
+  } catch (error) {
+    console.error('Create product error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create product' });
+  }
+});
+
+// --- 7.5 Quotations & Invoicing (CPQ) ---
+
+// List Quotes
+app.get('/api/crm/quotes', requireAuth, async (req, res) => {
+  try {
+    const q = `
+      SELECT 
+        q.*,
+        c.company AS client_company,
+        c.name AS client_name,
+        d.title AS deal_title,
+        co.name AS contact_name
+      FROM crm_quotes q
+      LEFT JOIN clients c ON c.id = q.client_id
+      LEFT JOIN crm_deals d ON d.id = q.deal_id
+      LEFT JOIN crm_contacts co ON co.id = q.contact_id
+      ORDER BY q.created_at DESC
+    `;
+    const { rows } = await pool.query(q);
+    res.json({ success: true, quotes: rows });
+  } catch (error) {
+    console.error('List quotes error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve quotes' });
+  }
+});
+
+// Get Quote with Line Items
+app.get('/api/crm/quotes/:id', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const quoteRes = await pool.query(`
+      SELECT 
+        q.*,
+        c.company AS client_company,
+        c.name AS client_name,
+        c.email AS client_email,
+        c.phone AS client_phone,
+        c.address AS client_address,
+        d.title AS deal_title
+      FROM crm_quotes q
+      LEFT JOIN clients c ON c.id = q.client_id
+      LEFT JOIN crm_deals d ON d.id = q.deal_id
+      WHERE q.id = $1
+    `, [id]);
+
+    if (!quoteRes.rows.length) return res.status(404).json({ success: false, message: 'Quote not found' });
+
+    const itemsRes = await pool.query(`
+      SELECT qi.*, p.code as product_code, p.name as product_name
+      FROM crm_quote_items qi
+      LEFT JOIN crm_products p ON p.id = qi.product_id
+      WHERE qi.quote_id = $1
+      ORDER BY qi.id ASC
+    `, [id]);
+
+    res.json({
+      success: true,
+      quote: quoteRes.rows[0],
+      items: itemsRes.rows
+    });
+  } catch (error) {
+    console.error('Get quote error:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve quote details' });
+  }
+});
+
+// Create Quote with Line Items
+app.post('/api/crm/quotes', requireAuth, async (req, res) => {
+  const clientConn = await pool.connect();
+  try {
+    await clientConn.query('BEGIN');
+    const {
+      subject,
+      deal_id,
+      client_id,
+      contact_id,
+      valid_until,
+      items = [],
+      discount_percentage = 0,
+      terms_and_conditions,
+      notes
+    } = req.body || {};
+
+    if (!subject || !client_id) {
+      await clientConn.query('ROLLBACK');
+      return res.status(400).json({ success: false, message: 'Subject and Client are required' });
+    }
+
+    // Generate unique quote number
+    const countRes = await clientConn.query('SELECT COUNT(*) FROM crm_quotes');
+    const nextNum = Number(countRes.rows[0].count) + 1;
+    const quoteNumber = `QT-${new Date().getFullYear()}-${String(nextNum).padStart(4, '0')}`;
+
+    // Calculate line items totals
+    let subtotal = 0;
+    let totalTax = 0;
+
+    const computedItems = (items || []).map(it => {
+      const qty = Number(it.quantity || 1);
+      const price = Number(it.unit_price || 0);
+      const disc = Number(it.discount_percentage || 0);
+      const taxRate = Number(it.tax_percentage || 18.0);
+
+      const baseAmount = qty * price;
+      const discountedAmount = baseAmount - (baseAmount * (disc / 100));
+      const lineTax = discountedAmount * (taxRate / 100);
+      const totalAmount = discountedAmount + lineTax;
+
+      subtotal += discountedAmount;
+      totalTax += lineTax;
+
+      return {
+        product_id: it.product_id || null,
+        description: it.description || 'Custom Item',
+        quantity: qty,
+        unit_price: price,
+        discount_percentage: disc,
+        tax_percentage: taxRate,
+        total_amount: Math.round(totalAmount * 100) / 100
+      };
+    });
+
+    const overallDiscountAmt = subtotal * (Number(discount_percentage) / 100);
+    const grandTotal = Math.round((subtotal - overallDiscountAmt + totalTax) * 100) / 100;
+
+    const quoteRes = await clientConn.query(`
+      INSERT INTO crm_quotes (
+        quote_number, subject, deal_id, client_id, contact_id,
+        valid_until, status, subtotal, discount_percentage, discount_amount,
+        tax_amount, grand_total, terms_and_conditions, notes, created_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, 'draft', $7, $8, $9, $10, $11, $12, $13, $14)
+      RETURNING *
+    `, [
+      quoteNumber,
+      subject,
+      deal_id || null,
+      client_id,
+      contact_id || null,
+      valid_until || (new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10)),
+      Math.round(subtotal * 100) / 100,
+      Number(discount_percentage),
+      Math.round(overallDiscountAmt * 100) / 100,
+      Math.round(totalTax * 100) / 100,
+      grandTotal,
+      terms_and_conditions || 'Standard Zorvixe Technologies Payment terms: 50% advance, 50% upon milestone delivery. GST extra as applicable.',
+      notes || null,
+      req.user.sub
+    ]);
+
+    const createdQuote = quoteRes.rows[0];
+
+    // Insert line items
+    for (const item of computedItems) {
+      await clientConn.query(`
+        INSERT INTO crm_quote_items (quote_id, product_id, description, quantity, unit_price, discount_percentage, tax_percentage, total_amount)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, [
+        createdQuote.id,
+        item.product_id,
+        item.description,
+        item.quantity,
+        item.unit_price,
+        item.discount_percentage,
+        item.tax_percentage,
+        item.total_amount
+      ]);
+    }
+
+    await clientConn.query('COMMIT');
+    res.status(201).json({ success: true, message: 'Quote created successfully', quote: createdQuote });
+  } catch (error) {
+    await clientConn.query('ROLLBACK');
+    console.error('Create quote error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create quotation: ' + error.message });
+  } finally {
+    clientConn.release();
+  }
+});
+
+// Update Quote Status
+app.patch('/api/crm/quotes/:id/status', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { status } = req.body || {};
+    const { rows } = await pool.query(
+      'UPDATE crm_quotes SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [status, id]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: 'Quote not found' });
+    res.json({ success: true, message: `Quote marked as ${status}`, quote: rows[0] });
+  } catch (error) {
+    console.error('Update quote status error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update quote status' });
+  }
+});
+
+// Delete Quote
+app.delete('/api/crm/quotes/:id', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await pool.query('DELETE FROM crm_quotes WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Quote deleted' });
+  } catch (error) {
+    console.error('Delete quote error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete quote' });
+  }
+});
+
+// --- 7.6 CRM Analytics, Funnel & Forecasting ---
+
+app.get('/api/crm/analytics', requireAuth, async (req, res) => {
+  try {
+    // 1. Leads Funnel metrics
+    const leadsQ = await pool.query(`
+      SELECT 
+        COUNT(*) AS total_leads,
+        COUNT(*) FILTER (WHERE status = 'new') AS new_leads,
+        COUNT(*) FILTER (WHERE status = 'contacted' OR status = 'attempted_to_contact') AS contacted_leads,
+        COUNT(*) FILTER (WHERE status = 'qualified') AS qualified_leads,
+        COUNT(*) FILTER (WHERE is_converted = TRUE) AS converted_leads
+      FROM crm_leads
+    `);
+
+    // 2. Deals Weighted Forecasting
+    const dealsQ = await pool.query(`
+      SELECT 
+        COUNT(*) AS total_deals,
+        COALESCE(SUM(value), 0) AS pipeline_value,
+        COALESCE(SUM(value * (probability::numeric / 100.0)), 0) AS weighted_forecast_value,
+        COUNT(*) FILTER (WHERE stage = 'won') AS won_deals,
+        COALESCE(SUM(value) FILTER (WHERE stage = 'won'), 0) AS won_revenue,
+        COUNT(*) FILTER (WHERE stage = 'lost') AS lost_deals,
+        COALESCE(SUM(value) FILTER (WHERE stage = 'lost'), 0) AS lost_value
+      FROM crm_deals
+    `);
+
+    // 3. Loss Reasons Breakdown
+    const lossReasonsQ = await pool.query(`
+      SELECT 
+        COALESCE(loss_reason, 'Other / Unspecified') AS reason,
+        COUNT(*) AS count,
+        COALESCE(SUM(value), 0) AS value
+      FROM crm_deals
+      WHERE stage = 'lost'
+      GROUP BY loss_reason
+      ORDER BY count DESC
+    `);
+
+    // 4. Sales Rep Leaderboard
+    const repsQ = await pool.query(`
+      SELECT 
+        u.id,
+        u.name,
+        u.email,
+        COUNT(d.id) AS deals_count,
+        COALESCE(SUM(d.value) FILTER (WHERE d.stage = 'won'), 0) AS won_revenue,
+        COUNT(d.id) FILTER (WHERE d.stage = 'won') AS won_count
+      FROM admin_users u
+      LEFT JOIN crm_deals d ON d.assigned_to = u.id
+      GROUP BY u.id, u.name, u.email
+      ORDER BY won_revenue DESC
+      LIMIT 5
+    `);
+
+    // 5. Quotes Summary
+    const quotesQ = await pool.query(`
+      SELECT 
+        COUNT(*) AS total_quotes,
+        COALESCE(SUM(grand_total), 0) AS total_quotes_value,
+        COUNT(*) FILTER (WHERE status = 'accepted') AS accepted_quotes,
+        COALESCE(SUM(grand_total) FILTER (WHERE status = 'accepted'), 0) AS accepted_quotes_value
+      FROM crm_quotes
+    `);
+
+    const leads = leadsQ.rows[0] || {};
+    const deals = dealsQ.rows[0] || {};
+    const winRate = Number(deals.total_deals) > 0 
+      ? Math.round((Number(deals.won_deals) / Number(deals.total_deals)) * 100) 
+      : 0;
+
+    res.json({
+      success: true,
+      analytics: {
+        leads,
+        deals: {
+          ...deals,
+          win_rate: winRate
+        },
+        loss_reasons: lossReasonsQ.rows,
+        reps_leaderboard: repsQ.rows,
+        quotes: quotesQ.rows[0] || {}
+      }
+    });
+  } catch (error) {
+    console.error('CRM analytics error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate CRM analytics' });
+  }
+});
+
+/* ---------------- 7.7 CRM Phase 2: Automation, Web-to-Lead & Communications ---------------- */
+
+// 1. Public Web-to-Lead Capture Webhook (No auth required)
+app.post('/api/public/crm/leads', async (req, res) => {
+  try {
+    const {
+      first_name,
+      last_name,
+      company,
+      email,
+      phone,
+      description,
+      source = 'Website Form',
+      utm_source,
+      utm_medium,
+      utm_campaign,
+      budget
+    } = req.body;
+
+    if (!email && !phone) {
+      return res.status(400).json({ success: false, message: 'Email or phone number is required.' });
+    }
+
+    // Dynamic initial lead score calculation
+    let initialScore = 60;
+    if (email && email.includes('@') && !email.endsWith('@gmail.com') && !email.endsWith('@yahoo.com')) {
+      initialScore += 15; // Corporate domain bonus
+    }
+    if (phone) initialScore += 10;
+    if (company) initialScore += 10;
+
+    const result = await pool.query(
+      `INSERT INTO crm_leads (
+        first_name, last_name, company, email, phone, 
+        source, status, annual_revenue, lead_score, description,
+        utm_source, utm_medium, utm_campaign
+      ) VALUES ($1, $2, $3, $4, $5, $6, 'new', $7, $8, $9, $10, $11, $12)
+      RETURNING *`,
+      [
+        first_name || 'Website',
+        last_name || 'Visitor',
+        company || 'Self / Unspecified',
+        email || null,
+        phone || null,
+        source,
+        budget ? Number(budget) : null,
+        initialScore,
+        description || 'Captured via Public Website Lead Form',
+        utm_source || null,
+        utm_medium || null,
+        utm_campaign || null
+      ]
+    );
+
+    // Optional alert to internal notification service
+    try {
+      if (typeof sendEmail === 'function' && process.env.ADMIN_ALERT_EMAIL) {
+        sendEmail({
+          to: process.env.ADMIN_ALERT_EMAIL,
+          subject: `⚡ New Lead Inbound: ${company || first_name} (${source})`,
+          text: `A new inbound lead was submitted:\nName: ${first_name} ${last_name}\nEmail: ${email}\nPhone: ${phone}\nCompany: ${company}\nDetails: ${description}`
+        }).catch(() => {});
+      }
+    } catch (_) {}
+
+    res.status(201).json({
+      success: true,
+      message: 'Thank you! Your inquiry has been received. Our team will contact you shortly.',
+      lead_id: result.rows[0].id
+    });
+  } catch (err) {
+    console.error('Public lead capture error:', err);
+    res.status(500).json({ success: false, message: 'Failed to capture lead' });
+  }
+});
+
+// 2. Email Templates APIs
+app.get('/api/crm/email-templates', requireAuth, async (req, res) => {
+  try {
+    const q = await pool.query(`SELECT * FROM crm_email_templates ORDER BY is_system DESC, name ASC`);
+    res.json({ success: true, templates: q.rows });
+  } catch (err) {
+    console.error('Failed to list email templates:', err);
+    res.status(500).json({ success: false, message: 'Failed to list email templates' });
+  }
+});
+
+app.post('/api/crm/email-templates', requireAuth, async (req, res) => {
+  try {
+    const { name, category, subject, body } = req.body;
+    if (!name || !subject || !body) {
+      return res.status(400).json({ success: false, message: 'Name, subject, and body are required' });
+    }
+    const q = await pool.query(
+      `INSERT INTO crm_email_templates (name, category, subject, body, is_system)
+       VALUES ($1, $2, $3, $4, FALSE)
+       RETURNING *`,
+      [name, category || 'sales', subject, body]
+    );
+    res.status(201).json({ success: true, template: q.rows[0] });
+  } catch (err) {
+    console.error('Failed to create email template:', err);
+    res.status(500).json({ success: false, message: 'Failed to create email template' });
+  }
+});
+
+app.put('/api/crm/email-templates/:id', requireAuth, async (req, res) => {
+  try {
+    const { name, category, subject, body } = req.body;
+    const q = await pool.query(
+      `UPDATE crm_email_templates 
+       SET name = COALESCE($1, name),
+           category = COALESCE($2, category),
+           subject = COALESCE($3, subject),
+           body = COALESCE($4, body),
+           updated_at = NOW()
+       WHERE id = $5
+       RETURNING *`,
+      [name, category, subject, body, req.params.id]
+    );
+    if (!q.rows.length) {
+      return res.status(404).json({ success: false, message: 'Template not found' });
+    }
+    res.json({ success: true, template: q.rows[0] });
+  } catch (err) {
+    console.error('Failed to update email template:', err);
+    res.status(500).json({ success: false, message: 'Failed to update email template' });
+  }
+});
+
+app.delete('/api/crm/email-templates/:id', requireAuth, async (req, res) => {
+  try {
+    const q = await pool.query(
+      `DELETE FROM crm_email_templates WHERE id = $1 AND is_system = FALSE RETURNING id`,
+      [req.params.id]
+    );
+    if (!q.rows.length) {
+      return res.status(400).json({ success: false, message: 'Cannot delete default system templates' });
+    }
+    res.json({ success: true, message: 'Template deleted successfully' });
+  } catch (err) {
+    console.error('Failed to delete email template:', err);
+    res.status(500).json({ success: false, message: 'Failed to delete template' });
+  }
+});
+
+// 3. Send Email & Log Communication
+app.post('/api/crm/send-email', requireAuth, async (req, res) => {
+  try {
+    const { to, toName, subject, body, relatedType, relatedId } = req.body;
+    if (!to || !subject || !body) {
+      return res.status(400).json({ success: false, message: 'Recipient email, subject and body are required' });
+    }
+
+    let emailSent = false;
+
+    try {
+      if (typeof sendEmail === 'function') {
+        const htmlBody = body.replace(/\n/g, '<br/>');
+        await sendEmail({
+          to,
+          subject,
+          text: body,
+          html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #172b4d;">${htmlBody}</div>`
+        });
+        emailSent = true;
+      }
+    } catch (mErr) {
+      console.warn('Mail dispatch warning (SMTP simulation/offline):', mErr.message);
+    }
+
+    // Record in crm_emails history
+    const emailRecord = await pool.query(
+      `INSERT INTO crm_emails (recipient_email, recipient_name, subject, body, related_type, related_id, sent_by, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [to, toName || '', subject, body, relatedType || null, relatedId ? Number(relatedId) : null, req.user?.id || null, emailSent ? 'sent' : 'queued']
+    );
+
+    // Auto-log to crm_activities so it appears in the 360° timeline
+    try {
+      await pool.query(
+        `INSERT INTO crm_activities (
+          client_id, deal_id, type, title, description, due_date, completed, outcome, assigned_to
+        ) VALUES (
+          $1, $2, 'email', $3, $4, NOW(), TRUE, 'sent', $5
+        )`,
+        [
+          relatedType === 'account' ? relatedId : null,
+          relatedType === 'deal' ? relatedId : null,
+          `Email: ${subject}`,
+          `Sent to ${toName ? toName + ' <' + to + '>' : to}:\n\n${body.slice(0, 300)}${body.length > 300 ? '...' : ''}`,
+          req.user?.id || null
+        ]
+      );
+    } catch (_) {}
+
+    res.json({
+      success: true,
+      message: emailSent ? 'Email dispatched successfully!' : 'Email recorded and queued for delivery.',
+      email: emailRecord.rows[0]
+    });
+  } catch (err) {
+    console.error('Failed to send CRM email:', err);
+    res.status(500).json({ success: false, message: 'Failed to dispatch email' });
+  }
+});
+
+// 4. List Sent Email Logs
+app.get('/api/crm/emails', requireAuth, async (req, res) => {
+  try {
+    const { related_type, related_id } = req.query;
+    let params = [];
+    let whereClauses = [];
+
+    if (related_type) {
+      params.push(related_type);
+      whereClauses.push(`e.related_type = $${params.length}`);
+    }
+    if (related_id) {
+      params.push(Number(related_id));
+      whereClauses.push(`e.related_id = $${params.length}`);
+    }
+
+    const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const q = await pool.query(
+      `SELECT e.*, u.name AS sender_name
+       FROM crm_emails e
+       LEFT JOIN admin_users u ON e.sent_by = u.id
+       ${whereSql}
+       ORDER BY e.created_at DESC
+       LIMIT 50`,
+      params
+    );
+    res.json({ success: true, emails: q.rows });
+  } catch (err) {
+    console.error('Failed to fetch CRM emails:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch emails' });
+  }
+});
+
+// 5. CRM Team Members for Rep Assignment
+app.get('/api/crm/team', requireAuth, async (req, res) => {
+  try {
+    const q = await pool.query(
+      `SELECT id, name, email, role, avatar FROM admin_users ORDER BY name ASC`
+    );
+    res.json({ success: true, team: q.rows });
+  } catch (err) {
+    console.error('Failed to fetch CRM team:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch team' });
+  }
+});
+
+// 6. Deal Stage Automation & Transitions
+app.patch('/api/crm/deals/:id/stage', requireAuth, async (req, res) => {
+  try {
+    const { stage, probability, loss_reason, loss_notes } = req.body;
+    if (!stage) {
+      return res.status(400).json({ success: false, message: 'Stage is required' });
+    }
+
+    let defaultProb = probability;
+    if (defaultProb === undefined) {
+      const probMap = { lead: 20, contacted: 40, proposal: 60, negotiation: 80, won: 100, lost: 0 };
+      defaultProb = probMap[stage] !== undefined ? probMap[stage] : 50;
+    }
+
+    const q = await pool.query(
+      `UPDATE crm_deals
+       SET stage = $1,
+           probability = $2,
+           loss_reason = CASE WHEN $1 = 'lost' THEN $3 ELSE loss_reason END,
+           loss_notes = CASE WHEN $1 = 'lost' THEN $4 ELSE loss_notes END,
+           updated_at = NOW()
+       WHERE id = $5
+       RETURNING *`,
+      [stage, defaultProb, loss_reason || null, loss_notes || null, req.params.id]
+    );
+
+    if (!q.rows.length) {
+      return res.status(404).json({ success: false, message: 'Deal not found' });
+    }
+
+    const deal = q.rows[0];
+
+    // AUTOMATION HOOK 1: When deal is WON
+    if (stage === 'won') {
+      // Auto-mark any linked quote as accepted
+      await pool.query(
+        `UPDATE crm_quotes SET status = 'accepted', updated_at = NOW() WHERE deal_id = $1`,
+        [deal.id]
+      );
+      // Auto-log activity
+      await pool.query(
+        `INSERT INTO crm_activities (deal_id, client_id, type, title, description, due_date, completed, outcome)
+         VALUES ($1, $2, 'task', '🎉 Deal Closed Won Milestone', $3, NOW(), TRUE, 'won')`,
+        [deal.id, deal.client_id, `Deal successfully won with total value of ₹${deal.value}. Client onboarding initiated.`]
+      );
+    }
+
+    // AUTOMATION HOOK 2: When deal is LOST
+    if (stage === 'lost') {
+      await pool.query(
+        `INSERT INTO crm_activities (deal_id, client_id, type, title, description, due_date, completed, outcome)
+         VALUES ($1, $2, 'note', 'Deal Closed Lost', $3, NOW(), TRUE, 'lost')`,
+        [deal.id, deal.client_id, `Deal marked lost. Reason: ${loss_reason || 'Unspecified'}. Notes: ${loss_notes || 'None'}`]
+      );
+    }
+
+    res.json({ success: true, deal });
+  } catch (err) {
+    console.error('Failed to update deal stage:', err);
+    res.status(500).json({ success: false, message: 'Failed to update deal stage' });
   }
 });
 

@@ -9,6 +9,19 @@ import {
   apiListCompliance,
   apiUpdateCompliance
 } from '../../api';
+import {
+  LeadsIcon,
+  SearchIcon,
+  CalendarIcon,
+  QuotesIcon,
+  AwardIcon,
+  FolderIcon,
+  TargetIcon,
+  BriefcaseIcon,
+  ShieldIcon,
+  PhoneIcon,
+  UsersIcon
+} from '../../components/CrmHrmsIcons';
 import './RecruitmentComplianceTab.css';
 
 export default function RecruitmentComplianceTab({ isAdmin, user }) {
@@ -178,12 +191,12 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
   };
 
   const stagesList = [
-    { key: 'applied', label: 'Applied', color: '#64748b', icon: '📥' },
-    { key: 'screening', label: 'Screening', color: '#0284c7', icon: '🔍' },
-    { key: 'interview', label: 'Interview Scheduled', color: '#d97706', icon: '📅' },
-    { key: 'offer', label: 'Offer Extended', color: '#7c3aed', icon: '📄' },
-    { key: 'hired', label: 'Hired 🎉', color: '#16a34a', icon: '🌟' },
-    { key: 'rejected', label: 'Archived', color: '#dc2626', icon: '📁' }
+    { key: 'applied', label: 'Applied', color: '#64748b', icon: LeadsIcon },
+    { key: 'screening', label: 'Screening', color: '#0284c7', icon: SearchIcon },
+    { key: 'interview', label: 'Interview Scheduled', color: '#d97706', icon: CalendarIcon },
+    { key: 'offer', label: 'Offer Extended', color: '#7c3aed', icon: QuotesIcon },
+    { key: 'hired', label: 'Hired', color: '#16a34a', icon: AwardIcon },
+    { key: 'rejected', label: 'Archived', color: '#dc2626', icon: FolderIcon }
   ];
 
   return (
@@ -194,19 +207,22 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
           className={`rc-tab-btn ${subTab === 'pipeline' ? 'active' : ''}`}
           onClick={() => setSubTab('pipeline')}
         >
-          🎯 Candidate ATS Pipeline
+          <TargetIcon size={14} style={{ marginRight: '6px' }} />
+          Candidate ATS Pipeline
         </button>
         <button
           className={`rc-tab-btn ${subTab === 'jobs' ? 'active' : ''}`}
           onClick={() => setSubTab('jobs')}
         >
-          💼 Job Openings ({jobs.length})
+          <BriefcaseIcon size={14} style={{ marginRight: '6px' }} />
+          Job Openings ({jobs.length})
         </button>
         <button
           className={`rc-tab-btn ${subTab === 'compliance' ? 'active' : ''}`}
           onClick={() => setSubTab('compliance')}
         >
-          📜 Statutory & Labour Compliance
+          <ShieldIcon size={14} style={{ marginRight: '6px' }} />
+          Statutory & Labour Compliance
         </button>
       </div>
 
@@ -233,7 +249,10 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                 return (
                   <div className="kanban-column" key={st.key}>
                     <div className="kanban-col-header" style={{ borderTopColor: st.color }}>
-                      <span className="col-title">{st.icon} {st.label}</span>
+                      <span className="col-title" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        {st.icon && <st.icon size={14} color={st.color} style={{ marginRight: '6px' }} />}
+                        {st.label}
+                      </span>
                       <span className="col-badge">{candidatesInStage.length}</span>
                     </div>
 
@@ -252,12 +271,13 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                             <span className="cand-role">{cand.position || 'Applicant'}</span>
                             <div className="cand-contact-info">
                               <span>✉️ {cand.email}</span>
-                              <span>📞 {cand.phone}</span>
+                              <span><PhoneIcon size={12} style={{ marginRight: '4px' }} /> {cand.phone}</span>
                             </div>
 
                             {cand.interview_date && (
                               <div className="cand-interview-pill">
-                                📅 {new Date(cand.interview_date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                <CalendarIcon size={12} style={{ marginRight: '4px' }} />
+                                {new Date(cand.interview_date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                               </div>
                             )}
 
@@ -373,7 +393,10 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                   <p className="job-desc">{job.description}</p>
 
                   <div className="job-card-bottom">
-                    <span className="applicant-counter">👥 <strong>{job.applicants_count || 0}</strong> applicants</span>
+                    <span className="applicant-counter">
+                      <UsersIcon size={14} style={{ marginRight: '5px' }} />
+                      <strong>{job.applicants_count || 0}</strong> applicants
+                    </span>
                     {isAdmin && (
                       <button className="btn-delete-job" onClick={() => handleDeleteJob(job.id)}>
                         Delete

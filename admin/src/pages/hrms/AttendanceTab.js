@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiAttendanceToday, apiAttendancePunch, apiMyAttendance, apiListAttendance, apiSaveManualAttendance } from '../../api';
+import { UsersIcon, CheckIcon, ClockIcon, CalendarIcon, FileTextIcon } from '../../components/CrmHrmsIcons';
 import './AttendanceTab.css';
 
 export default function AttendanceTab({ isAdmin, user }) {
@@ -244,7 +245,7 @@ export default function AttendanceTab({ isAdmin, user }) {
                 onClick={() => setShowNoteInput((v) => !v)}
                 title="Add Punch Note"
               >
-                📝
+                <FileTextIcon size={14} />
               </button>
             )}
           </div>
@@ -255,35 +256,45 @@ export default function AttendanceTab({ isAdmin, user }) {
       {isAdmin && todayData?.orgOverview && (
         <div className="att-org-kpis">
           <div className="att-kpi-card">
-            <div className="att-kpi-icon att-icon-team">👥</div>
+            <div className="att-kpi-icon att-icon-team">
+              <UsersIcon size={20} color="#0052cc" />
+            </div>
             <div className="att-kpi-info">
               <span className="att-kpi-val">{todayData.orgOverview.total_employees || 0}</span>
               <span className="att-kpi-lbl">Total Workforce</span>
             </div>
           </div>
           <div className="att-kpi-card">
-            <div className="att-kpi-icon att-icon-present">✅</div>
+            <div className="att-kpi-icon att-icon-present">
+              <CheckIcon size={20} color="#006644" />
+            </div>
             <div className="att-kpi-info">
               <span className="att-kpi-val att-text-success">{todayData.orgOverview.present_count || 0}</span>
               <span className="att-kpi-lbl">Present Today</span>
             </div>
           </div>
           <div className="att-kpi-card">
-            <div className="att-kpi-icon att-icon-late">⏰</div>
+            <div className="att-kpi-icon att-icon-late">
+              <ClockIcon size={20} color="#ffab00" />
+            </div>
             <div className="att-kpi-info">
               <span className="att-kpi-val att-text-warning">{todayData.orgOverview.late_count || 0}</span>
               <span className="att-kpi-lbl">Late Arrivals</span>
             </div>
           </div>
           <div className="att-kpi-card">
-            <div className="att-kpi-icon att-icon-half">⏱️</div>
+            <div className="att-kpi-icon att-icon-half">
+              <ClockIcon size={20} color="#00a3bf" />
+            </div>
             <div className="att-kpi-info">
               <span className="att-kpi-val att-text-info">{todayData.orgOverview.half_day_count || 0}</span>
               <span className="att-kpi-lbl">Half Days</span>
             </div>
           </div>
           <div className="att-kpi-card">
-            <div className="att-kpi-icon att-icon-leave">🏖️</div>
+            <div className="att-kpi-icon att-icon-leave">
+              <CalendarIcon size={20} color="#6554c0" />
+            </div>
             <div className="att-kpi-info">
               <span className="att-kpi-val att-text-purple">{todayData.orgOverview.on_leave_count || 0}</span>
               <span className="att-kpi-lbl">On Approved Leave</span>

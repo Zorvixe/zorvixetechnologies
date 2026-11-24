@@ -83,7 +83,16 @@ function Shell() {
     employees: 'Employee Records',
     recruitment: 'Recruitment & Compliance',
     'workforce-insights': 'Workforce Insights',
-    crm: 'CRM & Pipeline',
+    crm: 'CRM Suite',
+    workqueue: 'CRM Sales Workqueue',
+    'crm-home': 'CRM Executive Cockpit',
+    leads: 'CRM Leads & Conversion',
+    accounts: 'CRM Accounts (Organizations 360°)',
+    quotes: 'CRM Quotes & Estimations',
+    deals: 'CRM Deals Pipeline',
+    automation: 'CRM Automation & Webforms',
+    activities: 'CRM Activities & Calendar',
+    calendar: 'CRM Calendar & Activities',
   };
   const currentTitle = titleMap[safePath] || 'Dashboard';
 
@@ -147,8 +156,17 @@ function Shell() {
           <Route path="/recruitment" element={<HRMS defaultTab="recruitment" />} />
           <Route path="/workforce-insights" element={<HRMS defaultTab="workforce-insights" />} />
 
-          {/* CRM & Sales Pipeline */}
+          {/* CRM & Sales Pipeline Suite */}
           <Route path="/crm" element={<CRM />} />
+          <Route path="/workqueue" element={<CRM defaultTab="workqueue" />} />
+          <Route path="/crm-home" element={<CRM defaultTab="home" />} />
+          <Route path="/leads" element={<CRM defaultTab="leads" />} />
+          <Route path="/accounts" element={<CRM defaultTab="accounts" />} />
+          <Route path="/quotes" element={<CRM defaultTab="quotes" />} />
+          <Route path="/deals" element={<CRM defaultTab="pipeline" />} />
+          <Route path="/automation" element={<CRM defaultTab="automation" />} />
+          <Route path="/activities" element={<CRM defaultTab="activities" />} />
+          <Route path="/calendar" element={<CRM defaultTab="activities" />} />
 
           <Route path="*" element={<Navigate to="/stats" />} />
         </Routes>

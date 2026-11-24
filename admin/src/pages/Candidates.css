@@ -305,3 +305,93 @@
     min-width: 650px;
   }
 }
+
+/* ==========================================================================
+   Candidate Resume Upload & Autofill
+   ========================================================================== */
+.candidate-resume-section {
+  background: #ffffff;
+}
+
+.candidate-resume-dropzone {
+  border: 2px dashed #cbd5e1;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 18px 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.candidate-resume-dropzone:hover {
+  border-color: #3b82f6;
+  background: #f0f7ff;
+}
+
+.candidate-resume-dropzone.drag-over {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.resume-drop-icon {
+  color: #64748b;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.candidate-resume-dropzone:hover .resume-drop-icon {
+  color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.resume-drop-text {
+  font-size: 13px;
+  color: #334155;
+}
+
+.resume-drop-subtext {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+
+.candidate-resume-card {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 12px 14px;
+  transition: all 0.2s ease;
+}
+
+.resume-file-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.resume-autofill-hint {
+  animation: fadeInDown 0.25s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

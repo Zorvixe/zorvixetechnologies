@@ -1,9 +1,11 @@
 import { useAuth } from '../auth'
+import ActivityRemindersDrawer from './ActivityRemindersDrawer'
 import "./Sidebar.css"
 
 const VALID_VIEWS = new Set([
   'stats', 'clients', 'payments', 'users', 'candidates', 'tickets', 'contacts', 'account', 'discussions', 'leaves', 'login-history', 'notifications', 'user-tickets',
-  'hrms', 'attendance', 'payroll', 'employees', 'recruitment', 'workforce-insights', 'crm'
+  'hrms', 'attendance', 'payroll', 'employees', 'recruitment', 'workforce-insights', 'crm',
+  'leads', 'accounts', 'quotes', 'deals', 'automation', 'workqueue', 'crm-home'
 ]);
 
 export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
@@ -37,7 +39,10 @@ export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
         </div>
       ) : (
         <button className="avatar-btn avatar_button_sidebar" aria-label="Account" title={`${user?.name || ''} (${user?.email || ''})`} onClick={goto('account')}>
-          <span className="avatar">{initials}</span>
+          <span className="avatar">
+            {initials}
+            <span className={`tb-presence-dot ${localStorage.getItem('user_presence_status')?.toLowerCase()?.replace(/\s+/g, '') || 'available'}`}></span>
+          </span>
         </button>
       )}
 
@@ -53,11 +58,11 @@ export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
           {!collapsed && <span>Clients</span>}
         </a>
 
-        <a href="#crm" className={`navlink ${current === 'crm' ? 'active' : ''}`} onClick={goto('crm')} title="CRM Pipeline">
+        <a href="#crm" className={`navlink ${['crm', 'leads', 'accounts', 'quotes', 'deals', 'automation', 'workqueue', 'crm-home'].includes(current) ? 'active' : ''}`} onClick={goto('crm')} title="CRM Suite">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
           </svg>
-          {!collapsed && <span>CRM Pipeline</span>}
+          {!collapsed && <span>CRM Suite</span>}
         </a>
 
         {user?.role === 'admin' && (
@@ -142,6 +147,9 @@ export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
           <span>Sign Out</span>
         </button>
       </div>
+
+      {/* Zoho-Grade Activity Reminders & Utility Dock Bar (Desktop Only - inside sidebar space only) */}
+      <ActivityRemindersDrawer collapsed={collapsed} />
     </aside>
   )
 }

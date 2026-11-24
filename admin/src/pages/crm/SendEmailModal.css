@@ -1,0 +1,170 @@
+/* SendEmailModal.css - Jira & Zoho styled communication modal */
+.send-email-card {
+  max-width: 680px;
+  width: 95%;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(9, 30, 66, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeInModal 0.15s ease-out;
+}
+
+.modal-title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.email-modal-icon {
+  font-size: 24px;
+  background: #deebff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.email-modal-subtitle {
+  font-size: 12px;
+  color: #5e6c84;
+  margin: 2px 0 0 0;
+}
+
+.send-email-form {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.email-template-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f4f5f7;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px dashed #b3bac5;
+}
+
+.template-bar-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0747a6;
+  white-space: nowrap;
+}
+
+.email-template-select {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #dfe1e6;
+  font-size: 13px;
+  font-weight: 500;
+  background: #ffffff;
+  color: #172b4d;
+}
+
+.email-form-row.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .email-form-row.two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.email-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.email-form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5e6c84;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.email-form-group input,
+.email-form-group textarea {
+  padding: 8px 12px;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #172b4d;
+  background: #fafbfc;
+  transition: all 0.2s ease;
+}
+
+.email-form-group input:focus,
+.email-form-group textarea:focus {
+  background: #ffffff;
+  border-color: #4c9aff;
+  box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.2);
+  outline: none;
+}
+
+.merge-tags-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: #f4f5f7;
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+.merge-hint {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b778c;
+  margin-right: 4px;
+}
+
+.merge-tag-pill {
+  border: 1px solid #c1c7d0;
+  background: #ffffff;
+  color: #0052cc;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.merge-tag-pill:hover {
+  background: #deebff;
+  border-color: #4c9aff;
+}
+
+.email-error-banner {
+  background: #ffebe6;
+  border-left: 4px solid #de350b;
+  color: #bf2600;
+  padding: 10px 14px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 24px 0 24px;
+  border-radius: 4px;
+}
+
+.email-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ebecf0;
+}

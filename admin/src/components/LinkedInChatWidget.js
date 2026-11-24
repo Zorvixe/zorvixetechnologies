@@ -116,6 +116,97 @@ export default function LinkedInChatWidget() {
   const [inputMessage, setInputMessage] = useState("");
   const [sending, setSending] = useState(false);
 
+  // Zoho Cliq Presence & Status State (Matches Photos 1 & 2)
+  const [showStatusPopover, setShowStatusPopover] = useState(false);
+  const [presenceStatus, setPresenceStatus] = useState(() => localStorage.getItem("user_presence_status") || "Available");
+  const [showPresenceMenu, setShowPresenceMenu] = useState(false);
+  const [dndDuration, setDndDuration] = useState("15 Mins");
+  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("cliq_sound_enabled") !== "false");
+  const [oneOneChatsEnabled, setOneOneChatsEnabled] = useState(() => localStorage.getItem("cliq_one_one_chats") !== "false");
+  const [mentionsEnabled, setMentionsEnabled] = useState(() => localStorage.getItem("cliq_mentions_enabled") !== "false");
+  const [cliqBottomTab, setCliqBottomTab] = useState("chats"); // 'pins' | 'chats' | 'contacts'
+  const [isCliqMaximized, setIsCliqMaximized] = useState(false);
+
+  // Swipe into device edge state (Mobile & Small Screen Space Optimization)
+  const [isTucked, setIsTucked] = useState(() => {
+    return localStorage.getItem("cliq_widget_tucked") === "true";
+  });
+  const [touchStartX, setTouchStartX] = useState(null);
+  const [touchStartY, setTouchStartY] = useState(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDockTouchStart = (e) => {
+    if (e.touches && e.touches.length === 1) {
+      setTouchStartX(e.touches[0].clientX);
+      setTouchStartY(e.touches[0].clientY);
+      setIsDragging(true);
+      setDragOffset(0);
+    }
+  };
+
+  const handleDockTouchMove = (e) => {
+    if (!isDragging || touchStartX === null) return;
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const deltaX = currentX - touchStartX;
+    const deltaY = currentY - touchStartY;
+
+    // Only track horizontal rightward swipes
+    if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 0) {
+      setDragOffset(deltaX);
+    }
+  };
+
+  const handleDockTouchEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    // If swiped right by more than 40px, tuck to edge
+    if (dragOffset > 40) {
+      setIsTucked(true);
+      setIsOpen(false);
+      localStorage.setItem("cliq_widget_tucked", "true");
+    }
+    setDragOffset(0);
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
+  const handleTuckedTouchStart = (e) => {
+    if (e.touches && e.touches.length === 1) {
+      setTouchStartX(e.touches[0].clientX);
+      setTouchStartY(e.touches[0].clientY);
+      setIsDragging(true);
+    }
+  };
+
+  const handleTuckedTouchMove = (e) => {
+    if (!isDragging || touchStartX === null) return;
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const deltaX = currentX - touchStartX;
+    const deltaY = currentY - touchStartY;
+
+    // Swiping left from edge untucks the widget
+    if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < -25) {
+      setIsTucked(false);
+      localStorage.setItem("cliq_widget_tucked", "false");
+      setIsDragging(false);
+    }
+  };
+
+  const handleTuckedTouchEnd = () => {
+    setIsDragging(false);
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
+  const handleStatusChange = (status) => {
+    setPresenceStatus(status);
+    localStorage.setItem("user_presence_status", status);
+    setShowPresenceMenu(false);
+  };
+
   const [editingMessage, setEditingMessage] = useState(null);
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
 
@@ -681,24 +772,86 @@ export default function LinkedInChatWidget() {
       )}
 
       {/* ---------------- MAIN MESSAGING DOCKED BAR / DRAWER ---------------- */}
-      <div className={`linkedin-messaging-dock ${isOpen ? "open" : "collapsed"}`}>
-        {/* Dock Header Bar */}
+      {isTucked ? (
         <div
-          className="messaging-dock-header"
-          onClick={() => setIsOpen((prev) => !prev)}
+          className="cliq-tucked-edge-tab"
+          onClick={() => {
+            setIsTucked(false);
+            localStorage.setItem("cliq_widget_tucked", "false");
+          }}
+          onTouchStart={handleTuckedTouchStart}
+          onTouchMove={handleTuckedTouchMove}
+          onTouchEnd={handleTuckedTouchEnd}
           role="button"
           tabIndex={0}
-          aria-expanded={isOpen}
+          title="Drag left or click to expand Zorvixe Chat"
         >
+          <div className="cliq-tucked-content">
+            <span className="cliq-tucked-arrow">◀</span>
+            <div
+              className="cliq-tucked-avatar"
+              style={{
+                backgroundColor: currentUserColor.bg,
+                color: currentUserColor.text,
+              }}
+            >
+              {currentUserInitials}
+              <span className={`dock-online-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`}></span>
+            </div>
+            {unreadTotal > 0 && (
+              <span className="cliq-tucked-badge">{unreadTotal}</span>
+            )}
+          </div>
+          <span className="cliq-tucked-label">Chat</span>
+        </div>
+      ) : (
+        <div
+          className={`linkedin-messaging-dock ${isOpen ? "open" : "collapsed"}`}
+          style={
+            isDragging && dragOffset > 0
+              ? { transform: `translateX(${dragOffset}px)`, transition: 'none' }
+              : {}
+          }
+          onTouchStart={handleDockTouchStart}
+          onTouchMove={handleDockTouchMove}
+          onTouchEnd={handleDockTouchEnd}
+        >
+          {/* Dock Header Bar */}
+          <div
+            className="messaging-dock-header"
+            onClick={() => setIsOpen((prev) => !prev)}
+            role="button"
+            tabIndex={0}
+            aria-expanded={isOpen}
+          >
           <div className="dock-header-left">
             <div
               className="dock-user-avatar"
-              style={{ backgroundColor: currentUserColor.bg, color: currentUserColor.text }}
+              style={{ backgroundColor: currentUserColor.bg, color: currentUserColor.text, cursor: 'pointer' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowStatusPopover(v => !v);
+              }}
+              title="Change Status & Notifications"
             >
               {currentUserInitials}
-              <span className="dock-online-dot"></span>
+              <span className={`dock-online-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`}></span>
             </div>
-            <span className="dock-title">Messaging</span>
+            <div
+              className="dock-user-title-wrap"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowStatusPopover(v => !v);
+              }}
+              style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
+              title="Change Status"
+            >
+              <span className="dock-title">{user?.name || 'Messaging'}</span>
+              <span className="dock-sub-status">
+                <span className={`status-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`}></span>
+                {presenceStatus}
+              </span>
+            </div>
             {unreadTotal > 0 && (
               <span className="dock-unread-badge" title={`${unreadTotal} unread messages`}>
                 {unreadTotal > 99 ? "99+" : unreadTotal}
@@ -706,7 +859,241 @@ export default function LinkedInChatWidget() {
             )}
           </div>
 
+          {/* Zoho Cliq Presence & Status Popover (Matches Photos 1 & 2) */}
+          {showStatusPopover && (
+            <div className="cliq-status-popover" onClick={(e) => e.stopPropagation()}>
+              {/* Window Header Bar matching Photos 1 & 2 */}
+              <div className="cliq-popover-top-bar">
+                <div className="cliq-top-bar-left">
+                  <span className="cliq-popover-user-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </span>
+                  <span className="cliq-top-bar-name">{user?.name || 'Golla Ekambaram'}</span>
+                  <span className="cliq-top-bar-status">• {presenceStatus}</span>
+                </div>
+                <div className="cliq-top-bar-actions">
+                  <button
+                    type="button"
+                    className="cliq-top-icon-btn"
+                    title={isCliqMaximized ? "Restore" : "Expand"}
+                    onClick={() => setIsCliqMaximized(v => !v)}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="15 3 21 3 21 9" />
+                      <polyline points="9 21 3 21 3 15" />
+                      <line x1="21" y1="3" x2="14" y2="10" />
+                      <line x1="3" y1="21" x2="10" y2="14" />
+                    </svg>
+                  </button>
+                  <button type="button" className="cliq-top-icon-btn cliq-close-btn" onClick={() => setShowStatusPopover(false)} title="Close">×</button>
+                </div>
+              </div>
+
+              {/* Center Profile Avatar & Name */}
+              <div className="cliq-user-profile-center">
+                <div className="cliq-large-avatar-wrap">
+                  <span className="cliq-avatar-initials">{currentUserInitials}</span>
+                  <span className={`cliq-presence-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`}></span>
+                </div>
+                <h4 className="cliq-user-name">{user?.name || user?.email || 'Golla Ekambaram'}</h4>
+              </div>
+
+              {/* Status Select Box */}
+              <div className="cliq-status-dropdown-box">
+                <button
+                  type="button"
+                  className="cliq-status-select-btn"
+                  onClick={() => setShowPresenceMenu(v => !v)}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className={`cliq-presence-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`} style={{ position: 'static', display: 'inline-block' }}></span>
+                    <span style={{ fontWeight: 600 }}>{presenceStatus}</span>
+                  </span>
+                  <span className="cliq-caret">▾</span>
+                </button>
+
+                {showPresenceMenu && (
+                  <div className="cliq-status-options-menu">
+                    <div className="cliq-menu-label-italic">Default status</div>
+
+                    <button
+                      type="button"
+                      className={`cliq-status-option ${presenceStatus === 'Available' ? 'selected' : ''}`}
+                      onClick={() => handleStatusChange('Available')}
+                    >
+                      <div className="cliq-status-option-left">
+                        <span className="cliq-presence-dot available" style={{ position: 'static' }}></span>
+                        <div className="cliq-opt-text-wrap">
+                          <span className="cliq-opt-title">Available</span>
+                        </div>
+                      </div>
+                      {presenceStatus === 'Available' && <span className="cliq-checkmark">✓</span>}
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`cliq-status-option ${presenceStatus === 'Away' ? 'selected' : ''}`}
+                      onClick={() => handleStatusChange('Away')}
+                    >
+                      <div className="cliq-status-option-left">
+                        <span className="cliq-presence-dot away" style={{ position: 'static' }}></span>
+                        <div className="cliq-opt-text-wrap">
+                          <span className="cliq-opt-title">Away</span>
+                          <span className="cliq-opt-sub">Let others know you are on a break</span>
+                        </div>
+                      </div>
+                      {presenceStatus === 'Away' && <span className="cliq-checkmark">✓</span>}
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`cliq-status-option ${presenceStatus === 'Busy' ? 'selected' : ''}`}
+                      onClick={() => handleStatusChange('Busy')}
+                    >
+                      <div className="cliq-status-option-left">
+                        <span className="cliq-presence-dot busy" style={{ position: 'static' }}></span>
+                        <div className="cliq-opt-text-wrap">
+                          <span className="cliq-opt-title">Busy</span>
+                          <span className="cliq-opt-sub">All notification sounds will be turned off</span>
+                        </div>
+                      </div>
+                      {presenceStatus === 'Busy' && <span className="cliq-checkmark">✓</span>}
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`cliq-status-option ${presenceStatus === 'Invisible' ? 'selected' : ''}`}
+                      onClick={() => handleStatusChange('Invisible')}
+                    >
+                      <div className="cliq-status-option-left">
+                        <span className="cliq-presence-dot invisible" style={{ position: 'static' }}></span>
+                        <div className="cliq-opt-text-wrap">
+                          <span className="cliq-opt-title">Invisible</span>
+                          <span className="cliq-opt-sub">You'll appear offline</span>
+                        </div>
+                      </div>
+                      {presenceStatus === 'Invisible' && <span className="cliq-checkmark">✓</span>}
+                    </button>
+
+                    <div className={`cliq-status-option dnd-row ${presenceStatus === 'Do not disturb' ? 'selected' : ''}`}>
+                      <div
+                        className="cliq-status-option-left"
+                        onClick={() => handleStatusChange('Do not disturb')}
+                        style={{ flex: 1, cursor: 'pointer' }}
+                      >
+                        <span className="cliq-presence-dot dnd" style={{ position: 'static' }}></span>
+                        <div className="cliq-opt-text-wrap">
+                          <span className="cliq-opt-title">Do not disturb</span>
+                        </div>
+                      </div>
+                      <select
+                        className="cliq-dnd-select"
+                        value={dndDuration}
+                        onChange={(e) => setDndDuration(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <option value="15 Mins">15 Mins</option>
+                        <option value="30 Mins">30 Mins</option>
+                        <option value="1 Hour">1 Hour</option>
+                        <option value="2 Hours">2 Hours</option>
+                        <option value="Until tomorrow">Until tomorrow</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Menu Items (Photos 1 & 2) */}
+              <div className="cliq-action-menu-list">
+                <button type="button" className="cliq-action-menu-item">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                  <span>Feed History</span>
+                </button>
+                <button type="button" className="cliq-action-menu-item">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+                  <span>Settings</span>
+                </button>
+                <button type="button" className="cliq-action-menu-item">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
+                  <span>General</span>
+                </button>
+                <button type="button" className="cliq-action-menu-item">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="10" y1="15" x2="10" y2="9" /><line x1="14" y1="15" x2="14" y2="9" /></svg>
+                  <span>Pause chat here</span>
+                </button>
+              </div>
+
+              {/* Sound Notification Switches (Photos 1 & 2) */}
+              <div className="cliq-settings-list">
+                <div className="cliq-toggle-row">
+                  <span>Sound Notification</span>
+                  <label className="cliq-switch">
+                    <input
+                      type="checkbox"
+                      checked={soundEnabled}
+                      onChange={(e) => {
+                        setSoundEnabled(e.target.checked);
+                        localStorage.setItem('cliq_sound_enabled', String(e.target.checked));
+                      }}
+                    />
+                    <span className="cliq-slider"></span>
+                  </label>
+                </div>
+
+                <div className="cliq-toggle-row">
+                  <span>One - One Chats</span>
+                  <label className="cliq-switch">
+                    <input
+                      type="checkbox"
+                      checked={oneOneChatsEnabled}
+                      onChange={(e) => {
+                        setOneOneChatsEnabled(e.target.checked);
+                        localStorage.setItem('cliq_one_one_chats', String(e.target.checked));
+                      }}
+                    />
+                    <span className="cliq-slider"></span>
+                  </label>
+                </div>
+
+                <div className="cliq-toggle-row">
+                  <span>Mention</span>
+                  <label className="cliq-switch">
+                    <input
+                      type="checkbox"
+                      checked={mentionsEnabled}
+                      onChange={(e) => {
+                        setMentionsEnabled(e.target.checked);
+                        localStorage.setItem('cliq_mentions_enabled', String(e.target.checked));
+                      }}
+                    />
+                    <span className="cliq-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="dock-header-right" onClick={(e) => e.stopPropagation()}>
+            {/* Mobile / Small screen tuck-to-edge swipe button */}
+            <button
+              type="button"
+              className="dock-swipe-hide-btn"
+              onClick={() => {
+                setIsTucked(true);
+                setIsOpen(false);
+                localStorage.setItem("cliq_widget_tucked", "true");
+              }}
+              title="Swipe / Tuck into device edge to free up space"
+              aria-label="Tuck into screen edge"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+
             <button
               type="button"
               className="dock-toggle-btn"
@@ -731,13 +1118,13 @@ export default function LinkedInChatWidget() {
           </div>
         </div>
 
-        {/* Dock Content Body (Search, Filter, Colleagues List) */}
+        {/* Dock Content Body (Search, Filter, Colleagues List - Matches Photo 5) */}
         {isOpen && (
-          <div className="messaging-dock-body">
-            {/* Search Bar */}
-            <div className="messaging-search-wrapper">
+          <div className={`messaging-dock-body ${isCliqMaximized ? "maximized" : ""}`}>
+            {/* Search Bar with @ and Star (Photo 5) */}
+            <div className="messaging-search-wrapper cliq-search-wrapper">
               <span className="messaging-search-icon">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                   <circle cx="11" cy="11" r="8" />
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
@@ -745,30 +1132,34 @@ export default function LinkedInChatWidget() {
               <input
                 type="text"
                 className="messaging-search-input"
-                placeholder="Search colleagues..."
+                placeholder="Search (Ctrl + Space)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              {searchQuery && (
-                <button
-                  type="button"
-                  className="search-clear-btn"
-                  onClick={() => setSearchQuery("")}
-                  aria-label="Clear search"
-                >
-                  ×
-                </button>
-              )}
+              <div className="cliq-search-quick-actions">
+                <button type="button" className="cliq-search-icon-btn" title="Mentions (@)">@</button>
+                <button type="button" className="cliq-search-icon-btn" title="Starred chats">★</button>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    className="search-clear-btn"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Filter Tabs */}
-            <div className="messaging-filter-tabs">
+            {/* Filter Tabs: Recent / Unread (Photo 5) */}
+            <div className="messaging-filter-tabs cliq-tabs">
               <button
                 type="button"
                 className={`filter-tab-btn ${filterTab === "all" ? "active" : ""}`}
                 onClick={() => setFilterTab("all")}
               >
-                All
+                Recent
               </button>
               <button
                 type="button"
@@ -780,22 +1171,30 @@ export default function LinkedInChatWidget() {
               </button>
             </div>
 
-            {/* Conversations List */}
-            <div className="messaging-conversations-list">
+            {/* Conversations / Contacts / Pins List */}
+            <div className="messaging-conversations-list cliq-conversations-list">
               {loadingUsers && users.length === 0 ? (
                 <div className="conversations-loading">
                   <div className="chat-spinner"></div>
                   <span>Loading colleagues...</span>
                 </div>
+              ) : cliqBottomTab === 'pins' ? (
+                <div className="conversations-empty cliq-empty-state">
+                  <p className="cliq-empty-text">No pinned chats yet. Star important conversations to view them here.</p>
+                </div>
               ) : filteredUsers.length === 0 ? (
-                <div className="conversations-empty">
-                  {searchQuery ? (
-                    <p>No colleagues match "{searchQuery}"</p>
-                  ) : filterTab === "unread" ? (
-                    <p>No unread conversations</p>
-                  ) : (
-                    <p>No other colleagues found.</p>
-                  )}
+                /* Empty state matching Photo 5 */
+                <div className="conversations-empty cliq-empty-state">
+                  <div className="cliq-watermark-icon">
+                    <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#b0b7c3" strokeWidth="1.2">
+                      <circle cx="12" cy="12" r="10" strokeDasharray="3 3" />
+                      <path d="M8 12h.01M12 12h.01M16 12h.01" strokeWidth="2.5" strokeLinecap="round" />
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                  </div>
+                  <p className="cliq-empty-text">
+                    The conversations you have with people and teams will appear here. You can click on a Contact or a Channel to participate in a conversation.
+                  </p>
                 </div>
               ) : (
                 filteredUsers.map((colleague) => {
@@ -861,9 +1260,61 @@ export default function LinkedInChatWidget() {
                 })
               )}
             </div>
+
+            {/* Floating Action Button (+) (Photo 5) */}
+            <button
+              type="button"
+              className="cliq-fab-add-btn"
+              title="Start conversation (+)"
+              onClick={() => {
+                setCliqBottomTab("contacts");
+                if (filterTab !== "all") setFilterTab("all");
+              }}
+            >
+              +
+            </button>
+
+            {/* Bottom Navigation Dock Bar (Photo 5) */}
+            <div className="cliq-dock-footer">
+              <button
+                type="button"
+                className={`cliq-footer-tab ${cliqBottomTab === 'pins' ? 'active' : ''}`}
+                onClick={() => setCliqBottomTab('pins')}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="17" x2="12" y2="22" />
+                  <path d="M5 17h14v-2l-2-3V6a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v6l-2 3v2z" />
+                </svg>
+                <span>My Pins</span>
+              </button>
+              <button
+                type="button"
+                className={`cliq-footer-tab ${cliqBottomTab === 'chats' ? 'active' : ''}`}
+                onClick={() => setCliqBottomTab('chats')}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <span>Chats</span>
+              </button>
+              <button
+                type="button"
+                className={`cliq-footer-tab ${cliqBottomTab === 'contacts' ? 'active' : ''}`}
+                onClick={() => setCliqBottomTab('contacts')}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span>Contacts</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
