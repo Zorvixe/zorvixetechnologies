@@ -1212,6 +1212,14 @@
 .cliq-presence-dot.busy { background: #ff5630; }
 .cliq-presence-dot.invisible { background: #97a0af; }
 .cliq-presence-dot.dnd { background: #bf2600; }
+.cliq-presence-dot.offline { background: #94a3b8; }
+
+.dock-online-dot.available, .online-status-dot.available, .online-indicator.available { background-color: #36b37e; }
+.dock-online-dot.away, .online-status-dot.away, .online-indicator.away { background-color: #ffab00; }
+.dock-online-dot.busy, .online-status-dot.busy, .online-indicator.busy { background-color: #ff5630; }
+.dock-online-dot.invisible, .online-status-dot.invisible, .online-indicator.invisible { background-color: #97a0af; }
+.dock-online-dot.dnd, .online-status-dot.dnd, .online-indicator.dnd { background-color: #bf2600; }
+.dock-online-dot.offline, .online-status-dot.offline, .online-indicator.offline { background-color: #94a3b8; }
 
 .cliq-user-name {
   font-size: 15px;

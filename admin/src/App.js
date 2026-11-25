@@ -2,6 +2,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth';
+import { PresenceProvider } from './context/PresenceContext';
 
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
@@ -187,9 +188,11 @@ function Shell() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Shell />
-      </BrowserRouter>
+      <PresenceProvider>
+        <BrowserRouter>
+          <Shell />
+        </BrowserRouter>
+      </PresenceProvider>
     </AuthProvider>
   );
 }

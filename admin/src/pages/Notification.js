@@ -1,7 +1,7 @@
 // src/pages/Notification.js
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiStatsNotifications, apiResetNotificationCount } from '../api';
+import { apiStatsNotifications, apiResetNotificationCount, apiMarkNotificationRead } from '../api';
 import { useAuth } from '../auth';
 import './Notifications.css';
 import { buildDeepLink } from '../deeplink/resourceRegistry';
@@ -155,9 +155,13 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
       }
 
       const seen = loadSeenSet(userId);
+      const lastCheckedMs = lastChecked ? new Date(lastChecked).getTime() : 0;
 
       const notificationData = filtered.map((activity, index) => {
-        const key = buildNotifKey(activity);
+        const key = activity?.key || buildNotifKey(activity);
+        const serverIsNew = typeof activity?.is_new === 'boolean' ? activity.is_new : true;
+        const actMs = activity?.at ? new Date(activity.at).getTime() : 0;
+        const afterLastCheck = !lastCheckedMs || actMs > lastCheckedMs;
         return {
           id: index + 1,
           key,
@@ -168,13 +172,14 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
           related_id: getRelatedId(activity),
           related_data: activity.data,
           created_at: activity.at,
-          is_new: !seen.has(key),
+          is_new: serverIsNew && !seen.has(key) && afterLastCheck,
           activityType: activity.type,
         };
       });
 
       setNotifications(notificationData);
-      if (onNewActivities) onNewActivities(notificationData.filter((n) => n.is_new).length);
+      const unreadCnt = notificationData.filter((n) => n.is_new).length;
+      if (onNewActivities) onNewActivities(unreadCnt);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       showToast('Failed to load notifications', 'error');
@@ -219,11 +224,21 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
 
   const handleMarkAllAsRead = async () => {
     const seen = loadSeenSet(userId);
-    notifications.forEach((n) => seen.add(n.key));
+    const keys = [];
+    let latestAt = null;
+    notifications.forEach((n) => {
+      seen.add(n.key);
+      keys.push(n.key);
+      if (n.created_at && (!latestAt || new Date(n.created_at) > new Date(latestAt))) {
+        latestAt = n.created_at;
+      }
+    });
     saveSeenSet(userId, seen);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_new: false })));
+    if (onNewActivities) onNewActivities(0);
+    window.dispatchEvent(new CustomEvent('zorvixe:badge-sync', { detail: { type: 'notifications', unreadCount: 0 } }));
     try {
-      await apiResetNotificationCount();
+      await apiResetNotificationCount({ markAll: true, latestAt, keys });
     } catch { }
     showToast('All notifications marked as read', 'success');
   };
@@ -234,11 +249,14 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
       seen.add(notification.key);
       saveSeenSet(userId, seen);
     }
+    apiMarkNotificationRead({ key: notification.key }).catch(() => { });
     setNotifications((prev) => {
       const next = prev.map((n) =>
         n.key === notification.key ? { ...n, is_new: false } : n
       );
-      if (onNewActivities) onNewActivities(next.filter((n) => n.is_new).length);
+      const unreadCnt = next.filter((n) => n.is_new).length;
+      if (onNewActivities) onNewActivities(unreadCnt);
+      window.dispatchEvent(new CustomEvent('zorvixe:badge-sync', { detail: { type: 'notifications', unreadCount: unreadCnt } }));
       return next;
     });
 

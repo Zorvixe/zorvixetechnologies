@@ -163,9 +163,43 @@ export default function EmployeesTab({ isAdmin, user }) {
                 </div>
 
                 <div className="emp-card-footer">
-                  <span className={`emp-status-pill ${emp.is_active ? 'active' : 'inactive'}`}>
-                    {emp.is_active ? 'Active' : 'Inactive'}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span className={`emp-status-pill ${emp.is_active ? 'active' : 'inactive'}`}>
+                      {emp.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                    {emp.is_active && (
+                      <span
+                        title={`Live Presence: ${emp.effective_status || 'Offline'}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          color:
+                            emp.effective_status === 'Available' ? '#15803d' :
+                            emp.effective_status === 'Away' ? '#b45309' :
+                            emp.effective_status === 'Busy' || emp.effective_status === 'Do not disturb' ? '#b91c1c' :
+                            '#64748b'
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: '50%',
+                            background:
+                              emp.effective_status === 'Available' ? '#36b37e' :
+                              emp.effective_status === 'Away' ? '#ffab00' :
+                              emp.effective_status === 'Busy' ? '#ff5630' :
+                              emp.effective_status === 'Do not disturb' ? '#bf2600' :
+                              '#94a3b8'
+                          }}
+                        />
+                        {emp.effective_status || 'Offline'}
+                      </span>
+                    )}
+                  </div>
                   <button className="btn-view-profile" onClick={(e) => { e.stopPropagation(); openEmployeeProfile(emp.id); }}>
                     Full Profile →
                   </button>

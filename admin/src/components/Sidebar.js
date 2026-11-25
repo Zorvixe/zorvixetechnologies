@@ -1,4 +1,5 @@
 import { useAuth } from '../auth'
+import { usePresence } from '../context/PresenceContext'
 import ActivityRemindersDrawer from './ActivityRemindersDrawer'
 import "./Sidebar.css"
 
@@ -10,6 +11,7 @@ const VALID_VIEWS = new Set([
 
 export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
   const { user, logout } = useAuth()
+  const { presenceStatus, toPresenceClass } = usePresence()
 
   const goto = (key) => (e) => {
     e.preventDefault();
@@ -38,10 +40,10 @@ export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
           </button>
         </div>
       ) : (
-        <button className="avatar-btn avatar_button_sidebar" aria-label="Account" title={`${user?.name || ''} (${user?.email || ''})`} onClick={goto('account')}>
+        <button className="avatar-btn avatar_button_sidebar" aria-label="Account" title={`${user?.name || ''} (${user?.email || ''}) • ${presenceStatus}`} onClick={goto('account')}>
           <span className="avatar">
             {initials}
-            <span className={`tb-presence-dot ${localStorage.getItem('user_presence_status')?.toLowerCase()?.replace(/\s+/g, '') || 'available'}`}></span>
+            <span className={`tb-presence-dot ${toPresenceClass(presenceStatus)}`}></span>
           </span>
         </button>
       )}

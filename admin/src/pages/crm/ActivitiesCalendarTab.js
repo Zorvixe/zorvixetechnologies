@@ -13,9 +13,25 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   AlertCircleIcon,
-  TrashIcon
+  TrashIcon,
+  ClockIcon,
+  CheckIcon,
+  SettingsIcon,
+  ChevronDownIcon,
+  BanIcon,
+  PlusIcon,
+  UploadIcon,
+  DownloadIcon,
+  XIcon
 } from '../../components/CrmHrmsIcons';
 import './ActivitiesCalendarTab.css';
+
+const renderActivityIcon = (type, size = 12, color) => {
+  const props = color ? { size, color } : { size };
+  if (type === 'call') return <PhoneIcon {...props} />;
+  if (type === 'meeting') return <CalendarIcon {...props} />;
+  return <CheckSquareIcon {...props} />;
+};
 
 export default function ActivitiesCalendarTab({ onSelectActivity }) {
   const [activities, setActivities] = useState([]);
@@ -363,7 +379,8 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
         </div>
 
         <div className="cal-my-cal-label">
-          <span>📅 My Calendar</span>
+          <CalendarIcon size={14} color="#38bdf8" />
+          <span>My Calendar</span>
         </div>
 
         {/* Mini Month Calendar Widget (Photo 4) */}
@@ -379,7 +396,7 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                 onClick={handleNavPrev}
                 title="Previous month"
               >
-                &lt;
+                <ChevronLeftIcon size={14} />
               </button>
               <button
                 type="button"
@@ -387,7 +404,7 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                 onClick={handleNavNext}
                 title="Next month"
               >
-                &gt;
+                <ChevronRightIcon size={14} />
               </button>
             </div>
           </div>
@@ -525,8 +542,9 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                   setOptionsDropdownOpen(false);
                 }}
               >
+                <PlusIcon size={14} />
                 <span>Create</span>
-                <span>▾</span>
+                <ChevronDownIcon size={13} />
               </button>
 
               {createDropdownOpen && (
@@ -539,7 +557,8 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                       handleOpenCreateModal('meeting');
                     }}
                   >
-                    <span>📅 Meeting</span>
+                    <CalendarIcon size={14} color="#d97706" />
+                    <span>Meeting</span>
                   </button>
                   <button
                     type="button"
@@ -549,7 +568,8 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                       handleOpenCreateModal('call');
                     }}
                   >
-                    <span>📞 Call</span>
+                    <PhoneIcon size={14} color="#0052cc" />
+                    <span>Call</span>
                   </button>
                   <button
                     type="button"
@@ -559,7 +579,8 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                       handleOpenCreateModal('task');
                     }}
                   >
-                    <span>✅ Task</span>
+                    <CheckSquareIcon size={14} color="#00875a" />
+                    <span>Task</span>
                   </button>
                   <button
                     type="button"
@@ -569,7 +590,8 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                       alert('Marked as unavailable for this timeslot.');
                     }}
                   >
-                    <span>🚫 Mark As Unavailable</span>
+                    <BanIcon size={14} color="#de350b" />
+                    <span>Mark As Unavailable</span>
                   </button>
                 </div>
               )}
@@ -585,22 +607,27 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                   setCreateDropdownOpen(false);
                 }}
               >
+                <SettingsIcon size={14} />
                 <span>Options</span>
-                <span>▾</span>
+                <ChevronDownIcon size={13} />
               </button>
 
               {optionsDropdownOpen && (
                 <div className="cal-popup-menu">
                   <button type="button" className="cal-menu-item" onClick={() => { setOptionsDropdownOpen(false); alert('Import calendar events'); }}>
+                    <UploadIcon size={14} />
                     <span>Import</span>
                   </button>
                   <button type="button" className="cal-menu-item" onClick={() => { setOptionsDropdownOpen(false); alert('Export calendar to .ics file'); }}>
+                    <DownloadIcon size={14} />
                     <span>Export</span>
                   </button>
                   <button type="button" className="cal-menu-item" onClick={() => { setOptionsDropdownOpen(false); alert('Calendar Preferences'); }}>
+                    <SettingsIcon size={14} />
                     <span>Preferences</span>
                   </button>
                   <button type="button" className="cal-menu-item" onClick={() => { setOptionsDropdownOpen(false); alert('Calendar Booking Links configured'); }}>
+                    <CalendarIcon size={14} />
                     <span>Calendar Booking</span>
                   </button>
                 </div>
@@ -666,6 +693,7 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                         handleOpenCreateModal('meeting', c.dateStr);
                       }}
                     >
+                      <CalendarIcon size={14} color="#d97706" />
                       <span>New Meeting</span>
                     </button>
                     <button
@@ -676,6 +704,7 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                         handleOpenCreateModal('call', c.dateStr);
                       }}
                     >
+                      <PhoneIcon size={14} color="#0052cc" />
                       <span>New Call</span>
                     </button>
                     <button
@@ -686,6 +715,7 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                         alert(`Marked as unavailable on ${c.dateStr}`);
                       }}
                     >
+                      <BanIcon size={14} color="#de350b" />
                       <span>Mark As Unavailable</span>
                     </button>
                   </div>
@@ -754,6 +784,7 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                               setViewDetailAct(act);
                             }}
                           >
+                            {renderActivityIcon(act.type, 11)}
                             <span>{act.title}</span>
                           </div>
                         ))}
@@ -853,7 +884,8 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                 className="cal-btn-create"
                 onClick={() => handleOpenCreateModal('task')}
               >
-                + Log Engagement
+                <PlusIcon size={14} />
+                <span>Log Engagement</span>
               </button>
             </div>
 
@@ -867,7 +899,9 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f4f5f7', borderBottom: '1px solid #dfe1e6', textAlign: 'left' }}>
-                    <th style={{ padding: '10px 12px', width: '40px' }}>✓</th>
+                    <th style={{ padding: '10px 12px', width: '40px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center' }}><CheckIcon size={14} /></span>
+                    </th>
                     <th style={{ padding: '10px 12px', width: '80px' }}>Type</th>
                     <th style={{ padding: '10px 12px' }}>Subject / Activity</th>
                     <th style={{ padding: '10px 12px' }}>Scheduled Date & Time</th>
@@ -886,8 +920,9 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                         />
                       </td>
                       <td style={{ padding: '10px 12px' }}>
-                        <span className={`cal-event-pill ${act.type || 'task'}`}>
-                          {act.type?.toUpperCase()}
+                        <span className={`cal-event-pill ${act.type || 'task'}`} style={{ display: 'inline-flex' }}>
+                          {renderActivityIcon(act.type, 11)}
+                          <span>{act.type?.toUpperCase()}</span>
                         </span>
                       </td>
                       <td style={{ padding: '10px 12px' }}>
@@ -964,15 +999,17 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                 background: '#fafbfc'
               }}
             >
-              <h4 style={{ margin: 0, color: '#172b4d', fontSize: '16px' }}>
-                {modalType === 'meeting' ? 'Schedule New Meeting' : modalType === 'call' ? 'Log Phone Call' : 'Create New Task'}
+              <h4 style={{ margin: 0, color: '#172b4d', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {renderActivityIcon(modalType, 16, modalType === 'meeting' ? '#d97706' : modalType === 'call' ? '#0052cc' : '#00875a')}
+                <span>{modalType === 'meeting' ? 'Schedule New Meeting' : modalType === 'call' ? 'Log Phone Call' : 'Create New Task'}</span>
               </h4>
               <button
                 type="button"
-                style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#5e6c84' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5e6c84', display: 'inline-flex', alignItems: 'center', padding: '4px' }}
                 onClick={() => setShowModal(false)}
+                aria-label="Close"
               >
-                ×
+                <XIcon size={16} />
               </button>
             </div>
 
@@ -1077,15 +1114,17 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #dfe1e6', background: '#fafbfc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className={`cal-event-pill ${viewDetailAct.type || 'task'}`}>
-                {viewDetailAct.type?.toUpperCase()}
+              <span className={`cal-event-pill ${viewDetailAct.type || 'task'}`} style={{ display: 'inline-flex' }}>
+                {renderActivityIcon(viewDetailAct.type, 12)}
+                <span>{viewDetailAct.type?.toUpperCase()}</span>
               </span>
               <button
                 type="button"
-                style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#5e6c84' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5e6c84', display: 'inline-flex', alignItems: 'center', padding: '4px' }}
                 onClick={() => setViewDetailAct(null)}
+                aria-label="Close"
               >
-                ×
+                <XIcon size={16} />
               </button>
             </div>
 
@@ -1094,8 +1133,17 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
               <div style={{ fontSize: '13px', color: '#5e6c84' }}>
                 <strong>Scheduled:</strong> {viewDetailAct.due_date ? new Date(viewDetailAct.due_date).toLocaleString() : 'Not scheduled'}
               </div>
-              <div style={{ fontSize: '13px', color: '#5e6c84' }}>
-                <strong>Status:</strong> {viewDetailAct.completed ? '✅ Completed' : '⏳ Pending / Open'}
+              <div style={{ fontSize: '13px', color: '#5e6c84', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <strong>Status:</strong>
+                {viewDetailAct.completed ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#00875a', fontWeight: 600 }}>
+                    <CheckIcon size={14} /> Completed
+                  </span>
+                ) : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#d97706', fontWeight: 600 }}>
+                    <ClockIcon size={14} /> Pending / Open
+                  </span>
+                )}
               </div>
               {viewDetailAct.description && (
                 <div style={{ background: '#f4f5f7', padding: '10px', borderRadius: '4px', fontSize: '12px', color: '#172b4d' }}>
@@ -1106,10 +1154,11 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px' }}>
                 <button
                   type="button"
-                  style={{ padding: '6px 12px', border: '1px solid #dfe1e6', borderRadius: '4px', background: '#ffffff', color: '#bf2600', cursor: 'pointer', fontSize: '12px' }}
+                  style={{ padding: '6px 12px', border: '1px solid #dfe1e6', borderRadius: '4px', background: '#ffffff', color: '#bf2600', cursor: 'pointer', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   onClick={() => handleDeleteActivity(viewDetailAct.id)}
                 >
-                  Delete
+                  <TrashIcon size={13} />
+                  <span>Delete</span>
                 </button>
                 <button
                   type="button"
@@ -1121,14 +1170,24 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                     color: '#ffffff',
                     fontWeight: 600,
                     cursor: 'pointer',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                   onClick={() => {
                     handleToggleComplete(viewDetailAct);
                     setViewDetailAct(prev => ({ ...prev, completed: !prev.completed }));
                   }}
                 >
-                  {viewDetailAct.completed ? 'Mark as Incomplete' : '✓ Mark Completed'}
+                  {viewDetailAct.completed ? (
+                    'Mark as Incomplete'
+                  ) : (
+                    <>
+                      <CheckIcon size={14} />
+                      <span>Mark Completed</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

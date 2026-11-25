@@ -223,8 +223,15 @@
   height: 10px;
   border-radius: 50%;
   border: 2px solid #ffffff;
-  background-color: #10b981;
+  background-color: #94a3b8;
 }
+
+.disc-online-dot.available { background-color: #36b37e; }
+.disc-online-dot.away { background-color: #ffab00; }
+.disc-online-dot.busy { background-color: #ff5630; }
+.disc-online-dot.dnd { background-color: #bf2600; }
+.disc-online-dot.offline,
+.disc-online-dot.invisible { background-color: #94a3b8; }
 
 .disc-user-details {
   flex: 1;

@@ -479,7 +479,43 @@ export default function Users() {
                 <tr key={u.id}>
                   <td>{u.id}</td>
                   <td>
-                    <div style={{ fontWeight: 600 }}>{u.name}</div>
+                    <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>{u.name}</span>
+                      <span
+                        title={`Presence: ${u.effective_status || 'Offline'}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          padding: '1px 7px',
+                          borderRadius: '999px',
+                          background: u.is_online ? '#f0fdf4' : '#f1f5f9',
+                          color:
+                            u.effective_status === 'Available' ? '#15803d' :
+                              u.effective_status === 'Away' ? '#b45309' :
+                                u.effective_status === 'Busy' || u.effective_status === 'Do not disturb' ? '#b91c1c' :
+                                  '#64748b',
+                          border: '1px solid rgba(15, 23, 42, 0.08)'
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: '50%',
+                            background:
+                              u.effective_status === 'Available' ? '#36b37e' :
+                                u.effective_status === 'Away' ? '#ffab00' :
+                                  u.effective_status === 'Busy' ? '#ff5630' :
+                                    u.effective_status === 'Do not disturb' ? '#bf2600' :
+                                      '#94a3b8'
+                          }}
+                        />
+                        {u.effective_status || 'Offline'}
+                      </span>
+                    </div>
                     <div className="small text-muted">{u.email}</div>
                   </td>
                   <td>{u.username || <span className="small text-muted">—</span>}</td>
@@ -510,7 +546,12 @@ export default function Users() {
                   </td>
                   <td className="small">{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '—'}</td>
                   <td className="row-actions">
-                    <button className="button ghost" onClick={() => openEdit(u)} title="Edit user details">Edit</button>
+                    <button className="button ghost" onClick={() => openEdit(u)} title="Edit user details"> <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 000-1.77l-2.34-2.34a1.25 1.25 0 00-1.77 0l-1.83 1.83 3.75 3.75 2.19-2.19z"
+                        fill="currentColor"
+                      />
+                    </svg></button>
                     <button className="button ghost" onClick={() => resetPassword(u.id)}>Reset PW</button>
                     {isAdmin && (
                       <button className="buttondanger" onClick={() => del(u.id)} title="Delete user">

@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   apiListJobs,
   apiCreateJob,
+  apiUpdateJob,
   apiDeleteJob,
   apiRecruitmentPipeline,
   apiUpdateCandidateStage,
   apiHireCandidate,
   apiListCompliance,
-  apiUpdateCompliance
+  apiUpdateCompliance,
+  downloadCandidatePdf
 } from '../../api';
 import {
   LeadsIcon,
@@ -31,18 +33,20 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
   const [jobs, setJobs] = useState([]);
   const [jobsLoading, setJobsLoading] = useState(false);
   const [showJobModal, setShowJobModal] = useState(false);
-  const [jobForm, setJobForm] = useState({
+  const [editingJobId, setEditingJobId] = useState(null);
+  const defaultJobForm = {
     title: '',
     department: 'Engineering',
     experience_required: '2-4 years',
     job_type: 'Full-time',
     vacancies: 1,
-    location: 'Hyderabad / Hybrid',
+    location: 'Hyderabad / Remote',
     salary_range: '₹6,00,000 - ₹12,00,000',
     description: '',
     requirements: '',
     status: 'open'
-  });
+  };
+  const [jobForm, setJobForm] = useState(defaultJobForm);
   const [savingJob, setSavingJob] = useState(false);
 
   // Candidate Pipeline
@@ -105,18 +109,74 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
     fetchCompliance();
   }, [fetchJobs, fetchPipeline, fetchCompliance]);
 
-  const handleCreateJob = async (e) => {
+  const openCreateJobModal = () => {
+    setEditingJobId(null);
+    setJobForm(defaultJobForm);
+    setShowJobModal(true);
+  };
+
+  const openEditJobModal = (job) => {
+    setEditingJobId(job.id);
+    setJobForm({
+      title: job.title || '',
+      department: job.department || 'Engineering',
+      experience_required: job.experience_required || '',
+      job_type: job.job_type || 'Full-time',
+      vacancies: job.vacancies || 1,
+      location: job.location || 'Hyderabad / Remote',
+      salary_range: job.salary_range || '',
+      description: job.description || '',
+      requirements: job.requirements || '',
+      status: job.status || 'open'
+    });
+    setShowJobModal(true);
+  };
+
+  const handleSaveJob = async (e) => {
     e.preventDefault();
     setSavingJob(true);
     try {
-      await apiCreateJob(jobForm);
-      alert('Job opening published successfully');
+      if (editingJobId) {
+        await apiUpdateJob(editingJobId, jobForm);
+        alert('Job opening updated successfully');
+      } else {
+        await apiCreateJob(jobForm);
+        alert('Job opening published successfully');
+      }
       setShowJobModal(false);
+      setEditingJobId(null);
+      setJobForm(defaultJobForm);
       fetchJobs();
     } catch (err) {
-      alert(err.message || 'Failed to create job');
+      alert(err.message || 'Failed to save job');
     } finally {
       setSavingJob(false);
+    }
+  };
+
+  const handleToggleJobStatus = async (job) => {
+    const nextStatus = (job.status || 'open').toLowerCase() === 'open' ? 'closed' : 'open';
+    try {
+      await apiUpdateJob(job.id, { status: nextStatus });
+      fetchJobs();
+    } catch (err) {
+      alert(err.message || 'Failed to update job status');
+    }
+  };
+
+  const handleDownloadResume = async (cand) => {
+    try {
+      const blob = await downloadCandidatePdf(cand.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = cand.resume_file_name || `${cand.name || 'candidate'}-resume.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.message || 'Resume download failed');
     }
   };
 
@@ -262,13 +322,23 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                       ) : (
                         candidatesInStage.map((cand) => (
                           <div className="candidate-card" key={cand.id}>
+                            {cand.source === 'careers_portal' && (
+                              <span className="cand-source-badge">🌐 Careers Portal</span>
+                            )}
                             <div className="cand-top-row">
                               <h5 className="cand-name">{cand.name}</h5>
                               {cand.rating > 0 && (
                                 <span className="cand-stars">{'★'.repeat(cand.rating)}</span>
                               )}
                             </div>
-                            <span className="cand-role">{cand.position || 'Applicant'}</span>
+                            <span className="cand-role">{cand.job_title || cand.position || 'Applicant'}</span>
+                            {(cand.experience_years || cand.expected_salary || cand.current_location) && (
+                              <div className="cand-meta-chips">
+                                {cand.experience_years && <span className="cand-meta-chip">Exp: {cand.experience_years}</span>}
+                                {cand.expected_salary && <span className="cand-meta-chip">CTC: {cand.expected_salary}</span>}
+                                {cand.current_location && <span className="cand-meta-chip">📍 {cand.current_location}</span>}
+                              </div>
+                            )}
                             <div className="cand-contact-info">
                               <span>✉️ {cand.email}</span>
                               <span><PhoneIcon size={12} style={{ marginRight: '4px' }} /> {cand.phone}</span>
@@ -326,6 +396,16 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                               <button className="btn-cand-details" onClick={() => openCandidateModal(cand)}>
                                 Interview / Edit
                               </button>
+                              {cand.resume_file_name && (
+                                <button
+                                  type="button"
+                                  className="btn-cand-resume"
+                                  onClick={() => handleDownloadResume(cand)}
+                                  title={`Download ${cand.resume_file_name}`}
+                                >
+                                  📄 Resume
+                                </button>
+                              )}
                               {(cand.stage === 'offer' || cand.stage === 'interview' || cand.stage === 'hired') && (
                                 <button
                                   className="btn-cand-hire"
@@ -354,10 +434,10 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
           <div className="section-header-row">
             <div>
               <h3 className="section-title">Career Opportunities & Job Openings</h3>
-              <p className="section-sub">Manage open positions, job descriptions, and applicant pipelines</p>
+              <p className="section-sub">Open positions appear automatically on the website Careers portal</p>
             </div>
             {isAdmin && (
-              <button className="btn-post-job" onClick={() => setShowJobModal(true)}>
+              <button className="btn-post-job" onClick={openCreateJobModal}>
                 + Post New Job Opening
               </button>
             )}
@@ -373,38 +453,53 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
             ) : jobs.length === 0 ? (
               <div className="empty-state">No job openings created yet. Click "+ Post New Job Opening" to create one.</div>
             ) : (
-              jobs.map((job) => (
-                <div className="job-card" key={job.id}>
-                  <div className="job-card-top">
-                    <div>
-                      <h4 className="job-title">{job.title}</h4>
-                      <span className="job-dept">{job.department} • {job.location}</span>
+              jobs.map((job) => {
+                const isOpen = (job.status || 'open').toLowerCase() === 'open';
+                return (
+                  <div className="job-card" key={job.id}>
+                    <div className="job-card-top">
+                      <div>
+                        <h4 className="job-title">{job.title}</h4>
+                        <span className="job-dept">{job.department} • {job.location}</span>
+                      </div>
+                      <span className={`job-status-pill status-${job.status}`}>{job.status}</span>
                     </div>
-                    <span className={`job-status-pill status-${job.status}`}>{job.status}</span>
-                  </div>
 
-                  <div className="job-meta-row">
-                    <div className="meta-item"><span>Type:</span> <strong>{job.job_type}</strong></div>
-                    <div className="meta-item"><span>Exp:</span> <strong>{job.experience_required}</strong></div>
-                    <div className="meta-item"><span>Vacancies:</span> <strong>{job.vacancies}</strong></div>
-                    <div className="meta-item"><span>Salary:</span> <strong>{job.salary_range}</strong></div>
-                  </div>
+                    <div className="job-meta-row">
+                      <div className="meta-item"><span>Type:</span> <strong>{job.job_type}</strong></div>
+                      <div className="meta-item"><span>Exp:</span> <strong>{job.experience_required}</strong></div>
+                      <div className="meta-item"><span>Vacancies:</span> <strong>{job.vacancies}</strong></div>
+                      <div className="meta-item"><span>Salary:</span> <strong>{job.salary_range}</strong></div>
+                    </div>
 
-                  <p className="job-desc">{job.description}</p>
+                    <p className="job-desc">{job.description}</p>
 
-                  <div className="job-card-bottom">
-                    <span className="applicant-counter">
-                      <UsersIcon size={14} style={{ marginRight: '5px' }} />
-                      <strong>{job.applicants_count || 0}</strong> applicants
-                    </span>
-                    {isAdmin && (
-                      <button className="btn-delete-job" onClick={() => handleDeleteJob(job.id)}>
-                        Delete
-                      </button>
-                    )}
+                    <div className="job-card-bottom">
+                      <span className="applicant-counter">
+                        <UsersIcon size={14} style={{ marginRight: '5px' }} />
+                        <strong>{job.applicants_count || 0}</strong> applicants
+                      </span>
+                      {isAdmin && (
+                        <div className="job-card-actions">
+                          <button type="button" className="btn-edit-job" onClick={() => openEditJobModal(job)}>
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn-toggle-job ${isOpen ? 'is-open' : 'is-closed'}`}
+                            onClick={() => handleToggleJobStatus(job)}
+                          >
+                            {isOpen ? 'Close' : 'Reopen'}
+                          </button>
+                          <button className="btn-delete-job" onClick={() => handleDeleteJob(job.id)}>
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )))}
+                );
+              }))}
           </div>
         </div>
       )}
@@ -477,15 +572,15 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
         </div>
       )}
 
-      {/* POST JOB MODAL */}
+      {/* POST / EDIT JOB MODAL */}
       {showJobModal && (
         <div className="rc-modal-backdrop modal-backdrop" onClick={() => setShowJobModal(false)}>
           <div className="rc-modal-card rc-modal-lg modal-card modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="rc-modal-header modal-header">
-              <h4 className="rc-modal-title">Post New Job Opening</h4>
+              <h4 className="rc-modal-title">{editingJobId ? 'Edit Job Opening' : 'Post New Job Opening'}</h4>
               <button type="button" className="rc-modal-close-btn btn-close" onClick={() => setShowJobModal(false)}>×</button>
             </div>
-            <form onSubmit={handleCreateJob} className="rc-modal-form modal-form">
+            <form onSubmit={handleSaveJob} className="rc-modal-form modal-form">
               <div className="rc-form-group form-group">
                 <label className="rc-form-label">Job Title *</label>
                 <input
@@ -542,36 +637,59 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                   <label className="rc-form-label">Vacancies</label>
                   <input
                     type="number"
+                    min="1"
                     className="rc-form-input"
                     value={jobForm.vacancies}
                     onChange={(e) => setJobForm({ ...jobForm, vacancies: Number(e.target.value) })}
                   />
                 </div>
               </div>
-              <div className="rc-form-group form-group">
-                <label className="rc-form-label">Salary Range (Annual CTC)</label>
-                <input
-                  type="text"
-                  className="rc-form-input"
-                  placeholder="e.g. ₹12 - ₹18 LPA"
-                  value={jobForm.salary_range}
-                  onChange={(e) => setJobForm({ ...jobForm, salary_range: e.target.value })}
-                />
+              <div className="rc-form-row form-row">
+                <div className="rc-form-group form-group">
+                  <label className="rc-form-label">Work Location</label>
+                  <input
+                    type="text"
+                    className="rc-form-input"
+                    placeholder="e.g. Hyderabad / Remote"
+                    value={jobForm.location}
+                    onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })}
+                  />
+                </div>
+                <div className="rc-form-group form-group">
+                  <label className="rc-form-label">Salary Range (Annual CTC)</label>
+                  <input
+                    type="text"
+                    className="rc-form-input"
+                    placeholder="e.g. ₹12 - ₹18 LPA"
+                    value={jobForm.salary_range}
+                    onChange={(e) => setJobForm({ ...jobForm, salary_range: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="rc-form-group form-group">
                 <label className="rc-form-label">Job Description</label>
                 <textarea
                   rows="3"
                   className="rc-form-textarea"
-                  placeholder="Key responsibilities, required skills, and qualification expectations..."
+                  placeholder="Key responsibilities, role overview, and team details..."
                   value={jobForm.description}
                   onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+                />
+              </div>
+              <div className="rc-form-group form-group">
+                <label className="rc-form-label">Requirements &amp; Key Skills</label>
+                <textarea
+                  rows="2"
+                  className="rc-form-textarea"
+                  placeholder="e.g. React.js, Node.js, PostgreSQL, REST APIs..."
+                  value={jobForm.requirements}
+                  onChange={(e) => setJobForm({ ...jobForm, requirements: e.target.value })}
                 />
               </div>
               <div className="rc-modal-actions modal-actions">
                 <button type="button" className="rc-btn-cancel btn-cancel" onClick={() => setShowJobModal(false)}>Cancel</button>
                 <button type="submit" className="rc-btn-save btn-save" disabled={savingJob}>
-                  {savingJob ? 'Publishing...' : 'Publish Job Opening'}
+                  {savingJob ? 'Saving...' : editingJobId ? 'Update Job Opening' : 'Publish Job Opening'}
                 </button>
               </div>
             </form>
@@ -588,6 +706,40 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
               <button type="button" className="rc-modal-close-btn btn-close" onClick={() => setSelectedCandidate(null)}>×</button>
             </div>
             <form onSubmit={handleUpdateCandidate} className="rc-modal-form modal-form">
+              {(selectedCandidate.source === 'careers_portal' || selectedCandidate.resume_file_name || selectedCandidate.cover_letter || selectedCandidate.linkedin_url || selectedCandidate.portfolio_url) && (
+                <div className="cand-application-summary">
+                  <div>
+                    <strong>Applied For:</strong> {selectedCandidate.job_title || selectedCandidate.position || 'Applicant'}
+                    {selectedCandidate.experience_years && <> • <strong>Exp:</strong> {selectedCandidate.experience_years}</>}
+                    {selectedCandidate.notice_period && <> • <strong>Notice:</strong> {selectedCandidate.notice_period}</>}
+                  </div>
+                  {selectedCandidate.current_location && (
+                    <div><strong>Location:</strong> {selectedCandidate.current_location}</div>
+                  )}
+                  <div className="cand-app-links">
+                    {selectedCandidate.resume_file_name && (
+                      <button type="button" className="btn-cand-resume" onClick={() => handleDownloadResume(selectedCandidate)}>
+                        📄 Download Resume ({selectedCandidate.resume_file_name})
+                      </button>
+                    )}
+                    {selectedCandidate.linkedin_url && (
+                      <a href={selectedCandidate.linkedin_url} target="_blank" rel="noopener noreferrer" className="cand-app-link">
+                        🔗 LinkedIn Profile
+                      </a>
+                    )}
+                    {selectedCandidate.portfolio_url && (
+                      <a href={selectedCandidate.portfolio_url} target="_blank" rel="noopener noreferrer" className="cand-app-link">
+                        🌐 Portfolio / GitHub
+                      </a>
+                    )}
+                  </div>
+                  {selectedCandidate.cover_letter && (
+                    <div style={{ color: '#42526e', fontStyle: 'italic' }}>
+                      <strong>Applicant Note:</strong> "{selectedCandidate.cover_letter}"
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="rc-form-group form-group">
                 <label className="rc-form-label">Pipeline Stage</label>
                 <select

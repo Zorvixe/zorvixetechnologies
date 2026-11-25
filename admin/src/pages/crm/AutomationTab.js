@@ -308,7 +308,12 @@ async function handleZorvixeLeadSubmit(e) {
                     </div>
                     <div className="template-actions">
                       <button type="button" className="btn-icon-subtle" onClick={() => openEditModal(tmpl)} title="Edit">
-                        ✏️
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 000-1.77l-2.34-2.34a1.25 1.25 0 00-1.77 0l-1.83 1.83 3.75 3.75 2.19-2.19z"
+                            fill="currentColor"
+                          />
+                        </svg>
                       </button>
                       {!tmpl.is_system && (
                         <button type="button" className="btn-icon-subtle danger" onClick={() => handleDeleteTemplate(tmpl)} title="Delete">

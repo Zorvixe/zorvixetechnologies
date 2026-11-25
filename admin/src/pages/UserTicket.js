@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
-import { apiStatsTickets } from "../api";
+import { apiStatsTickets, apiMarkTicketActivityRead } from "../api";
 import "./Notifications.css";
 import { buildDeepLink } from "../deeplink/resourceRegistry";
 
@@ -162,9 +162,13 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
       }
 
       const seen = loadSeenSet(userId);
+      const lastCheckedMs = lastChecked ? new Date(lastChecked).getTime() : 0;
 
       const ticketData = filtered.map((activity, index) => {
-        const key = buildTicketKey(activity);
+        const key = activity?.key || buildTicketKey(activity);
+        const serverIsNew = typeof activity?.is_new === "boolean" ? activity.is_new : true;
+        const actMs = activity?.at ? new Date(activity.at).getTime() : 0;
+        const afterLastCheck = !lastCheckedMs || actMs > lastCheckedMs;
         return {
           id: index + 1,
           key,
@@ -173,13 +177,14 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
           creator: activity?.data?.user_name || activity?.creator || activity?.data?.creator || "",
           related_data: activity?.data,
           created_at: activity?.at,
-          is_new: !seen.has(key),
+          is_new: serverIsNew && !seen.has(key) && afterLastCheck,
           activityType: activity?.type || null,
         };
       });
 
       setTickets(ticketData);
-      if (onNewActivities) onNewActivities(ticketData.filter((t) => t.is_new).length);
+      const unreadCnt = ticketData.filter((t) => t.is_new).length;
+      if (onNewActivities) onNewActivities(unreadCnt);
     } catch (err) {
       console.error("Error fetching tickets:", err);
       showToast("Failed to load tickets", "error");
@@ -188,11 +193,24 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
     }
   };
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
     const seen = loadSeenSet(userId);
-    tickets.forEach((t) => seen.add(t.key));
+    const keys = [];
+    let latestAt = null;
+    tickets.forEach((t) => {
+      seen.add(t.key);
+      keys.push(t.key);
+      if (t.created_at && (!latestAt || new Date(t.created_at) > new Date(latestAt))) {
+        latestAt = t.created_at;
+      }
+    });
     saveSeenSet(userId, seen);
     setTickets((prev) => prev.map((t) => ({ ...t, is_new: false })));
+    if (onNewActivities) onNewActivities(0);
+    window.dispatchEvent(new CustomEvent("zorvixe:badge-sync", { detail: { type: "tickets", unreadCount: 0 } }));
+    try {
+      await apiMarkTicketActivityRead({ markAll: true, latestAt, keys });
+    } catch { }
     showToast("All tickets marked as read", "success");
   };
 
@@ -213,9 +231,12 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
       seen.add(ticket.key);
       saveSeenSet(userId, seen);
     }
+    apiMarkTicketActivityRead({ key: ticket.key }).catch(() => { });
     setTickets((prev) => {
       const next = prev.map((t) => (t.key === ticket.key ? { ...t, is_new: false } : t));
-      if (onNewActivities) onNewActivities(next.filter((n) => n.is_new).length);
+      const unreadCnt = next.filter((n) => n.is_new).length;
+      if (onNewActivities) onNewActivities(unreadCnt);
+      window.dispatchEvent(new CustomEvent("zorvixe:badge-sync", { detail: { type: "tickets", unreadCount: unreadCnt } }));
       return next;
     });
 

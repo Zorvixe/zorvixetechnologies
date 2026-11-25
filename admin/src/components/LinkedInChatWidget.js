@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
+import { usePresence } from "../context/PresenceContext";
 import {
   apiGetChatUsers,
   apiGetChatMessages,
@@ -99,6 +100,7 @@ const renderMessageWithLinks = (text) => {
 
 export default function LinkedInChatWidget() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Widget state
   const [isOpen, setIsOpen] = useState(false);
@@ -116,14 +118,24 @@ export default function LinkedInChatWidget() {
   const [inputMessage, setInputMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  // Zoho Cliq Presence & Status State (Matches Photos 1 & 2)
+  // Zoho Cliq Presence & Status State (Synced System-Wide)
+  const {
+    presenceStatus,
+    dndDuration,
+    chatPrefs,
+    updatePresence,
+    updateDndDuration,
+    updateChatPrefs,
+    canPlaySound,
+    toPresenceClass,
+  } = usePresence();
+
   const [showStatusPopover, setShowStatusPopover] = useState(false);
-  const [presenceStatus, setPresenceStatus] = useState(() => localStorage.getItem("user_presence_status") || "Available");
   const [showPresenceMenu, setShowPresenceMenu] = useState(false);
-  const [dndDuration, setDndDuration] = useState("15 Mins");
-  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("cliq_sound_enabled") !== "false");
-  const [oneOneChatsEnabled, setOneOneChatsEnabled] = useState(() => localStorage.getItem("cliq_one_one_chats") !== "false");
-  const [mentionsEnabled, setMentionsEnabled] = useState(() => localStorage.getItem("cliq_mentions_enabled") !== "false");
+  const soundEnabled = chatPrefs.soundNotif;
+  const oneOneChatsEnabled = chatPrefs.oneOneChats;
+  const mentionsEnabled = chatPrefs.mentionNotif;
+  const pauseChatEnabled = chatPrefs.pauseChat;
   const [cliqBottomTab, setCliqBottomTab] = useState("chats"); // 'pins' | 'chats' | 'contacts'
   const [isCliqMaximized, setIsCliqMaximized] = useState(false);
 
@@ -202,8 +214,7 @@ export default function LinkedInChatWidget() {
   };
 
   const handleStatusChange = (status) => {
-    setPresenceStatus(status);
-    localStorage.setItem("user_presence_status", status);
+    updatePresence(status, dndDuration);
     setShowPresenceMenu(false);
   };
 
@@ -226,19 +237,26 @@ export default function LinkedInChatWidget() {
     return () => window.removeEventListener("click", handleGlobalClick);
   }, []);
 
-  // 1. Fetch user list and unread count
+  // 1. Fetch user list and unread count (respecting presence, sound, and pause settings)
   const fetchChatUsers = useCallback(async () => {
     if (!currentUserId) return;
     try {
       const res = await apiGetChatUsers();
       if (res && res.users) {
         setUsers(res.users);
+        setActiveColleague((prev) => {
+          if (!prev) return prev;
+          const updated = res.users.find((u) => Number(u.id) === Number(prev.id));
+          return updated ? { ...prev, ...updated } : prev;
+        });
       }
       const unreadRes = await apiGetChatUnreadCount();
       if (unreadRes && typeof unreadRes.total_unread === "number") {
         if (
           lastUnreadTotalRef.current !== null &&
-          unreadRes.total_unread > lastUnreadTotalRef.current
+          unreadRes.total_unread > lastUnreadTotalRef.current &&
+          canPlaySound() &&
+          oneOneChatsEnabled
         ) {
           playNotificationSound();
         }
@@ -248,7 +266,7 @@ export default function LinkedInChatWidget() {
     } catch (err) {
       console.error("Error fetching chat users:", err);
     }
-  }, [currentUserId]);
+  }, [currentUserId, canPlaySound, oneOneChatsEnabled]);
 
   // 2. Fetch messages for active colleague
   const fetchActiveMessages = useCallback(async (colleagueId, silent = false) => {
@@ -258,11 +276,11 @@ export default function LinkedInChatWidget() {
       const res = await apiGetChatMessages(colleagueId);
       if (res && res.messages) {
         setMessages(res.messages);
-        // If message count increased, scroll down and play sound if incoming
+        // If message count increased, scroll down and play sound if incoming & allowed by presence/prefs
         if (res.messages.length > lastMsgCountRef.current) {
           if (silent && lastMsgCountRef.current > 0) {
             const lastMsg = res.messages[res.messages.length - 1];
-            if (lastMsg && Number(lastMsg.sender_id) !== Number(currentUserId)) {
+            if (lastMsg && Number(lastMsg.sender_id) !== Number(currentUserId) && canPlaySound() && oneOneChatsEnabled) {
               playNotificationSound();
             }
           }
@@ -277,7 +295,7 @@ export default function LinkedInChatWidget() {
     } finally {
       if (!silent) setLoadingMessages(false);
     }
-  }, [currentUserId]);
+  }, [currentUserId, canPlaySound, oneOneChatsEnabled]);
 
   // Initial load
   useEffect(() => {
@@ -523,17 +541,18 @@ export default function LinkedInChatWidget() {
                 }}
               >
                 {getInitials(activeColleague.name)}
-                <span className="online-status-dot active"></span>
+                <span
+                  className={`online-status-dot ${toPresenceClass(activeColleague.effective_status || activeColleague.presence_status)}`}
+                  title={activeColleague.effective_status || activeColleague.presence_status || "Offline"}
+                ></span>
               </div>
               <div className="chat-user-meta">
                 <span className="chat-user-name" title={activeColleague.name}>
                   {activeColleague.name}
                 </span>
                 <span className="chat-user-status">
-                  {activeColleague.role
-                    ? `${activeColleague.role.charAt(0).toUpperCase() + activeColleague.role.slice(1)}`
-                    : "Colleague"}
-                  {activeColleague.department ? ` • ${activeColleague.department}` : ""}
+                  {activeColleague.effective_status || activeColleague.presence_status || "Offline"}
+                  {activeColleague.position ? ` • ${activeColleague.position}` : activeColleague.department ? ` • ${activeColleague.department}` : ""}
                 </span>
               </div>
             </div>
@@ -796,7 +815,7 @@ export default function LinkedInChatWidget() {
               }}
             >
               {currentUserInitials}
-              <span className={`dock-online-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`}></span>
+              <span className={`dock-online-dot ${toPresenceClass(presenceStatus)}`}></span>
             </div>
             {unreadTotal > 0 && (
               <span className="cliq-tucked-badge">{unreadTotal}</span>
@@ -835,7 +854,7 @@ export default function LinkedInChatWidget() {
               title="Change Status & Notifications"
             >
               {currentUserInitials}
-              <span className={`dock-online-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`}></span>
+              <span className={`dock-online-dot ${toPresenceClass(presenceStatus)}`}></span>
             </div>
             <div
               className="dock-user-title-wrap"
@@ -848,7 +867,7 @@ export default function LinkedInChatWidget() {
             >
               <span className="dock-title">{user?.name || 'Messaging'}</span>
               <span className="dock-sub-status">
-                <span className={`status-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`}></span>
+                <span className={`status-dot ${toPresenceClass(presenceStatus)}`}></span>
                 {presenceStatus}
               </span>
             </div>
@@ -896,7 +915,7 @@ export default function LinkedInChatWidget() {
               <div className="cliq-user-profile-center">
                 <div className="cliq-large-avatar-wrap">
                   <span className="cliq-avatar-initials">{currentUserInitials}</span>
-                  <span className={`cliq-presence-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`}></span>
+                  <span className={`cliq-presence-dot ${toPresenceClass(presenceStatus)}`}></span>
                 </div>
                 <h4 className="cliq-user-name">{user?.name || user?.email || 'Golla Ekambaram'}</h4>
               </div>
@@ -909,7 +928,7 @@ export default function LinkedInChatWidget() {
                   onClick={() => setShowPresenceMenu(v => !v)}
                 >
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className={`cliq-presence-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`} style={{ position: 'static', display: 'inline-block' }}></span>
+                    <span className={`cliq-presence-dot ${toPresenceClass(presenceStatus)}`} style={{ position: 'static', display: 'inline-block' }}></span>
                     <span style={{ fontWeight: 600 }}>{presenceStatus}</span>
                   </span>
                   <span className="cliq-caret">▾</span>
@@ -992,7 +1011,7 @@ export default function LinkedInChatWidget() {
                       <select
                         className="cliq-dnd-select"
                         value={dndDuration}
-                        onChange={(e) => setDndDuration(e.target.value)}
+                        onChange={(e) => updateDndDuration(e.target.value)}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <option value="15 Mins">15 Mins</option>
@@ -1008,21 +1027,46 @@ export default function LinkedInChatWidget() {
 
               {/* Action Menu Items (Photos 1 & 2) */}
               <div className="cliq-action-menu-list">
-                <button type="button" className="cliq-action-menu-item">
+                <button
+                  type="button"
+                  className="cliq-action-menu-item"
+                  onClick={() => {
+                    setShowStatusPopover(false);
+                    navigate('/login-history');
+                  }}
+                >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                   <span>Feed History</span>
                 </button>
-                <button type="button" className="cliq-action-menu-item">
+                <button
+                  type="button"
+                  className="cliq-action-menu-item"
+                  onClick={() => {
+                    setShowStatusPopover(false);
+                    navigate('/account');
+                  }}
+                >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
                   <span>Settings</span>
                 </button>
-                <button type="button" className="cliq-action-menu-item">
+                <button
+                  type="button"
+                  className="cliq-action-menu-item"
+                  onClick={() => {
+                    setShowStatusPopover(false);
+                    navigate('/discussions');
+                  }}
+                >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
                   <span>General</span>
                 </button>
-                <button type="button" className="cliq-action-menu-item">
+                <button
+                  type="button"
+                  className="cliq-action-menu-item"
+                  onClick={() => updateChatPrefs({ pauseChat: !pauseChatEnabled })}
+                >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="10" y1="15" x2="10" y2="9" /><line x1="14" y1="15" x2="14" y2="9" /></svg>
-                  <span>Pause chat here</span>
+                  <span>{pauseChatEnabled ? 'Resume chat here' : 'Pause chat here'}</span>
                 </button>
               </div>
 
@@ -1034,10 +1078,7 @@ export default function LinkedInChatWidget() {
                     <input
                       type="checkbox"
                       checked={soundEnabled}
-                      onChange={(e) => {
-                        setSoundEnabled(e.target.checked);
-                        localStorage.setItem('cliq_sound_enabled', String(e.target.checked));
-                      }}
+                      onChange={(e) => updateChatPrefs({ soundNotif: e.target.checked })}
                     />
                     <span className="cliq-slider"></span>
                   </label>
@@ -1049,10 +1090,7 @@ export default function LinkedInChatWidget() {
                     <input
                       type="checkbox"
                       checked={oneOneChatsEnabled}
-                      onChange={(e) => {
-                        setOneOneChatsEnabled(e.target.checked);
-                        localStorage.setItem('cliq_one_one_chats', String(e.target.checked));
-                      }}
+                      onChange={(e) => updateChatPrefs({ oneOneChats: e.target.checked })}
                     />
                     <span className="cliq-slider"></span>
                   </label>
@@ -1064,10 +1102,7 @@ export default function LinkedInChatWidget() {
                     <input
                       type="checkbox"
                       checked={mentionsEnabled}
-                      onChange={(e) => {
-                        setMentionsEnabled(e.target.checked);
-                        localStorage.setItem('cliq_mentions_enabled', String(e.target.checked));
-                      }}
+                      onChange={(e) => updateChatPrefs({ mentionNotif: e.target.checked })}
                     />
                     <span className="cliq-slider"></span>
                   </label>
@@ -1215,7 +1250,10 @@ export default function LinkedInChatWidget() {
                         style={{ backgroundColor: avatarColor.bg, color: avatarColor.text }}
                       >
                         {getInitials(colleague.name)}
-                        <span className="online-indicator active"></span>
+                        <span
+                          className={`online-indicator ${toPresenceClass(colleague.effective_status || colleague.presence_status)}`}
+                          title={colleague.effective_status || colleague.presence_status || "Offline"}
+                        ></span>
                       </div>
 
                       {/* Info & Snippet */}
@@ -1231,8 +1269,8 @@ export default function LinkedInChatWidget() {
 
                         <div className="colleague-sub-row">
                           <span className="colleague-role">
-                            {colleague.role === "admin" ? "Admin" : "Employee"}
-                            {colleague.position ? ` • ${colleague.position}` : ""}
+                            {colleague.effective_status || colleague.presence_status || "Offline"}
+                            {colleague.position ? ` • ${colleague.position}` : colleague.role === "admin" ? " • Admin" : " • Employee"}
                           </span>
                         </div>
 

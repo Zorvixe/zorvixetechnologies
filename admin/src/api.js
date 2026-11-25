@@ -78,11 +78,16 @@ export async function apiStatsTickets () {
   return request("/api/stats/tickets");
 }
 
-// Add this function to your api.js
-export const apiResetNotificationCount = () => {
-  // This is just a placeholder since we're using localStorage
-  // You can implement backend tracking if needed
-  return Promise.resolve({ success: true });
+export const apiResetNotificationCount = (body = { markAll: true }) => {
+  return request("/api/notifications/mark-read", { method: "POST", body });
+};
+
+export const apiMarkNotificationRead = (body) => {
+  return request("/api/notifications/mark-read", { method: "POST", body });
+};
+
+export const apiMarkTicketActivityRead = (body = { markAll: true }) => {
+  return request("/api/tickets-activity/mark-read", { method: "POST", body });
 };
 
 /* --------------------------- Users (Admin) --------------------------- */
@@ -475,6 +480,11 @@ export const apiListCrmTeam = () => request("/api/crm/team");
 
 // CRM Deals Stage & Loss Reasons Automation
 export const apiUpdateDealStage = (id, body) => request(`/api/crm/deals/${id}/stage`, { method: "PATCH", body });
+
+/* --------------------------- Presence & Status --------------------------- */
+export const apiGetMyPresence = () => request("/api/presence/me");
+export const apiUpdateMyPresence = (body) => request("/api/presence/me", { method: "PATCH", body });
+export const apiPresenceHeartbeat = () => request("/api/presence/heartbeat", { method: "POST" });
 
 /* --------------------------- Helpers --------------------------- */
 export const formatDate = (d) => {

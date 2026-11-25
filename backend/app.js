@@ -25,7 +25,10 @@ const {
   sendTicketCommentEmail,
   sendLeaveAppliedEmail,
   sendLeaveStatusEmail,
-  sendContactFormAlert
+  sendContactFormAlert,
+  sendCareerOtpEmail,
+  sendCareerApplicationConfirmation,
+  sendCareerNewApplicantAdminAlert
 } = require('./services/mailer')
 
 /* ---------------------------- App & Middleware ---------------------------- */
@@ -180,6 +183,14 @@ async function initDb() {
     await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS username VARCHAR(60) UNIQUE;`)
     await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'admin';`)
     await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;`)
+    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS presence_status VARCHAR(30) NOT NULL DEFAULT 'Available';`)
+    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS dnd_until TIMESTAMPTZ;`)
+    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;`)
+    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS chat_preferences JSONB DEFAULT '{"soundNotif": true, "oneOneChats": true, "mentionNotif": true, "pauseChat": false}'::jsonb;`)
+    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS notif_last_read_at TIMESTAMPTZ;`)
+    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS ticket_last_read_at TIMESTAMPTZ;`)
+    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS notif_seen_keys JSONB DEFAULT '[]'::jsonb;`)
+    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS ticket_seen_keys JSONB DEFAULT '[]'::jsonb;`)
 
     // Contacts
     await client.query(`
@@ -730,6 +741,22 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE candidates ADD COLUMN IF NOT EXISTS job_id BIGINT;
       ALTER TABLE candidates ADD COLUMN IF NOT EXISTS expected_salary VARCHAR(50);
       ALTER TABLE candidates ADD COLUMN IF NOT EXISTS experience_years VARCHAR(20);
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cover_letter TEXT;
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS portfolio_url VARCHAR(255);
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS linkedin_url VARCHAR(255);
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS current_location VARCHAR(120);
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS notice_period VARCHAR(60);
+      ALTER TABLE candidates ADD COLUMN IF NOT EXISTS source VARCHAR(60) DEFAULT 'admin';
+
+      CREATE TABLE IF NOT EXISTS careers_email_otps (
+        id BIGSERIAL PRIMARY KEY,
+        email VARCHAR(160) NOT NULL,
+        otp_code VARCHAR(10) NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        verified BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_careers_otps_email ON careers_email_otps(email);
     `);
 
     // 6. Statutory Compliance Records
@@ -1248,7 +1275,7 @@ app.post('/api/admin/login', async (req, res) => {
     const ok = await bcrypt.compare(password, admin.password_hash)
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' })
 
-    await pool.query('UPDATE admin_users SET last_login_at=NOW() WHERE id=$1', [admin.id])
+    await pool.query('UPDATE admin_users SET last_login_at=NOW(), last_seen_at=NOW() WHERE id=$1', [admin.id])
 
     // Close any previous open session for this user if it was left open
     await pool.query(
@@ -1317,6 +1344,10 @@ app.post('/api/admin/logout', async (req, res) => {
     }
     const sessionId = req.body && req.body.sessionId ? Number(req.body.sessionId) : null;
 
+    if (userId) {
+      await pool.query('UPDATE admin_users SET last_seen_at = NULL WHERE id = $1', [userId]).catch(() => {});
+    }
+
     if (sessionId) {
       await pool.query(
         `UPDATE user_login_logs
@@ -1349,6 +1380,193 @@ app.post('/api/admin/logout', async (req, res) => {
 app.get('/api/admin/me', requireAuth, (req, res) => {
   res.json({ me: req.user })
 })
+
+/* ----------------------------- Presence & Status System ----------------------------- */
+const VALID_PRESENCE_STATUSES = ['Available', 'Away', 'Busy', 'Invisible', 'Do not disturb'];
+const PRESENCE_ONLINE_WINDOW_MS = 3 * 60 * 1000; // 3 minutes active heartbeat window
+const DEFAULT_CHAT_PREFS = {
+  soundNotif: true,
+  oneOneChats: true,
+  mentionNotif: true,
+  pauseChat: false
+};
+
+function computeDndUntil(durationLabel) {
+  if (!durationLabel) return null;
+  const now = new Date();
+  switch (durationLabel) {
+    case '15 Mins':
+      return new Date(now.getTime() + 15 * 60 * 1000);
+    case '30 Mins':
+      return new Date(now.getTime() + 30 * 60 * 1000);
+    case '1 Hour':
+      return new Date(now.getTime() + 60 * 60 * 1000);
+    case '2 Hours':
+      return new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    case 'Until tomorrow': {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(9, 0, 0, 0);
+      return tomorrow;
+    }
+    default:
+      return new Date(now.getTime() + 15 * 60 * 1000);
+  }
+}
+
+function computeEffectivePresence(row) {
+  if (!row) return { effective_status: 'Offline', is_online: false };
+  const rawStatus = row.presence_status || 'Available';
+  const lastSeen = row.last_seen_at ? new Date(row.last_seen_at).getTime() : 0;
+  const isRecentlySeen = lastSeen > 0 && (Date.now() - lastSeen) <= PRESENCE_ONLINE_WINDOW_MS;
+
+  if (!row.is_active || !isRecentlySeen || rawStatus === 'Invisible') {
+    return { effective_status: 'Offline', is_online: false };
+  }
+
+  if (rawStatus === 'Do not disturb' && row.dnd_until && new Date(row.dnd_until).getTime() <= Date.now()) {
+    return { effective_status: 'Available', is_online: true };
+  }
+
+  return { effective_status: rawStatus, is_online: true };
+}
+
+// Get current user's presence & chat preferences (also refreshes last_seen_at and expires DND)
+app.get('/api/presence/me', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const { rows } = await pool.query(
+      `UPDATE admin_users
+       SET last_seen_at = NOW(),
+           presence_status = CASE
+             WHEN presence_status = 'Do not disturb' AND dnd_until IS NOT NULL AND dnd_until <= NOW()
+             THEN 'Available'
+             ELSE presence_status
+           END,
+           dnd_until = CASE
+             WHEN presence_status = 'Do not disturb' AND dnd_until IS NOT NULL AND dnd_until <= NOW()
+             THEN NULL
+             ELSE dnd_until
+           END
+       WHERE id = $1
+       RETURNING id, presence_status, dnd_until, last_seen_at, chat_preferences`,
+      [userId]
+    );
+    if (rows.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
+    const row = rows[0];
+    res.json({
+      success: true,
+      presence: {
+        status: row.presence_status || 'Available',
+        dnd_until: row.dnd_until || null,
+        last_seen_at: row.last_seen_at,
+        chat_preferences: { ...DEFAULT_CHAT_PREFS, ...(row.chat_preferences || {}) }
+      }
+    });
+  } catch (error) {
+    console.error('Get presence error:', error);
+    res.status(500).json({ success: false, message: 'Failed to load presence status' });
+  }
+});
+
+// Update current user's presence status or chat preferences
+app.patch('/api/presence/me', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const { presence_status, dnd_duration, dnd_until, chat_preferences } = req.body || {};
+
+    let nextStatus = null;
+    if (presence_status !== undefined) {
+      if (!VALID_PRESENCE_STATUSES.includes(presence_status)) {
+        return res.status(400).json({ success: false, message: 'Invalid presence status' });
+      }
+      nextStatus = presence_status;
+    }
+
+    let nextDndUntil = undefined;
+    if (nextStatus === 'Do not disturb') {
+      nextDndUntil = dnd_until ? new Date(dnd_until) : computeDndUntil(dnd_duration || '15 Mins');
+    } else if (nextStatus !== null) {
+      nextDndUntil = null;
+    }
+
+    const currentRes = await pool.query(
+      `SELECT presence_status, dnd_until, chat_preferences FROM admin_users WHERE id = $1`,
+      [userId]
+    );
+    if (currentRes.rowCount === 0) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const cur = currentRes.rows[0];
+    const finalStatus = nextStatus !== null ? nextStatus : (cur.presence_status || 'Available');
+    const finalDndUntil = nextDndUntil !== undefined ? nextDndUntil : cur.dnd_until;
+    const mergedPrefs = chat_preferences && typeof chat_preferences === 'object'
+      ? { ...DEFAULT_CHAT_PREFS, ...(cur.chat_preferences || {}), ...chat_preferences }
+      : { ...DEFAULT_CHAT_PREFS, ...(cur.chat_preferences || {}) };
+
+    const updRes = await pool.query(
+      `UPDATE admin_users
+       SET presence_status = $1,
+           dnd_until = $2,
+           chat_preferences = $3::jsonb,
+           last_seen_at = NOW()
+       WHERE id = $4
+       RETURNING id, presence_status, dnd_until, last_seen_at, chat_preferences`,
+      [finalStatus, finalDndUntil, JSON.stringify(mergedPrefs), userId]
+    );
+
+    const row = updRes.rows[0];
+    res.json({
+      success: true,
+      presence: {
+        status: row.presence_status,
+        dnd_until: row.dnd_until,
+        last_seen_at: row.last_seen_at,
+        chat_preferences: { ...DEFAULT_CHAT_PREFS, ...(row.chat_preferences || {}) }
+      }
+    });
+  } catch (error) {
+    console.error('Update presence error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update presence status' });
+  }
+});
+
+// Periodic heartbeat to keep user active/online & check expired DND
+app.post('/api/presence/heartbeat', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const { rows } = await pool.query(
+      `UPDATE admin_users
+       SET last_seen_at = NOW(),
+           presence_status = CASE
+             WHEN presence_status = 'Do not disturb' AND dnd_until IS NOT NULL AND dnd_until <= NOW()
+             THEN 'Available'
+             ELSE presence_status
+           END,
+           dnd_until = CASE
+             WHEN presence_status = 'Do not disturb' AND dnd_until IS NOT NULL AND dnd_until <= NOW()
+             THEN NULL
+             ELSE dnd_until
+           END
+       WHERE id = $1
+       RETURNING id, presence_status, dnd_until, last_seen_at, chat_preferences`,
+      [userId]
+    );
+    if (rows.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
+    const row = rows[0];
+    res.json({
+      success: true,
+      presence: {
+        status: row.presence_status || 'Available',
+        dnd_until: row.dnd_until || null,
+        last_seen_at: row.last_seen_at,
+        chat_preferences: { ...DEFAULT_CHAT_PREFS, ...(row.chat_preferences || {}) }
+      }
+    });
+  } catch (error) {
+    console.error('Heartbeat error:', error);
+    res.status(500).json({ success: false, message: 'Heartbeat failed' });
+  }
+});
 
 /* ----------------------------- My Account API ----------------------------- */
 
@@ -1764,7 +1982,8 @@ app.get('/api/admin/users', requireAdmin, async (req, res) => {
     const total = Number(c.rows[0]?.total || 0)
 
     const data = await pool.query(
-      `SELECT id, email, username, name, role, department, position, phone, is_active, last_login_at, created_at, updated_at
+      `SELECT id, email, username, name, role, department, position, phone, is_active, last_login_at,
+              presence_status, dnd_until, last_seen_at, created_at, updated_at
        FROM admin_users
        ${whereSql}
        ORDER BY created_at DESC
@@ -1772,7 +1991,12 @@ app.get('/api/admin/users', requireAdmin, async (req, res) => {
       [...params, limit, offset]
     )
 
-    res.json({ data: data.rows, page, limit, total, total_pages: Math.ceil(total / limit) })
+    const enrichedUsers = data.rows.map((u) => ({
+      ...u,
+      ...computeEffectivePresence(u)
+    }))
+
+    res.json({ data: enrichedUsers, page, limit, total, total_pages: Math.ceil(total / limit) })
   } catch (e) {
     console.error(e)
     res.status(500).json({ message: 'Server error' })
@@ -2564,7 +2788,7 @@ app.put('/api/admin/candidates/:id/status', requireAdmin, async (req, res) => {
   }
 })
 
-// Admin download of uploaded PDF (ADMIN)
+// Admin download of uploaded PDF / Resume (ADMIN)
 app.get('/api/admin/candidate-download/:candidateId', requireAdmin, async (req, res) => {
   const { candidateId } = req.params
   try {
@@ -2572,16 +2796,29 @@ app.get('/api/admin/candidate-download/:candidateId', requireAdmin, async (req, 
       `SELECT cu.*, c.name AS candidate_name
        FROM candidate_uploads cu
        JOIN candidates c ON cu.candidate_id = c.id
-       WHERE cu.candidate_id = $1`,
+       WHERE cu.candidate_id = $1
+       ORDER BY cu.upload_date DESC
+       LIMIT 1`,
       [candidateId]
     )
     if (q.rows.length === 0) return res.status(404).json({ success: false, message: 'No uploaded file found' })
-    const upload = q.rows[0]
-    const filePath = path.resolve(upload.file_path)
+    const uploadRec = q.rows[0]
+    const filePath = path.resolve(uploadRec.file_path)
     if (!fs.existsSync(filePath)) return res.status(404).json({ success: false, message: 'File not found' })
 
-    res.setHeader('Content-Type', 'application/pdf')
-    res.setHeader('Content-Disposition', `attachment; filename="${upload.candidate_name}-certificates.pdf"`)
+    const ext = path.extname(uploadRec.file_name || uploadRec.file_path || '.pdf').toLowerCase()
+    const mimeMap = {
+      '.pdf': 'application/pdf',
+      '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.txt': 'text/plain',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+    }
+    const safeName = (uploadRec.file_name || `${uploadRec.candidate_name}-document${ext}`).replace(/["\r\n]/g, '')
+    res.setHeader('Content-Type', mimeMap[ext] || 'application/octet-stream')
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`)
     fs.createReadStream(filePath).pipe(res)
   } catch (e) {
     console.error('Download file error:', e)
@@ -3846,8 +4083,43 @@ app.get('/api/global-search', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
+function buildServerNotifKey(activity) {
+  const type = activity?.type || '';
+  const atRaw = activity?.at || '';
+  const at = atRaw instanceof Date ? atRaw.toISOString() : String(atRaw);
+  const relatedId =
+    activity?.data?.id ??
+    activity?.data?.project_id ??
+    activity?.data?.ticket_id ??
+    '';
+  const text = activity?.text || '';
+  return encodeURIComponent(`${type}|${at}|${relatedId}|${text}`);
+}
+
+function buildServerTicketKey(activity) {
+  const atRaw = activity?.at || '';
+  const at = atRaw instanceof Date ? atRaw.toISOString() : String(atRaw);
+  const id = activity?.data?.id ?? activity?.data?.ticket_id ?? '';
+  const text = activity?.text || activity?.data?.title || '';
+  return encodeURIComponent(`${at}|${id}|${text}`);
+}
+
+app.get('/api/stats/notifications', requireAuth, async (req, res) => {
   try {
+    const currentUserId = Number(req.user?.sub);
+    const currentUserEmail = (req.user?.email || '').toLowerCase();
+
+    const userReadQ = await pool.query(
+      `SELECT notif_last_read_at, COALESCE(notif_seen_keys, '[]'::jsonb) AS notif_seen_keys
+       FROM admin_users WHERE id = $1`,
+      [currentUserId]
+    ).catch(() => ({ rows: [] }));
+
+    const readRow = userReadQ.rows[0] || {};
+    const lastReadMs = readRow.notif_last_read_at ? new Date(readRow.notif_last_read_at).getTime() : 0;
+    const seenKeysArr = Array.isArray(readRow.notif_seen_keys) ? readRow.notif_seen_keys : [];
+    const seenKeys = new Set(seenKeysArr);
+
     const [
       // Basic counts
       projectsCount,
@@ -3861,6 +4133,7 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
       projectCommentsRecent,
       ticketCommentsRecent,
       recentLogins,
+      recentRealLogouts,
 
       // Status breakdowns
       projectsByStatus,
@@ -3893,7 +4166,7 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
         SELECT 
           t.id, t.title, t.status, t.priority, t.created_at, t.updated_at,
           au.name AS assigned_to_name, au.email AS assigned_to_email,
-          creator.name AS created_by_name
+          creator.name AS created_by_name, creator.email AS created_by_email
         FROM tickets t
         LEFT JOIN admin_users au ON au.id = t.assigned_to
         LEFT JOIN admin_users creator ON creator.id = t.created_by
@@ -3927,8 +4200,16 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
         FROM admin_users
         WHERE last_login_at IS NOT NULL
         ORDER BY last_login_at DESC
-        LIMIT 15  -- Increased limit to get more login activities
+        LIMIT 15
       `),
+      pool.query(`
+        SELECT u.id, u.name, u.email, u.role, l.logout_at
+        FROM user_login_logs l
+        JOIN admin_users u ON u.id = l.user_id
+        WHERE l.logout_at IS NOT NULL
+        ORDER BY l.logout_at DESC
+        LIMIT 10
+      `).catch(() => ({ rows: [] })),
 
       // Status breakdowns (unchanged)
       pool.query(`SELECT status, COUNT(*)::BIGINT AS count FROM projects GROUP BY status`),
@@ -4023,10 +4304,8 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
       });
     });
 
-    // User login activities - SIMULATE LOGOUTS BY USING LOGIN TIMESTAMPS
-    // We'll create both login and "logout" events from the login data
-    recentLogins.rows.forEach((r, index) => {
-      // Add login activity
+    // User login activities
+    recentLogins.rows.forEach((r) => {
       acts.push({
         type: "user_login",
         at: r.last_login_at,
@@ -4037,33 +4316,45 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
           email: r.email
         }
       });
+    });
 
-      // Simulate logout activity (create a logout event 1 hour after login)
-      // This is a simple simulation since we don't have actual logout tracking
-      const logoutTime = new Date(r.last_login_at);
-      logoutTime.setHours(logoutTime.getHours() + 10);
-
-      // Only add logout if it's in the past (not future)
-      if (logoutTime < new Date()) {
-        acts.push({
-          type: "user_logout",
-          at: logoutTime.toISOString(),
-          text: `${r.name} logged out`,
-          data: {
-            ...r,
-            name: r.name,
-            email: r.email
-          }
-        });
-      }
+    // Real user logout activities from user_login_logs
+    recentRealLogouts.rows.forEach((r) => {
+      acts.push({
+        type: "user_logout",
+        at: r.logout_at,
+        text: `${r.name} logged out`,
+        data: {
+          ...r,
+          name: r.name,
+          email: r.email
+        }
+      });
     });
 
     // Sort by date (newest first)
     acts.sort((a, b) => new Date(b.at) - new Date(a.at));
-    const activityFeed = acts.slice(0, 20); // Get top 20 most recent activities
+    const activityFeed = acts.slice(0, 20).map((act) => {
+      const key = buildServerNotifKey(act);
+      const actTimeMs = act.at ? new Date(act.at).getTime() : 0;
+      const isOwnLoginLogout =
+        (act.type === 'user_login' || act.type === 'user_logout') &&
+        Number(act.data?.id) === currentUserId;
+      const isAfterLastRead = !lastReadMs || actTimeMs > lastReadMs;
+      const is_new = !isOwnLoginLogout && isAfterLastRead && !seenKeys.has(key);
+      return {
+        ...act,
+        key,
+        is_new
+      };
+    });
+
+    const unreadCount = activityFeed.filter((a) => a.is_new).length;
 
     // Build response
     res.json({
+      unreadCount,
+      lastReadAt: readRow.notif_last_read_at || null,
       totals: {
         projects: Number(projectsCount.rows[0]?.c || 0),
         tickets: Number(ticketsCount.rows[0]?.c || 0),
@@ -4120,11 +4411,62 @@ app.get('/api/stats/notifications', requireAuth, async (_req, res) => {
   }
 });
 
+// Mark notifications as read (single key or mark all)
+app.post('/api/notifications/mark-read', requireAuth, async (req, res) => {
+  try {
+    const userId = Number(req.user?.sub);
+    const { markAll, key, keys, latestAt } = req.body || {};
+
+    const curQ = await pool.query(
+      `SELECT COALESCE(notif_seen_keys, '[]'::jsonb) AS notif_seen_keys FROM admin_users WHERE id = $1`,
+      [userId]
+    );
+    const existingKeys = Array.isArray(curQ.rows[0]?.notif_seen_keys) ? curQ.rows[0].notif_seen_keys : [];
+    const seenSet = new Set(existingKeys);
+
+    if (key) seenSet.add(String(key));
+    if (Array.isArray(keys)) keys.forEach((k) => k && seenSet.add(String(k)));
+
+    const trimmedKeys = Array.from(seenSet).slice(-150);
+
+    if (markAll) {
+      const safeLatestAt = latestAt && !isNaN(new Date(latestAt).getTime()) ? new Date(latestAt) : null;
+      await pool.query(
+        `UPDATE admin_users
+         SET notif_last_read_at = GREATEST(NOW(), COALESCE($1::timestamptz, NOW())),
+             notif_seen_keys = $2::jsonb
+         WHERE id = $3`,
+        [safeLatestAt, JSON.stringify(trimmedKeys), userId]
+      );
+      return res.json({ success: true, unreadCount: 0 });
+    }
+
+    await pool.query(
+      `UPDATE admin_users SET notif_seen_keys = $1::jsonb WHERE id = $2`,
+      [JSON.stringify(trimmedKeys), userId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Mark notifications read error:', err);
+    res.status(500).json({ success: false, message: 'Failed to mark notifications as read' });
+  }
+});
+
 // GET /api/stats/tickets — robust + debug-friendly
 app.get("/api/stats/tickets", requireAuth, async (req, res) => {
   try {
-    const authUser = req.user || {};
-    console.log("[stats/tickets] req.user:", JSON.stringify(authUser));
+    const currentUserId = Number(req.user?.sub);
+
+    const userReadQ = await pool.query(
+      `SELECT ticket_last_read_at, COALESCE(ticket_seen_keys, '[]'::jsonb) AS ticket_seen_keys
+       FROM admin_users WHERE id = $1`,
+      [currentUserId]
+    ).catch(() => ({ rows: [] }));
+
+    const readRow = userReadQ.rows[0] || {};
+    const lastReadMs = readRow.ticket_last_read_at ? new Date(readRow.ticket_last_read_at).getTime() : 0;
+    const seenKeysArr = Array.isArray(readRow.ticket_seen_keys) ? readRow.ticket_seen_keys : [];
+    const seenKeys = new Set(seenKeysArr);
 
     // 1) tickets count - visible to all authenticated users
     const qTicketsCount = `SELECT COUNT(*)::BIGINT AS c FROM tickets`;
@@ -4196,8 +4538,6 @@ app.get("/api/stats/tickets", requireAuth, async (req, res) => {
       pool.query(qCommentsLast30),
     ]);
 
-    console.log("[stats/tickets] rows recent:", ticketsRecentQ.rows.length, "commentsRecent:", ticketCommentsRecentQ.rows.length);
-
     // Build activity feed
     const acts = [];
 
@@ -4220,9 +4560,23 @@ app.get("/api/stats/tickets", requireAuth, async (req, res) => {
     });
 
     acts.sort((a, b) => new Date(b.at) - new Date(a.at));
-    const activityFeed = acts.slice(0, 20);
+    const activityFeed = acts.slice(0, 20).map((act) => {
+      const key = buildServerTicketKey(act);
+      const actTimeMs = act.at ? new Date(act.at).getTime() : 0;
+      const isAfterLastRead = !lastReadMs || actTimeMs > lastReadMs;
+      const is_new = isAfterLastRead && !seenKeys.has(key);
+      return {
+        ...act,
+        key,
+        is_new
+      };
+    });
+
+    const unreadCount = activityFeed.filter((a) => a.is_new).length;
 
     res.json({
+      unreadCount,
+      lastReadAt: readRow.ticket_last_read_at || null,
       totals: { tickets: Number(ticketsCountQ.rows[0]?.c || 0) },
       statusBreakdowns: {
         byStatus: ticketsByStatusQ.rows.map((r) => ({ status: r.status, count: Number(r.count || 0) })),
@@ -4238,6 +4592,47 @@ app.get("/api/stats/tickets", requireAuth, async (req, res) => {
   } catch (e) {
     console.error("[stats/tickets] error:", e);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Mark ticket activities as read (single key or mark all)
+app.post('/api/tickets-activity/mark-read', requireAuth, async (req, res) => {
+  try {
+    const userId = Number(req.user?.sub);
+    const { markAll, key, keys, latestAt } = req.body || {};
+
+    const curQ = await pool.query(
+      `SELECT COALESCE(ticket_seen_keys, '[]'::jsonb) AS ticket_seen_keys FROM admin_users WHERE id = $1`,
+      [userId]
+    );
+    const existingKeys = Array.isArray(curQ.rows[0]?.ticket_seen_keys) ? curQ.rows[0].ticket_seen_keys : [];
+    const seenSet = new Set(existingKeys);
+
+    if (key) seenSet.add(String(key));
+    if (Array.isArray(keys)) keys.forEach((k) => k && seenSet.add(String(k)));
+
+    const trimmedKeys = Array.from(seenSet).slice(-150);
+
+    if (markAll) {
+      const safeLatestAt = latestAt && !isNaN(new Date(latestAt).getTime()) ? new Date(latestAt) : null;
+      await pool.query(
+        `UPDATE admin_users
+         SET ticket_last_read_at = GREATEST(NOW(), COALESCE($1::timestamptz, NOW())),
+             ticket_seen_keys = $2::jsonb
+         WHERE id = $3`,
+        [safeLatestAt, JSON.stringify(trimmedKeys), userId]
+      );
+      return res.json({ success: true, unreadCount: 0 });
+    }
+
+    await pool.query(
+      `UPDATE admin_users SET ticket_seen_keys = $1::jsonb WHERE id = $2`,
+      [JSON.stringify(trimmedKeys), userId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Mark ticket activity read error:', err);
+    res.status(500).json({ success: false, message: 'Failed to mark ticket activity as read' });
   }
 });
 
@@ -5857,7 +6252,11 @@ app.get('/api/chat/users', requireAuth, async (req, res) => {
         u.role,
         u.department,
         u.position,
+        u.is_active,
         u.last_login_at,
+        u.presence_status,
+        u.dnd_until,
+        u.last_seen_at,
         COALESCE(unread.count, 0) AS unread_count,
         CASE 
           WHEN lm.is_deleted = TRUE THEN 'This message was deleted'
@@ -5886,7 +6285,16 @@ app.get('/api/chat/users', requireAuth, async (req, res) => {
         u.name ASC;
     `;
     const { rows } = await pool.query(query, [currentUserId]);
-    res.json({ success: true, users: rows });
+    const usersWithPresence = rows.map((u) => {
+      const eff = computeEffectivePresence(u);
+      return {
+        ...u,
+        presence_status: eff.effective_status,
+        effective_status: eff.effective_status,
+        is_online: eff.is_online
+      };
+    });
+    res.json({ success: true, users: usersWithPresence });
   } catch (error) {
     console.error('Chat users error:', error);
     res.status(500).json({ success: false, message: 'Server error fetching chat users' });
@@ -6440,6 +6848,10 @@ app.get('/api/hrms/employees', requireAuth, async (req, res) => {
         u.position,
         u.phone,
         u.is_active,
+        u.last_login_at,
+        u.presence_status,
+        u.dnd_until,
+        u.last_seen_at,
         u.created_at,
         ep.employee_code,
         ep.dob,
@@ -6470,7 +6882,16 @@ app.get('/api/hrms/employees', requireAuth, async (req, res) => {
     `;
 
     const { rows } = await pool.query(query, params);
-    res.json({ success: true, employees: rows, total: rows.length });
+    const enrichedEmployees = rows.map((u) => {
+      const eff = computeEffectivePresence(u);
+      return {
+        ...u,
+        presence_status: eff.effective_status,
+        effective_status: eff.effective_status,
+        is_online: eff.is_online
+      };
+    });
+    res.json({ success: true, employees: enrichedEmployees, total: enrichedEmployees.length });
   } catch (error) {
     console.error('HRMS Employees list error:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch employee records' });
@@ -7124,9 +7545,18 @@ app.get('/api/hrms/recruitment/pipeline', requireAdmin, async (req, res) => {
       SELECT 
         c.*,
         j.title AS job_title,
-        j.department AS job_department
+        j.department AS job_department,
+        cu.file_name AS resume_file_name,
+        cu.file_size AS resume_file_size
       FROM candidates c
       LEFT JOIN hrms_job_openings j ON j.id = c.job_id
+      LEFT JOIN LATERAL (
+        SELECT file_name, file_size
+        FROM candidate_uploads
+        WHERE candidate_id = c.id
+        ORDER BY upload_date DESC
+        LIMIT 1
+      ) cu ON TRUE
       ORDER BY c.created_at DESC
     `;
     const { rows } = await pool.query(q);
@@ -7296,6 +7726,506 @@ app.patch('/api/hrms/compliance/:id', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Update compliance error:', error);
     res.status(500).json({ success: false, message: 'Failed to update compliance record' });
+  }
+});
+
+/* ----------------------- 4B. Public Careers Portal API (Applicant Email Login & ATS Sync) ----------------------- */
+
+const careersOtpLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many OTP requests. Please wait a few minutes before retrying.' }
+});
+
+function requireApplicant(req, res, next) {
+  try {
+    const auth = req.headers.authorization || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Please sign in with your Gmail / Google account to continue.' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded || decoded.type !== 'applicant' || !decoded.applicantEmail) {
+      return res.status(403).json({ success: false, message: 'Invalid applicant session. Please sign in again.' });
+    }
+    req.applicant = {
+      email: decoded.applicantEmail.toLowerCase().trim(),
+      name: decoded.applicantName || '',
+      avatar: decoded.applicantAvatar || ''
+    };
+    next();
+  } catch (err) {
+    return res.status(401).json({ success: false, message: 'Session expired. Please sign in with your Google / Gmail account again.' });
+  }
+}
+
+function isGmailAccount(email) {
+  return /^[^\s@]+@(gmail\.com|googlemail\.com)$/i.test(String(email || '').trim());
+}
+
+async function fetchApplicantApplications(email) {
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const q = `
+    SELECT
+      c.id,
+      c.candidate_id,
+      c.name,
+      c.email,
+      c.phone,
+      c.position,
+      c.stage,
+      c.status,
+      c.job_id,
+      c.experience_years,
+      c.expected_salary,
+      c.current_location,
+      c.notice_period,
+      c.interview_date,
+      c.created_at,
+      j.title AS job_title,
+      j.department AS job_department,
+      j.location AS job_location,
+      j.job_type AS job_type,
+      cu.file_name AS resume_file_name
+    FROM candidates c
+    LEFT JOIN hrms_job_openings j ON j.id = c.job_id
+    LEFT JOIN LATERAL (
+      SELECT file_name
+      FROM candidate_uploads
+      WHERE candidate_id = c.id
+      ORDER BY upload_date DESC
+      LIMIT 1
+    ) cu ON TRUE
+    WHERE LOWER(c.email) = $1
+    ORDER BY c.created_at DESC
+  `;
+  const { rows } = await pool.query(q, [cleanEmail]);
+  return rows;
+}
+
+// Public careers summary (open count, departments teaser, and Google OAuth Client ID)
+app.get('/api/careers/summary', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        COUNT(*)::int AS open_count,
+        COALESCE(ARRAY_AGG(DISTINCT department) FILTER (WHERE department IS NOT NULL), '{}') AS departments
+      FROM hrms_job_openings
+      WHERE LOWER(COALESCE(status, 'open')) = 'open'
+    `);
+    res.json({
+      success: true,
+      openCount: rows[0]?.open_count || 0,
+      departments: rows[0]?.departments || [],
+      googleClientId: (process.env.GOOGLE_CLIENT_ID || '').trim()
+    });
+  } catch (error) {
+    console.error('Careers summary error:', error);
+    res.status(500).json({ success: false, message: 'Failed to load careers summary' });
+  }
+});
+
+// Google / Gmail OAuth Login (Verifies Google Identity ID Token or Access Token)
+app.post('/api/careers/auth/google', async (req, res) => {
+  try {
+    const { credential, accessToken } = req.body || {};
+    if (!credential && !accessToken) {
+      return res.status(400).json({ success: false, message: 'Google sign-in credential is required.' });
+    }
+
+    let googleProfile = null;
+
+    if (credential) {
+      const verifyRes = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`
+      );
+      if (!verifyRes.ok) {
+        return res.status(401).json({ success: false, message: 'Invalid or expired Google sign-in token.' });
+      }
+      const payload = await verifyRes.json();
+      const configuredClientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
+      if (configuredClientId && payload.aud !== configuredClientId) {
+        return res.status(401).json({ success: false, message: 'Google sign-in client mismatch.' });
+      }
+      googleProfile = payload;
+    } else if (accessToken) {
+      const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!userInfoRes.ok) {
+        return res.status(401).json({ success: false, message: 'Invalid Google access token.' });
+      }
+      googleProfile = await userInfoRes.json();
+    }
+
+    const email = (googleProfile?.email || '').trim().toLowerCase();
+    const isVerified = googleProfile?.email_verified === true || googleProfile?.email_verified === 'true';
+
+    if (!email || !isVerified) {
+      return res.status(401).json({ success: false, message: 'Google account email could not be verified.' });
+    }
+
+    if (!isGmailAccount(email)) {
+      return res.status(400).json({ success: false, message: 'Please sign in with a valid @gmail.com Google account.' });
+    }
+
+    const googleName = (googleProfile?.name || '').trim();
+    const googleAvatar = (googleProfile?.picture || '').trim();
+
+    const token = jwt.sign(
+      {
+        type: 'applicant',
+        applicantEmail: email,
+        applicantName: googleName,
+        applicantAvatar: googleAvatar
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    const myApplications = await fetchApplicantApplications(email);
+    const latest = myApplications[0] || {};
+
+    res.json({
+      success: true,
+      token,
+      applicant: {
+        email,
+        name: latest.name || googleName || '',
+        avatar: googleAvatar || '',
+        phone: latest.phone || '',
+        current_location: latest.current_location || ''
+      },
+      myApplications
+    });
+  } catch (error) {
+    console.error('Careers Google auth error:', error);
+    res.status(500).json({ success: false, message: 'Google sign-in failed. Please try again.' });
+  }
+});
+
+// Step 1: Send verification OTP to Gmail account
+app.post('/api/careers/auth/send-otp', careersOtpLimiter, async (req, res) => {
+  try {
+    const rawEmail = (req.body?.email || '').trim().toLowerCase();
+    if (!rawEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid Gmail address.' });
+    }
+    if (!isGmailAccount(rawEmail)) {
+      return res.status(400).json({ success: false, message: 'Only Gmail accounts (@gmail.com) are allowed to sign in.' });
+    }
+
+    const otp = String(crypto.randomInt(100000, 999999));
+
+    await pool.query(
+      `INSERT INTO careers_email_otps (email, otp_code, expires_at)
+       VALUES ($1, $2, NOW() + INTERVAL '10 minutes')`,
+      [rawEmail, otp]
+    );
+
+    const mailRes = await sendCareerOtpEmail({ to: rawEmail, otp });
+    const resp = {
+      success: true,
+      message: `A 6-digit verification code has been sent to your Gmail (${rawEmail}).`
+    };
+    if (mailRes?.simulated) {
+      resp.devOtp = otp;
+    }
+    res.json(resp);
+  } catch (error) {
+    console.error('Careers send OTP error:', error);
+    res.status(500).json({ success: false, message: 'Unable to send verification code. Please try again.' });
+  }
+});
+
+// Step 2: Verify Gmail OTP & issue applicant session token
+app.post('/api/careers/auth/verify-otp', async (req, res) => {
+  try {
+    const rawEmail = (req.body?.email || '').trim().toLowerCase();
+    const rawOtp = String(req.body?.otp || '').trim();
+
+    if (!isGmailAccount(rawEmail)) {
+      return res.status(400).json({ success: false, message: 'A valid @gmail.com address is required.' });
+    }
+    if (!/^\d{6}$/.test(rawOtp)) {
+      return res.status(400).json({ success: false, message: 'Please enter the 6-digit verification code.' });
+    }
+
+    const q = await pool.query(
+      `SELECT * FROM careers_email_otps
+       WHERE LOWER(email) = $1 AND otp_code = $2 AND verified = FALSE AND expires_at > NOW()
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [rawEmail, rawOtp]
+    );
+
+    if (q.rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired verification code. Please request a new one.' });
+    }
+
+    await pool.query(`UPDATE careers_email_otps SET verified = TRUE WHERE id = $1`, [q.rows[0].id]);
+
+    const token = jwt.sign(
+      { type: 'applicant', applicantEmail: rawEmail },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    const myApplications = await fetchApplicantApplications(rawEmail);
+    const latest = myApplications[0] || {};
+
+    res.json({
+      success: true,
+      token,
+      applicant: {
+        email: rawEmail,
+        name: latest.name || '',
+        avatar: '',
+        phone: latest.phone || '',
+        current_location: latest.current_location || ''
+      },
+      myApplications
+    });
+  } catch (error) {
+    console.error('Careers verify OTP error:', error);
+    res.status(500).json({ success: false, message: 'Verification failed. Please try again.' });
+  }
+});
+
+// Get logged-in applicant session & applications
+app.get('/api/careers/auth/me', requireApplicant, async (req, res) => {
+  try {
+    const myApplications = await fetchApplicantApplications(req.applicant.email);
+    const latest = myApplications[0] || {};
+    res.json({
+      success: true,
+      applicant: {
+        email: req.applicant.email,
+        name: latest.name || req.applicant.name || '',
+        avatar: req.applicant.avatar || '',
+        phone: latest.phone || '',
+        current_location: latest.current_location || ''
+      },
+      myApplications
+    });
+  } catch (error) {
+    console.error('Careers auth me error:', error);
+    res.status(500).json({ success: false, message: 'Failed to load applicant profile' });
+  }
+});
+
+// Get all open job openings for logged-in applicant
+app.get('/api/careers/jobs', requireApplicant, async (req, res) => {
+  try {
+    const q = `
+      SELECT
+        j.id,
+        j.title,
+        j.department,
+        j.experience_required,
+        j.job_type,
+        j.vacancies,
+        j.location,
+        j.salary_range,
+        j.description,
+        j.requirements,
+        j.status,
+        j.created_at,
+        EXISTS (
+          SELECT 1 FROM candidates c
+          WHERE c.job_id = j.id AND LOWER(c.email) = $1
+        ) AS already_applied
+      FROM hrms_job_openings j
+      WHERE LOWER(COALESCE(j.status, 'open')) = 'open'
+      ORDER BY j.created_at DESC
+    `;
+    const { rows } = await pool.query(q, [req.applicant.email]);
+    res.json({ success: true, jobs: rows });
+  } catch (error) {
+    console.error('Careers list jobs error:', error);
+    res.status(500).json({ success: false, message: 'Failed to load job openings' });
+  }
+});
+
+// Parse uploaded resume on Careers portal to autofill application fields
+app.post('/api/careers/parse-resume', requireApplicant, upload.single('resume'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No resume file uploaded' });
+  }
+  try {
+    const rawText = extractResumeText(req.file.path, req.file.mimetype, req.file.originalname);
+    const extracted = parseResumeDetails(rawText, req.file.originalname);
+    res.json({
+      success: true,
+      extracted,
+      file: {
+        path: req.file.path,
+        originalname: req.file.originalname,
+        filename: req.file.filename,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      }
+    });
+  } catch (error) {
+    console.error('Careers parse resume error:', error);
+    res.status(500).json({ success: false, message: 'Failed to parse resume' });
+  }
+});
+
+// Submit Job Application -> goes directly into HRMS Candidate ATS Pipeline (Applied stage)
+app.post('/api/careers/apply', requireApplicant, upload.single('resume'), async (req, res) => {
+  try {
+    const {
+      job_id,
+      name,
+      phone,
+      experience_years,
+      expected_salary,
+      current_location,
+      notice_period,
+      linkedin_url,
+      portfolio_url,
+      cover_letter,
+      resume_file
+    } = req.body || {};
+
+    const applicantEmail = req.applicant.email;
+    const jobIdNum = Number(job_id);
+    if (!Number.isFinite(jobIdNum) || jobIdNum <= 0) {
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      return res.status(400).json({ success: false, message: 'Please select a valid job opening.' });
+    }
+
+    const cleanName = (name || '').trim();
+    const cleanPhoneDigits = String(phone || '').replace(/\D/g, '').slice(-10);
+    if (cleanName.length < 2) {
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      return res.status(400).json({ success: false, message: 'Full name must be at least 2 characters.' });
+    }
+    if (!/^[6-9]\d{9}$/.test(cleanPhoneDigits)) {
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      return res.status(400).json({ success: false, message: 'Please enter a valid 10-digit mobile number starting with 6-9.' });
+    }
+
+    // Check job exists & is open
+    const jobQ = await pool.query(`SELECT * FROM hrms_job_openings WHERE id = $1`, [jobIdNum]);
+    if (jobQ.rows.length === 0) {
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      return res.status(404).json({ success: false, message: 'Job opening not found.' });
+    }
+    const job = jobQ.rows[0];
+    if (String(job.status || 'open').toLowerCase() !== 'open') {
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      return res.status(400).json({ success: false, message: 'This job opening is no longer accepting applications.' });
+    }
+
+    // Check duplicate application for the same job + email
+    const dupQ = await pool.query(
+      `SELECT id FROM candidates WHERE job_id = $1 AND LOWER(email) = $2 LIMIT 1`,
+      [jobIdNum, applicantEmail]
+    );
+    if (dupQ.rows.length > 0) {
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      return res.status(409).json({ success: false, message: `You have already applied for ${job.title}.` });
+    }
+
+    // Determine attached resume (either uploaded directly in this request OR pre-uploaded via parse-resume)
+    let attachedFile = null;
+    if (req.file) {
+      attachedFile = {
+        path: req.file.path,
+        originalname: req.file.originalname,
+        size: req.file.size
+      };
+    } else if (resume_file) {
+      try {
+        const parsedFile = typeof resume_file === 'string' ? JSON.parse(resume_file) : resume_file;
+        if (parsedFile && parsedFile.path) {
+          const resolvedUpload = path.resolve(parsedFile.path);
+          const resolvedDir = path.resolve(UPLOADS_DIR);
+          if (resolvedUpload.startsWith(resolvedDir) && fs.existsSync(resolvedUpload)) {
+            attachedFile = {
+              path: resolvedUpload,
+              originalname: parsedFile.originalname || path.basename(resolvedUpload),
+              size: Number(parsedFile.size || fs.statSync(resolvedUpload).size || 0)
+            };
+          }
+        }
+      } catch {}
+    }
+
+    const cid = generateCandidateId();
+    const initialStatus = attachedFile ? 'documents_uploaded' : 'pending';
+
+    const insertCand = await pool.query(
+      `INSERT INTO candidates (
+        name, email, phone, position, candidate_id, status,
+        stage, job_id, expected_salary, experience_years,
+        cover_letter, portfolio_url, linkedin_url, current_location, notice_period, source
+      ) VALUES ($1,$2,$3,$4,$5,$6,'applied',$7,$8,$9,$10,$11,$12,$13,$14,'careers_portal')
+      RETURNING *`,
+      [
+        cleanName,
+        applicantEmail,
+        cleanPhoneDigits,
+        job.title,
+        cid,
+        initialStatus,
+        job.id,
+        (expected_salary || '').trim() || null,
+        (experience_years || '').trim() || null,
+        (cover_letter || '').trim() || null,
+        (portfolio_url || '').trim() || null,
+        (linkedin_url || '').trim() || null,
+        (current_location || '').trim() || null,
+        (notice_period || '').trim() || null
+      ]
+    );
+
+    const candidate = insertCand.rows[0];
+
+    if (attachedFile) {
+      await pool.query(
+        `INSERT INTO candidate_uploads (candidate_id, file_name, file_path, file_size)
+         VALUES ($1, $2, $3, $4)`,
+        [candidate.id, attachedFile.originalname, attachedFile.path, attachedFile.size]
+      );
+    }
+
+    // Send confirmation email to applicant & notification to HR/Admin (non-blocking)
+    sendCareerApplicationConfirmation({
+      to: applicantEmail,
+      name: cleanName,
+      jobTitle: job.title,
+      department: job.department,
+      candidateId: cid
+    }).catch(err => console.error('[Mailer] Career confirmation email error:', err));
+
+    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL;
+    if (adminEmail) {
+      sendCareerNewApplicantAdminAlert({
+        to: adminEmail,
+        applicantName: cleanName,
+        applicantEmail,
+        applicantPhone: cleanPhoneDigits,
+        jobTitle: job.title,
+        experienceYears: experience_years,
+        expectedSalary: expected_salary
+      }).catch(err => console.error('[Mailer] Career admin alert email error:', err));
+    }
+
+    const myApplications = await fetchApplicantApplications(applicantEmail);
+
+    res.status(201).json({
+      success: true,
+      message: `Application submitted for ${job.title}! Reference ID: ${cid}`,
+      candidate,
+      myApplications
+    });
+  } catch (error) {
+    console.error('Careers apply error:', error);
+    if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+    res.status(500).json({ success: false, message: 'Failed to submit application. Please try again.' });
   }
 });
 

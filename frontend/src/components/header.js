@@ -182,6 +182,9 @@ const Header = () => {
                 <Link to="/projects" className={isActive('/projects') ? 'active' : ''}>Projects</Link>
               </li>
               <li>
+                <Link to="/careers" className={isActive('/careers') ? 'active' : ''}>Careers</Link>
+              </li>
+              <li>
                 <Link to="/contact_us" className={isActive('/contact_us') ? 'active' : ''}>Contact</Link>
               </li>
             </ul>
@@ -283,6 +286,15 @@ const Header = () => {
                   onClick={() => setMobileNavOpen(false)}
                 >
                   Projects
+                </Link>
+              </li>
+              <li className="sidebar-nav-item">
+                <Link
+                  to="/careers"
+                  className={`sidebar-nav-link ${isActive('/careers') ? 'active' : ''}`}
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  Careers
                 </Link>
               </li>
               <li className="sidebar-nav-item">

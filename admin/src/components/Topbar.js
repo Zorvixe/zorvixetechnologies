@@ -1,8 +1,9 @@
 // src/components/Topbar.js
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth";
+import { usePresence } from "../context/PresenceContext";
 import ZorvixeLogo from "../assets/zorvixe_logo.png";
 import ZorvixeFavicon from "../assets/zorvixe_favicon.png";
 import MeetIcon from "../assets/meeting_icon.png";
@@ -10,6 +11,7 @@ import MeetIcon from "../assets/meeting_icon.png";
 import {
   apiStatsNotifications,
   apiResetNotificationCount,
+  apiMarkTicketActivityRead,
   apiStatsTickets,
   apiGlobalSearch,
 } from "../api";
@@ -101,36 +103,52 @@ export default function Topbar({
   }, [quickCreateOpen]);
 
   const notifStorageKey = (uid) => `lastChecked_notif_${uid || "anon"}`;
+  const ticketStorageKey = (uid) => `lastChecked_ticket_${uid || "anon"}`;
+  const latestNotifAtRef = useRef(null);
+  const latestTicketAtRef = useRef(null);
 
-  const fetchNotificationCount = async () => {
+  const fetchNotificationCount = useCallback(async () => {
     if (!user) return;
     try {
       const data = await apiStatsNotifications();
       const feed = Array.isArray(data?.activityFeed) ? data.activityFeed : [];
-      const newActivities = lastCheckedNotif
-        ? feed.filter((a) => new Date(a.at) > new Date(lastCheckedNotif))
-        : feed;
-      setNotificationCount(newActivities.length);
-    } catch (err) {
+      if (feed[0]?.at) latestNotifAtRef.current = feed[0].at;
+
+      if (typeof data?.unreadCount === "number") {
+        setNotificationCount(data.unreadCount);
+      } else {
+        const uid = user?.id || user?._id || user?.email || "anon";
+        const saved = localStorage.getItem(notifStorageKey(uid));
+        const newActivities = saved
+          ? feed.filter((a) => new Date(a.at) > new Date(saved))
+          : feed;
+        setNotificationCount(newActivities.length);
+      }
+    } catch {
       setNotificationCount(0);
     }
-  };
+  }, [user]);
 
   const handleNotificationClick = async () => {
+    const now = new Date().toISOString();
+    const effectiveReadAt =
+      latestNotifAtRef.current && new Date(latestNotifAtRef.current) > new Date(now)
+        ? latestNotifAtRef.current
+        : now;
+    const uid = user?.id || user?._id || user?.email || "anon";
+    setNotificationCount(0);
+    setLastCheckedNotif(effectiveReadAt);
+    localStorage.setItem(notifStorageKey(uid), effectiveReadAt);
+    window.dispatchEvent(new CustomEvent("zorvixe:badge-sync", { detail: { type: "notifications", unreadCount: 0 } }));
+
+    if (window.innerWidth <= 768) {
+      navigate("/notifications");
+    } else {
+      setShowNotifications((v) => !v);
+    }
+
     try {
-      setNotificationCount(0);
-      const now = new Date().toISOString();
-      setLastCheckedNotif(now);
-      localStorage.setItem(
-        notifStorageKey(user?.id || user?.email || "anon"),
-        now
-      );
-      if (window.innerWidth <= 768) {
-        navigate("/notifications");
-      } else {
-        setShowNotifications((v) => !v);
-      }
-      await apiResetNotificationCount();
+      await apiResetNotificationCount({ markAll: true, latestAt: effectiveReadAt });
     } catch { }
   };
 
@@ -139,48 +157,59 @@ export default function Topbar({
   const [showUserTickets, setShowUserTickets] = useState(false);
   const [lastCheckedTickets, setLastCheckedTickets] = useState(null);
 
-  const ticketStorageKey = (uid) => `lastChecked_ticket_${uid || "anon"}`;
-
-  const fetchTicketCount = async () => {
+  const fetchTicketCount = useCallback(async () => {
     if (!user) return;
     try {
       const data = await apiStatsTickets();
       const feed = Array.isArray(data?.activityFeed) ? data.activityFeed : [];
-      const newActivities = lastCheckedTickets
-        ? feed.filter((a) => new Date(a.at) > new Date(lastCheckedTickets))
-        : feed;
-      setTicketCount(newActivities.length);
+      if (feed[0]?.at) latestTicketAtRef.current = feed[0].at;
+
+      if (typeof data?.unreadCount === "number") {
+        setTicketCount(data.unreadCount);
+      } else {
+        const uid = user?.id || user?._id || user?.email || "anon";
+        const saved = localStorage.getItem(ticketStorageKey(uid));
+        const newActivities = saved
+          ? feed.filter((a) => new Date(a.at) > new Date(saved))
+          : feed;
+        setTicketCount(newActivities.length);
+      }
     } catch {
       setTicketCount(0);
     }
-  };
+  }, [user]);
 
-  const handleTicketClick = () => {
+  const handleTicketClick = async () => {
     const now = new Date().toISOString();
-    setLastCheckedTickets(now);
-    localStorage.setItem(
-      ticketStorageKey(user?.id || user?.email || "anon"),
-      now
-    );
+    const effectiveReadAt =
+      latestTicketAtRef.current && new Date(latestTicketAtRef.current) > new Date(now)
+        ? latestTicketAtRef.current
+        : now;
+    const uid = user?.id || user?._id || user?.email || "anon";
     setTicketCount(0);
+    setLastCheckedTickets(effectiveReadAt);
+    localStorage.setItem(ticketStorageKey(uid), effectiveReadAt);
+    window.dispatchEvent(new CustomEvent("zorvixe:badge-sync", { detail: { type: "tickets", unreadCount: 0 } }));
+
     if (window.innerWidth <= 768) {
       navigate("/user-tickets");
     } else {
       setShowUserTickets((v) => !v);
     }
+
+    try {
+      await apiMarkTicketActivityRead({ markAll: true, latestAt: effectiveReadAt });
+    } catch { }
   };
 
-  /* ------------------- INIT ------------------- */
+  /* ------------------- INIT & LIVE SYNC ------------------- */
   useEffect(() => {
     if (!user) return;
-    const savedNotif = localStorage.getItem(
-      notifStorageKey(user?.id || user?.email || "anon")
-    );
+    const uid = user?.id || user?._id || user?.email || "anon";
+    const savedNotif = localStorage.getItem(notifStorageKey(uid));
     if (savedNotif) setLastCheckedNotif(savedNotif);
 
-    const savedTicket = localStorage.getItem(
-      ticketStorageKey(user?.id || user?.email || "anon")
-    );
+    const savedTicket = localStorage.getItem(ticketStorageKey(uid));
     if (savedTicket) setLastCheckedTickets(savedTicket);
 
     fetchNotificationCount();
@@ -191,66 +220,53 @@ export default function Topbar({
       fetchTicketCount();
     }, 30000);
 
-    return () => clearInterval(interval);
-  }, [user]);
+    const onBadgeSync = (e) => {
+      const detail = e?.detail || {};
+      if (detail.type === "notifications" && typeof detail.unreadCount === "number") {
+        setNotificationCount(detail.unreadCount);
+      }
+      if (detail.type === "tickets" && typeof detail.unreadCount === "number") {
+        setTicketCount(detail.unreadCount);
+      }
+    };
+    window.addEventListener("zorvixe:badge-sync", onBadgeSync);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchNotificationCount();
-  }, [lastCheckedNotif]);
-
-  useEffect(() => {
-    if (!user) return;
-    fetchTicketCount();
-  }, [lastCheckedTickets]);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("zorvixe:badge-sync", onBadgeSync);
+    };
+  }, [user, fetchNotificationCount, fetchTicketCount]);
 
   /* ------------------- PROFILE DROPDOWN ------------------- */
   const [menuOpen, setMenuOpen] = useState(false);
   const btnRef = useRef(null);
   const menuRef = useRef(null);
 
-  /* --- Zoho Presence Status & Profile Card Settings (Images 1 & 2) --- */
-  const [presenceStatus, setPresenceStatus] = useState(() => localStorage.getItem('user_presence_status') || 'Available');
+  /* --- Zoho Presence Status & Profile Card Settings (Synced System-Wide) --- */
+  const {
+    presenceStatus,
+    dndDuration,
+    chatPrefs,
+    updatePresence,
+    updateDndDuration,
+    updateChatPrefs,
+    toPresenceClass,
+  } = usePresence();
   const [presenceDropdownOpen, setPresenceDropdownOpen] = useState(false);
-  const [dndDuration, setDndDuration] = useState('15 Mins');
-  const [soundNotif, setSoundNotif] = useState(() => localStorage.getItem('user_sound_notif') !== 'false');
-  const [oneOneChats, setOneOneChats] = useState(() => localStorage.getItem('user_one_one_chats') !== 'false');
-  const [mentionNotif, setMentionNotif] = useState(() => localStorage.getItem('user_mention_notif') !== 'false');
-  const [pauseChat, setPauseChat] = useState(() => localStorage.getItem('user_pause_chat') === 'true');
+
+  const soundNotif = chatPrefs.soundNotif;
+  const oneOneChats = chatPrefs.oneOneChats;
+  const mentionNotif = chatPrefs.mentionNotif;
+  const pauseChat = chatPrefs.pauseChat;
 
   const handleSetPresence = (status) => {
-    setPresenceStatus(status);
-    localStorage.setItem('user_presence_status', status);
+    updatePresence(status, dndDuration);
     setPresenceDropdownOpen(false);
   };
-  const toggleSoundNotif = () => {
-    setSoundNotif(prev => {
-      const next = !prev;
-      localStorage.setItem('user_sound_notif', String(next));
-      return next;
-    });
-  };
-  const toggleOneOneChats = () => {
-    setOneOneChats(prev => {
-      const next = !prev;
-      localStorage.setItem('user_one_one_chats', String(next));
-      return next;
-    });
-  };
-  const toggleMentionNotif = () => {
-    setMentionNotif(prev => {
-      const next = !prev;
-      localStorage.setItem('user_mention_notif', String(next));
-      return next;
-    });
-  };
-  const togglePauseChat = () => {
-    setPauseChat(prev => {
-      const next = !prev;
-      localStorage.setItem('user_pause_chat', String(next));
-      return next;
-    });
-  };
+  const toggleSoundNotif = () => updateChatPrefs({ soundNotif: !soundNotif });
+  const toggleOneOneChats = () => updateChatPrefs({ oneOneChats: !oneOneChats });
+  const toggleMentionNotif = () => updateChatPrefs({ mentionNotif: !mentionNotif });
+  const togglePauseChat = () => updateChatPrefs({ pauseChat: !pauseChat });
 
   const initials =
     (user?.name || user?.email || "U")
@@ -869,7 +885,7 @@ export default function Topbar({
               >
                 <span className="avatar">
                   {initials}
-                  <span className={`tb-presence-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`}></span>
+                  <span className={`tb-presence-dot ${toPresenceClass(presenceStatus)}`}></span>
                 </span>
               </button>
 
@@ -907,7 +923,7 @@ export default function Topbar({
                   <div className="pm-card-hero">
                     <div className="pm-big-avatar-wrapper">
                       <span className="pm-big-avatar">{initials}</span>
-                      <span className={`pm-big-presence-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`}></span>
+                      <span className={`pm-big-presence-dot ${toPresenceClass(presenceStatus)}`}></span>
                     </div>
                     <h4 className="pm-hero-name">{user?.name || user?.email || "User"}</h4>
 
@@ -918,7 +934,7 @@ export default function Topbar({
                         className="pm-presence-picker-btn"
                         onClick={() => setPresenceDropdownOpen(v => !v)}
                       >
-                        <span className={`status-dot ${presenceStatus.toLowerCase().replace(/\s+/g, '')}`}></span>
+                        <span className={`status-dot ${toPresenceClass(presenceStatus)}`}></span>
                         <span className="pm-presence-label">{presenceStatus}</span>
                         <span className="pm-presence-arrow">▾</span>
                       </button>
@@ -990,7 +1006,7 @@ export default function Topbar({
                             <select
                               className="pm-dnd-select"
                               value={dndDuration}
-                              onChange={(e) => setDndDuration(e.target.value)}
+                              onChange={(e) => updateDndDuration(e.target.value)}
                               onClick={(e) => e.stopPropagation()}
                             >
                               <option>15 Mins</option>

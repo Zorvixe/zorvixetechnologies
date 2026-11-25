@@ -565,6 +565,148 @@ async function sendContactFormAlert({ to, name, email, phone, subject, message }
   });
 }
 
+/**
+ * 7. Send Careers Portal Email Login OTP
+ */
+async function sendCareerOtpEmail({ to, otp }) {
+  const emailSubject = `${otp} is your Zorvixe Careers verification code`;
+
+  const contentHtml = `
+    <p style="font-size: 16px; font-weight: 600; margin: 0 0 12px; color: #0f172a;">Welcome to Zorvixe Careers,</p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 20px; color: #334155;">
+      Use the verification code below to sign in with your email and explore &amp; apply for open roles at <strong>Zorvixe Technologies</strong>.
+    </p>
+
+    <div style="background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%); border: 1px solid #c7d2fe; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;">
+      <p style="margin: 0 0 8px; font-size: 12px; font-weight: 600; color: #4f46e5; text-transform: uppercase; letter-spacing: 1px;">Your One-Time Verification Code</p>
+      <div style="font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #1e1b4b; font-family: monospace;">${escapeHtml(otp)}</div>
+      <p style="margin: 10px 0 0; font-size: 12px; color: #64748b;">This code expires in 10 minutes.</p>
+    </div>
+
+    <p style="font-size: 12.5px; color: #64748b; line-height: 1.5; margin: 0;">
+      If you did not request this code, you can safely ignore this email.
+    </p>
+  `;
+
+  return sendEmail({
+    to,
+    subject: emailSubject,
+    html: wrapBrandTemplate({ title: emailSubject, contentHtml }),
+    text: `Your Zorvixe Careers verification code is ${otp}. It expires in 10 minutes.`
+  });
+}
+
+/**
+ * 8. Send Career Application Confirmation to Candidate
+ */
+async function sendCareerApplicationConfirmation({ to, name, jobTitle, department, candidateId }) {
+  const portalUrl = getPortalUrl();
+  const emailSubject = `Application Received: ${jobTitle} at Zorvixe Technologies`;
+
+  const contentHtml = `
+    <p style="font-size: 16px; font-weight: 600; margin: 0 0 12px; color: #0f172a;">Hi ${escapeHtml(name)},</p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 20px; color: #334155;">
+      Thank you for applying to <strong>Zorvixe Technologies</strong>! We have received your application and forwarded it directly to our Hiring &amp; Recruitment team.
+    </p>
+
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 20px; margin: 20px 0;">
+      <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 14px;">
+        <tr>
+          <td width="36%" style="color: #64748b; font-weight: 600;">Position Applied:</td>
+          <td style="color: #0f172a; font-weight: 600;">${escapeHtml(jobTitle)}</td>
+        </tr>
+        ${department ? `
+        <tr>
+          <td style="color: #64748b; font-weight: 600;">Department:</td>
+          <td style="color: #334155;">${escapeHtml(department)}</td>
+        </tr>` : ''}
+        <tr>
+          <td style="color: #64748b; font-weight: 600;">Reference ID:</td>
+          <td style="color: #0f172a; font-family: monospace;">${escapeHtml(candidateId)}</td>
+        </tr>
+        <tr>
+          <td style="color: #64748b; font-weight: 600;">Current Stage:</td>
+          <td><span style="background: #dbeafe; color: #1d4ed8; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Applied</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="font-size: 13.5px; color: #475569; line-height: 1.6;">
+      You can check your live application progress anytime by signing in with your email on the Careers Portal.
+    </p>
+
+    <div style="text-align: center; margin: 24px 0 12px;">
+      <a href="${portalUrl}/careers" target="_blank" style="display: inline-block; background-color: #5d57f4; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 28px; border-radius: 8px;">
+        View Application Status →
+      </a>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject: emailSubject,
+    html: wrapBrandTemplate({ title: emailSubject, contentHtml })
+  });
+}
+
+/**
+ * 9. Notify HR/Admin of New Career Application
+ */
+async function sendCareerNewApplicantAdminAlert({ to, applicantName, applicantEmail, applicantPhone, jobTitle, experienceYears, expectedSalary }) {
+  const adminPortal = process.env.ADMIN_PORTAL_URL || 'https://app.zorvixetechnologies.in/';
+  const emailSubject = `[Careers ATS] New Applicant: ${applicantName} for ${jobTitle}`;
+
+  const contentHtml = `
+    <p style="font-size: 16px; font-weight: 600; margin: 0 0 12px; color: #0f172a;">Hello HR / Admin,</p>
+    <p style="font-size: 14px; line-height: 1.6; margin: 0 0 20px; color: #334155;">
+      A new candidate has applied via the <strong>Zorvixe Careers Portal</strong> and has been added to the <strong>Candidate ATS Pipeline (Applied)</strong>:
+    </p>
+
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 20px; margin: 20px 0;">
+      <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 14px;">
+        <tr>
+          <td width="36%" style="color: #64748b; font-weight: 600;">Candidate:</td>
+          <td style="color: #0f172a; font-weight: 600;">${escapeHtml(applicantName)}</td>
+        </tr>
+        <tr>
+          <td style="color: #64748b; font-weight: 600;">Job Opening:</td>
+          <td style="color: #0f172a; font-weight: 600;">${escapeHtml(jobTitle)}</td>
+        </tr>
+        <tr>
+          <td style="color: #64748b; font-weight: 600;">Email:</td>
+          <td><a href="mailto:${escapeHtml(applicantEmail)}" style="color: #0a66c2;">${escapeHtml(applicantEmail)}</a></td>
+        </tr>
+        <tr>
+          <td style="color: #64748b; font-weight: 600;">Phone:</td>
+          <td style="color: #334155;">${escapeHtml(applicantPhone)}</td>
+        </tr>
+        ${experienceYears ? `
+        <tr>
+          <td style="color: #64748b; font-weight: 600;">Experience:</td>
+          <td style="color: #334155;">${escapeHtml(experienceYears)}</td>
+        </tr>` : ''}
+        ${expectedSalary ? `
+        <tr>
+          <td style="color: #64748b; font-weight: 600;">Expected CTC:</td>
+          <td style="color: #334155;">${escapeHtml(expectedSalary)}</td>
+        </tr>` : ''}
+      </table>
+    </div>
+
+    <div style="text-align: center; margin: 24px 0 12px;">
+      <a href="${adminPortal}" target="_blank" style="display: inline-block; background-color: #0a66c2; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 28px; border-radius: 8px;">
+        Open HRMS ATS Pipeline →
+      </a>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject: emailSubject,
+    html: wrapBrandTemplate({ title: emailSubject, contentHtml })
+  });
+}
+
 module.exports = {
   sendEmail,
   sendUserWelcomeEmail,
@@ -572,5 +714,8 @@ module.exports = {
   sendTicketCommentEmail,
   sendLeaveAppliedEmail,
   sendLeaveStatusEmail,
-  sendContactFormAlert
+  sendContactFormAlert,
+  sendCareerOtpEmail,
+  sendCareerApplicationConfirmation,
+  sendCareerNewApplicantAdminAlert
 };

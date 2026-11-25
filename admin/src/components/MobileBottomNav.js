@@ -1,11 +1,12 @@
 // src/components/MobileBottomNav.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 import {
   apiStatsNotifications,
   apiResetNotificationCount,
   apiStatsTickets,
+  apiMarkTicketActivityRead,
 } from '../api';
 import MeetIcon from '../assets/meeting_icon.png';
 import './MobileBottomNav.css';
@@ -18,50 +19,53 @@ export default function MobileBottomNav({ onToggleSidebar, sidebarOpen }) {
   /* ---------------- NOTIFICATIONS & TICKETS LIVE COUNTS ---------------- */
   const [notificationCount, setNotificationCount] = useState(0);
   const [ticketCount, setTicketCount] = useState(0);
-  const [lastCheckedNotif, setLastCheckedNotif] = useState(null);
-  const [lastCheckedTickets, setLastCheckedTickets] = useState(null);
+  const latestNotifAtRef = React.useRef(null);
+  const latestTicketAtRef = React.useRef(null);
 
   const notifStorageKey = (uid) => `lastChecked_notif_${uid || 'anon'}`;
   const ticketStorageKey = (uid) => `lastChecked_ticket_${uid || 'anon'}`;
 
-  // Initialize saved checks
-  useEffect(() => {
-    if (!user) return;
-    const sNotif = localStorage.getItem(notifStorageKey(user?.id || user?.email));
-    if (sNotif) setLastCheckedNotif(sNotif);
-    const sTicket = localStorage.getItem(ticketStorageKey(user?.id || user?.email));
-    if (sTicket) setLastCheckedTickets(sTicket);
-  }, [user]);
-
-  const fetchNotificationCount = async () => {
+  const fetchNotificationCount = useCallback(async () => {
     if (!user) return;
     try {
       const data = await apiStatsNotifications();
       const feed = Array.isArray(data?.activityFeed) ? data.activityFeed : [];
-      const sNotif = localStorage.getItem(notifStorageKey(user?.id || user?.email));
-      const newActivities = sNotif
-        ? feed.filter((a) => new Date(a.at) > new Date(sNotif))
-        : feed;
-      setNotificationCount(newActivities.length);
+      if (feed[0]?.at) latestNotifAtRef.current = feed[0].at;
+
+      if (typeof data?.unreadCount === 'number') {
+        setNotificationCount(data.unreadCount);
+      } else {
+        const sNotif = localStorage.getItem(notifStorageKey(user?.id || user?.email));
+        const newActivities = sNotif
+          ? feed.filter((a) => new Date(a.at) > new Date(sNotif))
+          : feed;
+        setNotificationCount(newActivities.length);
+      }
     } catch {
       setNotificationCount(0);
     }
-  };
+  }, [user]);
 
-  const fetchTicketCount = async () => {
+  const fetchTicketCount = useCallback(async () => {
     if (!user) return;
     try {
       const data = await apiStatsTickets();
       const feed = Array.isArray(data?.activityFeed) ? data.activityFeed : [];
-      const sTicket = localStorage.getItem(ticketStorageKey(user?.id || user?.email));
-      const newActivities = sTicket
-        ? feed.filter((a) => new Date(a.at) > new Date(sTicket))
-        : feed;
-      setTicketCount(newActivities.length);
+      if (feed[0]?.at) latestTicketAtRef.current = feed[0].at;
+
+      if (typeof data?.unreadCount === 'number') {
+        setTicketCount(data.unreadCount);
+      } else {
+        const sTicket = localStorage.getItem(ticketStorageKey(user?.id || user?.email));
+        const newActivities = sTicket
+          ? feed.filter((a) => new Date(a.at) > new Date(sTicket))
+          : feed;
+        setTicketCount(newActivities.length);
+      }
     } catch {
       setTicketCount(0);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchNotificationCount();
@@ -70,28 +74,52 @@ export default function MobileBottomNav({ onToggleSidebar, sidebarOpen }) {
       fetchNotificationCount();
       fetchTicketCount();
     }, 30000);
-    return () => clearInterval(interval);
-  }, [user, lastCheckedNotif, lastCheckedTickets]);
+
+    const onBadgeSync = (e) => {
+      const detail = e?.detail || {};
+      if (detail.type === 'notifications' && typeof detail.unreadCount === 'number') {
+        setNotificationCount(detail.unreadCount);
+      }
+      if (detail.type === 'tickets' && typeof detail.unreadCount === 'number') {
+        setTicketCount(detail.unreadCount);
+      }
+    };
+    window.addEventListener('zorvixe:badge-sync', onBadgeSync);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('zorvixe:badge-sync', onBadgeSync);
+    };
+  }, [fetchNotificationCount, fetchTicketCount]);
 
   const handleNotificationClick = async () => {
+    const now = new Date().toISOString();
+    const effectiveReadAt =
+      latestNotifAtRef.current && new Date(latestNotifAtRef.current) > new Date(now)
+        ? latestNotifAtRef.current
+        : now;
+    setNotificationCount(0);
+    localStorage.setItem(notifStorageKey(user?.id || user?.email), effectiveReadAt);
+    window.dispatchEvent(new CustomEvent('zorvixe:badge-sync', { detail: { type: 'notifications', unreadCount: 0 } }));
+    navigate('/notifications');
     try {
-      setNotificationCount(0);
-      const now = new Date().toISOString();
-      setLastCheckedNotif(now);
-      localStorage.setItem(notifStorageKey(user?.id || user?.email), now);
-      navigate('/notifications');
-      await apiResetNotificationCount();
-    } catch {
-      navigate('/notifications');
-    }
+      await apiResetNotificationCount({ markAll: true, latestAt: effectiveReadAt });
+    } catch { }
   };
 
-  const handleTicketClick = () => {
+  const handleTicketClick = async () => {
     const now = new Date().toISOString();
-    setLastCheckedTickets(now);
-    localStorage.setItem(ticketStorageKey(user?.id || user?.email), now);
+    const effectiveReadAt =
+      latestTicketAtRef.current && new Date(latestTicketAtRef.current) > new Date(now)
+        ? latestTicketAtRef.current
+        : now;
     setTicketCount(0);
+    localStorage.setItem(ticketStorageKey(user?.id || user?.email), effectiveReadAt);
+    window.dispatchEvent(new CustomEvent('zorvixe:badge-sync', { detail: { type: 'tickets', unreadCount: 0 } }));
     navigate('/user-tickets');
+    try {
+      await apiMarkTicketActivityRead({ markAll: true, latestAt: effectiveReadAt });
+    } catch { }
   };
 
   /* ---------------- QUICK CREATE BOTTOM SHEET ---------------- */

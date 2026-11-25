@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
+import { usePresence } from "../context/PresenceContext";
 import {
   apiGetChatUsers,
   apiGetChatMessages,
@@ -95,6 +96,7 @@ const renderMessageWithLinks = (text) => {
 export default function Discussions() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { canPlaySound, chatPrefs, toPresenceClass } = usePresence();
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -141,18 +143,24 @@ export default function Discussions() {
       const res = await apiGetChatUsers();
       if (res && res.users) {
         setUsers(res.users);
-        // On desktop (> 768px), auto-select first user. On mobile, keep list view initially
-        if (!activeColleague && res.users.length > 0) {
-          if (typeof window !== "undefined" && window.innerWidth > 768) {
-            setActiveColleague(res.users[0]);
+        setActiveColleague((prev) => {
+          if (!prev) {
+            if (res.users.length > 0 && typeof window !== "undefined" && window.innerWidth > 768) {
+              return res.users[0];
+            }
+            return null;
           }
-        }
+          const refreshed = res.users.find((u) => Number(u.id) === Number(prev.id));
+          return refreshed ? { ...prev, ...refreshed } : prev;
+        });
       }
       const unreadRes = await apiGetChatUnreadCount();
       if (unreadRes && typeof unreadRes.total_unread === "number") {
         if (
           lastUnreadTotalRef.current !== null &&
-          unreadRes.total_unread > lastUnreadTotalRef.current
+          unreadRes.total_unread > lastUnreadTotalRef.current &&
+          canPlaySound() &&
+          chatPrefs.oneOneChats
         ) {
           playNotificationSound();
         }
@@ -162,7 +170,7 @@ export default function Discussions() {
     } catch (err) {
       console.error("Discussions fetch error:", err);
     }
-  }, [currentUserId, activeColleague]);
+  }, [currentUserId, canPlaySound, chatPrefs.oneOneChats]);
 
   const fetchActiveMessages = useCallback(async (colleagueId, silent = false) => {
     if (!colleagueId || !currentUserId) return;
@@ -172,10 +180,10 @@ export default function Discussions() {
       if (res && res.messages) {
         setMessages(res.messages);
         if (res.messages.length > lastMsgCountRef.current) {
-          // If silent polling brings in new incoming message, play chime!
+          // If silent polling brings in new incoming message, play chime only when allowed by presence & prefs
           if (silent && lastMsgCountRef.current > 0) {
             const lastMsg = res.messages[res.messages.length - 1];
-            if (lastMsg && Number(lastMsg.sender_id) !== Number(currentUserId)) {
+            if (lastMsg && Number(lastMsg.sender_id) !== Number(currentUserId) && canPlaySound() && chatPrefs.oneOneChats) {
               playNotificationSound();
             }
           }
@@ -190,7 +198,7 @@ export default function Discussions() {
     } finally {
       if (!silent) setLoadingMessages(false);
     }
-  }, [currentUserId]);
+  }, [currentUserId, canPlaySound, chatPrefs.oneOneChats]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -472,12 +480,15 @@ export default function Discussions() {
                     className={`disc-user-item ${isSelected ? "selected" : ""} ${hasUnread ? "has-unread" : ""}`}
                     onClick={() => handleSelectColleague(colleague)}
                   >
-                    <div
+                      <div
                       className="disc-avatar"
                       style={{ backgroundColor: color.bg, color: color.text }}
                     >
                       {getInitials(colleague.name)}
-                      <span className="disc-online-dot"></span>
+                      <span
+                        className={`disc-online-dot ${toPresenceClass(colleague.effective_status || colleague.presence_status)}`}
+                        title={colleague.effective_status || colleague.presence_status || "Offline"}
+                      ></span>
                     </div>
 
                     <div className="disc-user-details">
@@ -492,6 +503,8 @@ export default function Discussions() {
                       <div className="disc-user-role">
                         {colleague.role === "admin" ? "Admin" : "Employee"}
                         {colleague.position ? ` • ${colleague.position}` : ""}
+                        {" • "}
+                        <span>{colleague.effective_status || colleague.presence_status || "Offline"}</span>
                       </div>
                       <div className="disc-user-row2">
                         <span className={`disc-user-preview ${hasUnread ? "bold" : ""}`}>
@@ -542,14 +555,17 @@ export default function Discussions() {
                   }}
                 >
                   {getInitials(activeColleague.name)}
-                  <span className="disc-online-dot"></span>
+                  <span
+                    className={`disc-online-dot ${toPresenceClass(activeColleague.effective_status || activeColleague.presence_status)}`}
+                    title={activeColleague.effective_status || activeColleague.presence_status || "Offline"}
+                  ></span>
                 </div>
                 <div className="disc-main-header-info">
                   <h3>{activeColleague.name}</h3>
                   <p>
                     {activeColleague.position || (activeColleague.role === "admin" ? "Administrator" : "Team Member")}
                     {activeColleague.department ? ` • ${activeColleague.department}` : ""}
-                    {" • Active"}
+                    {` • ${activeColleague.effective_status || activeColleague.presence_status || "Offline"}`}
                   </p>
                 </div>
               </div>

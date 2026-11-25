@@ -20,6 +20,7 @@ import WebDevelopment from "./components/webdevelopment"
 import Maintenance from "./components/maintainance"
 import Payment from "./components/payment"
 import Onboarding from "./components/Onboarding"
+import Careers from "./components/Careers"
 import "./App.css"
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/about_us" element={<AboutUs />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/careers" element={<Careers />} />
           <Route path="/contact_us" element={<Contact />} />
           <Route path="/services/mobile_app_solutions" element={<MobileAppSolutions />} />
           <Route path="/services/digitalmarketing" element={<DigitalMarketingService />} />

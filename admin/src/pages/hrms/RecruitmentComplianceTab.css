@@ -735,3 +735,117 @@
     max-width: 100%;
   }
 }
+
+/* ==========================================================
+   Careers Portal Integration Enhancements (ATS Badges & Resume)
+   ========================================================== */
+.cand-source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #4f46e5;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-bottom: 5px;
+}
+
+.cand-meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.cand-meta-chip {
+  font-size: 10.5px;
+  color: #42526e;
+  background: #f4f5f7;
+  border: 1px solid #dfe1e6;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.btn-cand-resume {
+  background: #eef2ff;
+  color: #4f46e5;
+  border: 1px solid #c7d2fe;
+  border-radius: 3px;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-cand-resume:hover {
+  background: #e0e7ff;
+}
+
+.job-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-edit-job,
+.btn-toggle-job {
+  background: #ffffff;
+  border: 1px solid #dfe1e6;
+  color: #42526e;
+  border-radius: 3px;
+  padding: 4px 9px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-edit-job:hover {
+  background: #f4f5f7;
+  color: #0052cc;
+  border-color: #b3d4ff;
+}
+
+.btn-toggle-job.is-open {
+  color: #d97706;
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.btn-toggle-job.is-closed {
+  color: #16a34a;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.cand-application-summary {
+  background: #f4f5f7;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cand-app-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cand-app-link {
+  color: #0052cc;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.cand-app-link:hover {
+  text-decoration: underline;
+}
