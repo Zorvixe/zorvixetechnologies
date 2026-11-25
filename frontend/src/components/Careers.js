@@ -25,7 +25,7 @@ import './Careers.css';
 const API_BASE_URL =
   process.env.REACT_APP_API_BASE || 'https://api.zorvixetechnologies.in';
 const ENV_GOOGLE_CLIENT_ID =
-  (process.env.REACT_APP_GOOGLE_CLIENT_ID || '').trim();
+  ("732679323329-8mm3knueffrqvntc1nk0uodm93e0tdi4.apps.googleusercontent.com").trim();
 const CAREERS_TOKEN_KEY = 'zorvixe_careers_token';
 
 const isGmailAddress = (email) =>

@@ -1196,13 +1196,13 @@ async function checkMonthlyLimit(userId, leaveType, requestedDays) {
     return requestedDays <= availableThisMonth;
   }
 
- // In checkMonthlyLimit, find this block:
-if (leaveType === 'casual') {
-  const monthlyLimit = 1;               // changed from 2 to 1
-  const usedThisMonth = Number(balance.casual_used_this_month) || 0;
-  const availableThisMonth = monthlyLimit - usedThisMonth;
-  return requestedDays <= availableThisMonth;
-}
+  // In checkMonthlyLimit, find this block:
+  if (leaveType === 'casual') {
+    const monthlyLimit = 1;               // changed from 2 to 1
+    const usedThisMonth = Number(balance.casual_used_this_month) || 0;
+    const availableThisMonth = monthlyLimit - usedThisMonth;
+    return requestedDays <= availableThisMonth;
+  }
 
   return true;
 }
@@ -1337,7 +1337,7 @@ app.post('/api/admin/logout', async (req, res) => {
       try {
         const payload = jwt.verify(token, process.env.JWT_SECRET);
         userId = payload.sub;
-      } catch (err) {}
+      } catch (err) { }
     }
     if (!userId && req.body && req.body.userId) {
       userId = req.body.userId;
@@ -1345,7 +1345,7 @@ app.post('/api/admin/logout', async (req, res) => {
     const sessionId = req.body && req.body.sessionId ? Number(req.body.sessionId) : null;
 
     if (userId) {
-      await pool.query('UPDATE admin_users SET last_seen_at = NULL WHERE id = $1', [userId]).catch(() => {});
+      await pool.query('UPDATE admin_users SET last_seen_at = NULL WHERE id = $1', [userId]).catch(() => { });
     }
 
     if (sessionId) {
@@ -2403,7 +2403,7 @@ function extractResumeText(filePath, mimetype, originalname) {
             } else {
               xml = compData.toString('utf8')
             }
-          } catch {}
+          } catch { }
           if (xml) {
             return xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
           }
@@ -2436,7 +2436,7 @@ function extractResumeText(filePath, mimetype, originalname) {
         } catch {
           try {
             inflated = zlib.inflateRawSync(streamBuf)
-          } catch {}
+          } catch { }
         }
 
         const content = inflated ? inflated.toString('latin1') : streamBuf.toString('latin1')
@@ -2507,7 +2507,7 @@ function parseResumeDetails(rawText, filename = '') {
 
   // 2. Phone (standard 10-digit phone starting 6-9)
   const phoneCandidates = clean.match(/(?:(?:\+|00)?91[\s.-]*)?[6-9]\d{4}[\s.-]*\d{5}/g) ||
-                          clean.match(/(?:\+?\d{1,3}[\s.-]*)?\(?\d{2,4}\)?[\s.-]*\d{3,4}[\s.-]*\d{4}/g) || []
+    clean.match(/(?:\+?\d{1,3}[\s.-]*)?\(?\d{2,4}\)?[\s.-]*\d{3,4}[\s.-]*\d{4}/g) || []
   for (const pc of phoneCandidates) {
     const digits = pc.replace(/\D/g, '')
     let normalized = ''
@@ -7817,7 +7817,7 @@ app.get('/api/careers/summary', async (req, res) => {
       success: true,
       openCount: rows[0]?.open_count || 0,
       departments: rows[0]?.departments || [],
-      googleClientId: (process.env.GOOGLE_CLIENT_ID || '').trim()
+      googleClientId: ("732679323329-8mm3knueffrqvntc1nk0uodm93e0tdi4.apps.googleusercontent.com").trim()
     });
   } catch (error) {
     console.error('Careers summary error:', error);
@@ -7843,7 +7843,7 @@ app.post('/api/careers/auth/google', async (req, res) => {
         return res.status(401).json({ success: false, message: 'Invalid or expired Google sign-in token.' });
       }
       const payload = await verifyRes.json();
-      const configuredClientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
+      const configuredClientId = ("732679323329-8mm3knueffrqvntc1nk0uodm93e0tdi4.apps.googleusercontent.com").trim();
       if (configuredClientId && payload.aud !== configuredClientId) {
         return res.status(401).json({ success: false, message: 'Google sign-in client mismatch.' });
       }
@@ -8092,30 +8092,30 @@ app.post('/api/careers/apply', requireApplicant, upload.single('resume'), async 
     const applicantEmail = req.applicant.email;
     const jobIdNum = Number(job_id);
     if (!Number.isFinite(jobIdNum) || jobIdNum <= 0) {
-      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch { } }
       return res.status(400).json({ success: false, message: 'Please select a valid job opening.' });
     }
 
     const cleanName = (name || '').trim();
     const cleanPhoneDigits = String(phone || '').replace(/\D/g, '').slice(-10);
     if (cleanName.length < 2) {
-      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch { } }
       return res.status(400).json({ success: false, message: 'Full name must be at least 2 characters.' });
     }
     if (!/^[6-9]\d{9}$/.test(cleanPhoneDigits)) {
-      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch { } }
       return res.status(400).json({ success: false, message: 'Please enter a valid 10-digit mobile number starting with 6-9.' });
     }
 
     // Check job exists & is open
     const jobQ = await pool.query(`SELECT * FROM hrms_job_openings WHERE id = $1`, [jobIdNum]);
     if (jobQ.rows.length === 0) {
-      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch { } }
       return res.status(404).json({ success: false, message: 'Job opening not found.' });
     }
     const job = jobQ.rows[0];
     if (String(job.status || 'open').toLowerCase() !== 'open') {
-      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch { } }
       return res.status(400).json({ success: false, message: 'This job opening is no longer accepting applications.' });
     }
 
@@ -8125,7 +8125,7 @@ app.post('/api/careers/apply', requireApplicant, upload.single('resume'), async 
       [jobIdNum, applicantEmail]
     );
     if (dupQ.rows.length > 0) {
-      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch { } }
       return res.status(409).json({ success: false, message: `You have already applied for ${job.title}.` });
     }
 
@@ -8151,7 +8151,7 @@ app.post('/api/careers/apply', requireApplicant, upload.single('resume'), async 
             };
           }
         }
-      } catch {}
+      } catch { }
     }
 
     const cid = generateCandidateId();
@@ -8224,7 +8224,7 @@ app.post('/api/careers/apply', requireApplicant, upload.single('resume'), async 
     });
   } catch (error) {
     console.error('Careers apply error:', error);
-    if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+    if (req.file) { try { fs.unlinkSync(req.file.path); } catch { } }
     res.status(500).json({ success: false, message: 'Failed to submit application. Please try again.' });
   }
 });
@@ -9370,8 +9370,8 @@ app.get('/api/crm/analytics', requireAuth, async (req, res) => {
 
     const leads = leadsQ.rows[0] || {};
     const deals = dealsQ.rows[0] || {};
-    const winRate = Number(deals.total_deals) > 0 
-      ? Math.round((Number(deals.won_deals) / Number(deals.total_deals)) * 100) 
+    const winRate = Number(deals.total_deals) > 0
+      ? Math.round((Number(deals.won_deals) / Number(deals.total_deals)) * 100)
       : 0;
 
     res.json({
@@ -9454,9 +9454,9 @@ app.post('/api/public/crm/leads', async (req, res) => {
           to: process.env.ADMIN_ALERT_EMAIL,
           subject: `⚡ New Lead Inbound: ${company || first_name} (${source})`,
           text: `A new inbound lead was submitted:\nName: ${first_name} ${last_name}\nEmail: ${email}\nPhone: ${phone}\nCompany: ${company}\nDetails: ${description}`
-        }).catch(() => {});
+        }).catch(() => { });
       }
-    } catch (_) {}
+    } catch (_) { }
 
     res.status(201).json({
       success: true,
@@ -9588,7 +9588,7 @@ app.post('/api/crm/send-email', requireAuth, async (req, res) => {
           req.user?.id || null
         ]
       );
-    } catch (_) {}
+    } catch (_) { }
 
     res.json({
       success: true,
