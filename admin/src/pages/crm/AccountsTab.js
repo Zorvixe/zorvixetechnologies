@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { apiListAccounts, apiGetAccount360, apiCreateAccount, apiCreateCrmContact } from '../../api';
+import { apiListAccounts, apiGetAccount360, apiCreateAccount, apiCreateCrmContact, apiAiCrmSummarize } from '../../api';
+import AiInsightBox from '../../components/AiInsightBox';
 import SendEmailModal from './SendEmailModal';
 import {
   GlobeIcon,
@@ -9,7 +10,8 @@ import {
   ZapIcon,
   PhoneIcon,
   CalendarIcon,
-  CheckSquareIcon
+  CheckSquareIcon,
+  SparklesIcon
 } from '../../components/CrmHrmsIcons';
 import './AccountsTab.css';
 
@@ -23,6 +25,28 @@ export default function AccountsTab() {
   const [account360, setAccount360] = useState(null);
   const [loading360, setLoading360] = useState(false);
   const [drawerSubTab, setDrawerSubTab] = useState('contacts'); // 'contacts' | 'deals' | 'quotes' | 'activities'
+
+  // AI Account 360 Brief
+  const [acctAiOpen, setAcctAiOpen] = useState(false);
+  const [acctAiLoading, setAcctAiLoading] = useState(false);
+  const [acctAiErr, setAcctAiErr] = useState('');
+  const [acctAiData, setAcctAiData] = useState(null);
+
+  const runAccountAiBrief = async (accId) => {
+    const id = accId || selectedAccountId;
+    if (!id) return;
+    setAcctAiOpen(true);
+    setAcctAiLoading(true);
+    setAcctAiErr('');
+    try {
+      const res = await apiAiCrmSummarize({ entityType: 'account', entityId: id });
+      setAcctAiData(res);
+    } catch (err) {
+      setAcctAiErr(err.message || 'Failed to summarize account');
+    } finally {
+      setAcctAiLoading(false);
+    }
+  };
 
   // Send Email Modal State
   const [emailModalConfig, setEmailModalConfig] = useState({
@@ -81,6 +105,9 @@ export default function AccountsTab() {
     setSelectedAccountId(id);
     setLoading360(true);
     setShowAddContact(false);
+    setAcctAiOpen(false);
+    setAcctAiData(null);
+    setAcctAiErr('');
     try {
       const res = await apiGetAccount360(id);
       setAccount360(res);
@@ -201,7 +228,10 @@ export default function AccountsTab() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="8" className="table-state-msg">Loading business accounts...</td>
+                <div className="loader_container">
+                  <p className="loader_spinner"></p>
+                  <p>Loading Accounts...</p>
+                </div>
               </tr>
             ) : filteredAccounts.length === 0 ? (
               <tr>
@@ -281,6 +311,15 @@ export default function AccountsTab() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
                   type="button"
+                  className="zx-ai-pill-btn"
+                  onClick={() => runAccountAiBrief(selectedAccountId)}
+                  title="ZORVI Account 360 Summary & Next Steps"
+                >
+                  <SparklesIcon size={13} />
+                  <span>ZORVI Account Brief</span>
+                </button>
+                <button
+                  type="button"
                   className="btn-create-account"
                   style={{ padding: '6px 12px', fontSize: '12px' }}
                   onClick={() => setEmailModalConfig({
@@ -301,9 +340,39 @@ export default function AccountsTab() {
             </div>
 
             {loading360 ? (
-              <div className="drawer-loading">Loading 360-degree customer intelligence...</div>
+              <div className="loader_container">
+                <p className="loader_spinner"></p>
+                <p>Loading...</p>
+              </div>
             ) : account360 ? (
               <div className="drawer-body">
+                {acctAiOpen && (
+                  <AiInsightBox
+                    title="ZORVI Account Summary & Follow-ups"
+                    loading={acctAiLoading}
+                    error={acctAiErr}
+                    uncertainty={acctAiData?.uncertainty}
+                    providerMeta={acctAiData?.meta}
+                    onRefresh={() => runAccountAiBrief(selectedAccountId)}
+                    onClose={() => setAcctAiOpen(false)}
+                  >
+                    {acctAiData && (
+                      <div>
+                        <p style={{ margin: '0 0 6px' }}>{acctAiData.summary}</p>
+                        <div className="zx-ai-tags">
+                          <span className={`zx-ai-tag ${acctAiData.healthStatus}`}>Health: {acctAiData.healthStatus}</span>
+                          {(acctAiData.keySignals || []).map((s, i) => <span key={i} className="zx-ai-tag">{s}</span>)}
+                        </div>
+                        {acctAiData.nextSteps?.length > 0 && (
+                          <ul className="zx-ai-list" style={{ fontSize: '12px', marginTop: '6px' }}>
+                            {acctAiData.nextSteps.map((n, i) => <li key={i}>{n}</li>)}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </AiInsightBox>
+                )}
+
                 {/* Metrics ribbon */}
                 <div className="drawer-ribbon">
                   <div className="ribbon-item">

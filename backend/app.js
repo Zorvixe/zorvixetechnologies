@@ -30,6 +30,8 @@ const {
   sendCareerApplicationConfirmation,
   sendCareerNewApplicantAdminAlert
 } = require('./services/mailer')
+const { logAiAudit } = require('./services/aiService')
+const createAiRouter = require('./routes/aiRoutes')
 
 /* ---------------------------- App & Middleware ---------------------------- */
 const app = express()
@@ -1035,6 +1037,38 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
     // Clean up sample job openings if any
     await client.query(`
       DELETE FROM hrms_job_openings WHERE title IN ('Senior Full Stack React / Node Developer', 'UI/UX Product Designer');
+    `);
+
+    // 10. AI Settings & Governance Audit Tables
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS platform_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value JSONB NOT NULL DEFAULT '{}'::jsonb,
+        updated_by BIGINT REFERENCES admin_users(id) ON DELETE SET NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      INSERT INTO platform_settings (key, value)
+      VALUES ('ai_config', '{"enabled": true}'::jsonb)
+      ON CONFLICT (key) DO NOTHING;
+
+      CREATE TABLE IF NOT EXISTS ai_audit_logs (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT REFERENCES admin_users(id) ON DELETE SET NULL,
+        user_role VARCHAR(30),
+        feature VARCHAR(80) NOT NULL,
+        entity_type VARCHAR(50),
+        entity_id BIGINT,
+        provider VARCHAR(40),
+        model VARCHAR(80),
+        action_status VARCHAR(30) NOT NULL DEFAULT 'suggested',
+        grounding_refs JSONB DEFAULT '[]'::jsonb,
+        request_meta JSONB DEFAULT '{}'::jsonb,
+        response_meta JSONB DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_ai_audit_feature_created ON ai_audit_logs(feature, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_ai_audit_user_created ON ai_audit_logs(user_id, created_at DESC);
     `);
 
 
@@ -9590,6 +9624,22 @@ app.post('/api/crm/send-email', requireAuth, async (req, res) => {
       );
     } catch (_) { }
 
+    if (req.body?.aiAssisted) {
+      logAiAudit({
+        pool,
+        user: req.user,
+        feature: 'crm_email_confirmed',
+        entityType: relatedType || null,
+        entityId: relatedId ? Number(relatedId) : null,
+        provider: 'human_confirmed',
+        model: 'workflow',
+        actionStatus: 'confirmed',
+        groundingRefs: relatedId ? [{ type: relatedType || 'crm', id: Number(relatedId) }] : [],
+        requestMeta: { aiAuditId: req.body?.aiAuditId || null },
+        responseMeta: { emailStatus: emailSent ? 'sent' : 'queued', recipient: to },
+      }).catch(() => {});
+    }
+
     res.json({
       success: true,
       message: emailSent ? 'Email dispatched successfully!' : 'Email recorded and queued for delivery.',
@@ -9709,6 +9759,19 @@ app.patch('/api/crm/deals/:id/stage', requireAuth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to update deal stage' });
   }
 });
+
+/* ------------------------------ AI Platform API ---------------------------- */
+app.use(
+  '/api/ai',
+  createAiRouter({
+    pool,
+    requireAuth,
+    requireAdmin,
+    isAdmin,
+    extractResumeText,
+    sendTicketAssignedEmail,
+  })
+);
 
 /* --------------------------------- Start ---------------------------------- */
 initDb()

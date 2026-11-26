@@ -22,6 +22,7 @@ import Notification from './pages/Notification';
 import UserTicket from './pages/UserTicket';
 import LinkedInChatWidget from './components/LinkedInChatWidget';
 import MobileBottomNav from './components/MobileBottomNav';
+import AiAssistantDrawer from './components/AiAssistantDrawer';
 
 import LeaveManagement from "./pages/LeaveManagement/LeaveManagement"
 import HRMS from './pages/HRMS';
@@ -36,8 +37,15 @@ const restricted = ['users', 'candidates', 'payments'];
 function Shell() {
   const { user, loading } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(() => window.innerWidth <= 768);
+  const [aiDrawerOpen, setAiDrawerOpen] = React.useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const onOpenAi = () => setAiDrawerOpen(true);
+    window.addEventListener('zorvixe:open-ai-assistant', onOpenAi);
+    return () => window.removeEventListener('zorvixe:open-ai-assistant', onOpenAi);
+  }, []);
 
   if (loading) {
     return (
@@ -180,6 +188,12 @@ function Shell() {
       <MobileBottomNav
         sidebarOpen={!sidebarCollapsed}
         onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
+      />
+
+      {/* Global Role-Aware AI Assistant Drawer */}
+      <AiAssistantDrawer
+        isOpen={aiDrawerOpen}
+        onClose={() => setAiDrawerOpen(false)}
       />
     </div>
   );

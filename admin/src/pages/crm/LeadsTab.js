@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { apiListLeads, apiCreateLead, apiUpdateLead, apiDeleteLead, apiConvertLead } from '../../api';
+import { apiListLeads, apiCreateLead, apiUpdateLead, apiDeleteLead, apiConvertLead, apiAiCrmSummarize } from '../../api';
+import AiInsightBox from '../../components/AiInsightBox';
 import SendEmailModal from './SendEmailModal';
-import { GlobeIcon, TrashIcon, BuildingIcon, UserIcon } from '../../components/CrmHrmsIcons';
+import { GlobeIcon, TrashIcon, BuildingIcon, UserIcon, SparklesIcon } from '../../components/CrmHrmsIcons';
 import './LeadsTab.css';
 
 export default function LeadsTab() {
@@ -51,6 +52,28 @@ export default function LeadsTab() {
   // Edit Lead Modal
   const [editingLead, setEditingLead] = useState(null);
   const [updating, setUpdating] = useState(false);
+
+  // AI Lead Summary
+  const [leadAiOpen, setLeadAiOpen] = useState(false);
+  const [leadAiLoading, setLeadAiLoading] = useState(false);
+  const [leadAiErr, setLeadAiErr] = useState('');
+  const [leadAiData, setLeadAiData] = useState(null);
+  const [aiTargetLead, setAiTargetLead] = useState(null);
+
+  const runLeadSummary = async (lead) => {
+    setAiTargetLead(lead);
+    setLeadAiOpen(true);
+    setLeadAiLoading(true);
+    setLeadAiErr('');
+    try {
+      const res = await apiAiCrmSummarize({ entityType: 'lead', entityId: lead.id });
+      setLeadAiData(res);
+    } catch (err) {
+      setLeadAiErr(err.message || 'Failed to summarize lead');
+    } finally {
+      setLeadAiLoading(false);
+    }
+  };
 
   const fetchLeads = useCallback(async () => {
     setLoading(true);
@@ -230,6 +253,36 @@ export default function LeadsTab() {
         </div>
       </div>
 
+      {/* AI Lead Summary Card */}
+      {leadAiOpen && (
+        <div style={{ marginBottom: '12px' }}>
+          <AiInsightBox
+            title={aiTargetLead ? `ZORVI Lead Brief: ${aiTargetLead.first_name} ${aiTargetLead.last_name || ''}`.trim() : 'ZORVI Lead Brief'}
+            loading={leadAiLoading}
+            error={leadAiErr}
+            uncertainty={leadAiData?.uncertainty}
+            providerMeta={leadAiData?.meta}
+            onRefresh={() => aiTargetLead && runLeadSummary(aiTargetLead)}
+            onClose={() => setLeadAiOpen(false)}
+          >
+            {leadAiData && (
+              <div>
+                <p style={{ margin: '0 0 6px' }}>{leadAiData.summary}</p>
+                <div className="zx-ai-tags">
+                  <span className={`zx-ai-tag ${leadAiData.healthStatus}`}>Status: {leadAiData.healthStatus}</span>
+                  {(leadAiData.keySignals || []).map((s, idx) => <span key={idx} className="zx-ai-tag">{s}</span>)}
+                </div>
+                {leadAiData.nextSteps?.length > 0 && (
+                  <ul className="zx-ai-list" style={{ fontSize: '12px', marginTop: '6px' }}>
+                    {leadAiData.nextSteps.map((st, idx) => <li key={idx}>{st}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
+          </AiInsightBox>
+        </div>
+      )}
+
       {/* Leads Table */}
       <div className="leads-table-container">
         <table className="leads-table">
@@ -248,7 +301,10 @@ export default function LeadsTab() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="8" className="table-state-msg">Loading leads pool...</td>
+                <div className="loader_container">
+                  <p className="loader_spinner"></p>
+                  <p>Loading Leads Pool...</p>
+                </div>
               </tr>
             ) : leads.length === 0 ? (
               <tr>
@@ -331,6 +387,14 @@ export default function LeadsTab() {
                             ✉️
                           </button>
                         )}
+                        <button
+                          type="button"
+                          className="btn-action-icon"
+                          onClick={() => runLeadSummary(lead)}
+                          title="ZORVI Lead Summary & Follow-up"
+                        >
+                          <SparklesIcon size={13} color="#4c3fb6" />
+                        </button>
                         <button
                           type="button"
                           className="btn-action-icon"

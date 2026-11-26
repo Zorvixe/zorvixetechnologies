@@ -418,7 +418,10 @@ export default function WorkqueueTab({ onSelectDeal, onSelectLead }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="wq-state-msg">Loading records...</td>
+                  <div className="loader_container">
+                    <p className="loader_spinner"></p>
+                    <p>Loading Records…</p>
+                  </div>
                 </tr>
               ) : filteredRecords.length === 0 ? (
                 <tr>

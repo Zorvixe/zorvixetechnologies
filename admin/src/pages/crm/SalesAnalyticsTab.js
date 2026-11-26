@@ -26,7 +26,10 @@ export default function SalesAnalyticsTab() {
   const fmtCurrency = (val) => val ? `₹${Number(val).toLocaleString('en-IN')}` : '₹0';
 
   if (loading) {
-    return <div className="analytics-loading">Loading sales forecasting & funnel analytics...</div>;
+    return <div className="loader_container">
+      <p className="loader_spinner"></p>
+      <p>Loading Sales Forecasting...</p>
+    </div>
   }
 
   const leads = data?.leads || {};

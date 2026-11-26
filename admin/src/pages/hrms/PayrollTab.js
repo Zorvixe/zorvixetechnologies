@@ -6,8 +6,10 @@ import {
   apiGetPayslip,
   apiGetMyPayslips,
   apiListSalaryStructures,
-  apiUpdateSalaryStructure
+  apiUpdateSalaryStructure,
+  apiAiPayrollAudit
 } from '../../api';
+import AiInsightBox from '../../components/AiInsightBox';
 import PayslipModal from './PayslipModal';
 import {
   DollarIcon,
@@ -16,7 +18,8 @@ import {
   CheckIcon,
   CalendarIcon,
   PrinterIcon,
-  ChartIcon
+  ChartIcon,
+  SparklesIcon
 } from '../../components/CrmHrmsIcons';
 import './PayrollTab.css';
 
@@ -67,6 +70,27 @@ export default function PayrollTab({ isAdmin, user }) {
     payment_mode: 'Bank Transfer',
     notes: ''
   });
+
+  // AI Payroll Discrepancy Checker (Admin Review Only)
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditErr, setAuditErr] = useState('');
+  const [auditData, setAuditData] = useState(null);
+
+  const runPayrollAiAudit = async () => {
+    if (!isAdmin) return;
+    setAuditOpen(true);
+    setAuditLoading(true);
+    setAuditErr('');
+    try {
+      const res = await apiAiPayrollAudit({ month: selectedMonth, year: selectedYear });
+      setAuditData(res);
+    } catch (err) {
+      setAuditErr(err.message || 'Failed to audit payroll');
+    } finally {
+      setAuditLoading(false);
+    }
+  };
 
   const fetchPayrollRuns = useCallback(async () => {
     if (!isAdmin) return;
@@ -313,7 +337,16 @@ export default function PayrollTab({ isAdmin, user }) {
               </select>
             </div>
 
-            <div className="action-controls">
+            <div className="action-controls" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="zx-ai-pill-btn"
+                onClick={runPayrollAiAudit}
+                title="Explain potential payroll discrepancies against salary structure, attendance, and leaves"
+              >
+                <SparklesIcon size={13} />
+                <span>ZORVI Discrepancy Check</span>
+              </button>
               <button
                 className="btn-generate-payroll"
                 onClick={handleGeneratePayroll}
@@ -326,6 +359,38 @@ export default function PayrollTab({ isAdmin, user }) {
               </button>
             </div>
           </div>
+
+          {auditOpen && (
+            <AiInsightBox
+              title={`ZORVI Payroll Discrepancy Audit (${monthNames[selectedMonth]} ${selectedYear})`}
+              subtitle="Advisory review only — does not alter payroll numbers or release funds."
+              loading={auditLoading}
+              error={auditErr}
+              uncertainty={auditData?.uncertainty}
+              providerMeta={auditData?.meta}
+              onRefresh={runPayrollAiAudit}
+              onClose={() => setAuditOpen(false)}
+            >
+              {auditData && (
+                <div>
+                  <p style={{ margin: '0 0 8px' }}>{auditData.summary}</p>
+                  {auditData.discrepancies?.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {auditData.discrepancies.map((d) => (
+                        <div key={d.payrollId} style={{ background: '#ffffff', border: '1px solid #dfe1e6', borderRadius: '6px', padding: '8px 10px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                            <strong>{d.employeeName} ({d.department})</strong>
+                            <span className={`zx-ai-tag ${d.severity}`}>{d.severity} risk</span>
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#42526e', marginTop: '4px' }}>{d.aiExplanation}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </AiInsightBox>
+          )}
 
           {/* Aggregate KPI Summary Cards */}
           {summary && (

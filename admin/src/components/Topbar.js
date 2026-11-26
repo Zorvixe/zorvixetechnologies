@@ -7,6 +7,7 @@ import { usePresence } from "../context/PresenceContext";
 import ZorvixeLogo from "../assets/zorvixe_logo.png";
 import ZorvixeFavicon from "../assets/zorvixe_favicon.png";
 import MeetIcon from "../assets/meeting_icon.png";
+import ZorviAiLogo from "../assets/zorvi_ai_logo.png";
 
 import {
   apiStatsNotifications,
@@ -817,6 +818,21 @@ export default function Topbar({
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 2-3 4" />
                 <line x1="12" y1="17" x2="12" y2="17" />
               </svg>
+            </button>
+
+            {/* ZORVI AI ASSISTANT BUTTON (Desktop & Tablet) */}
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="ZORVI AI Assistant"
+              title="ZORVI — AI Assistant"
+              onClick={() => window.dispatchEvent(new CustomEvent("zorvixe:open-ai-assistant"))}
+            >
+              <img
+                src={ZorviAiLogo}
+                width="30"
+                alt="ZORVI AI"
+              />
             </button>
 
             {/* Notifications (Desktop only) */}

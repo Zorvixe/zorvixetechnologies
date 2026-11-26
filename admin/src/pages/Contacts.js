@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Topbar from '../components/Topbar'
-import { apiListContacts, apiUpdateContact, apiDeleteContact, apiExportContactsCsv, apiCreateDeal } from '../api'
+import { apiListContacts, apiUpdateContact, apiDeleteContact, apiExportContactsCsv, apiCreateDeal, apiAiContactAssist } from '../api'
+import AiInsightBox from '../components/AiInsightBox'
+import { SparklesIcon } from '../components/CrmHrmsIcons'
 import { useAuth } from '../auth'
 
 import "./Contacts.css"
@@ -21,6 +23,28 @@ export default function Contacts() {
   const [order, setOrder] = useState('DESC')
   const [sort, setSort] = useState('created_at')
   const totalPages = useMemo(() => Math.ceil((total || 0) / (limit || 1)), [total, limit])
+
+  // AI Contact Assist
+  const [contactAiOpen, setContactAiOpen] = useState(false)
+  const [contactAiLoading, setContactAiLoading] = useState(false)
+  const [contactAiErr, setContactAiErr] = useState('')
+  const [contactAiData, setContactAiData] = useState(null)
+  const [aiContact, setAiContact] = useState(null)
+
+  const runContactAi = async (contact) => {
+    setAiContact(contact)
+    setContactAiOpen(true)
+    setContactAiLoading(true)
+    setContactAiErr('')
+    try {
+      const res = await apiAiContactAssist(contact.id)
+      setContactAiData(res)
+    } catch (err) {
+      setContactAiErr(err?.message || 'Failed to analyze inquiry')
+    } finally {
+      setContactAiLoading(false)
+    }
+  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -95,6 +119,42 @@ export default function Contacts() {
       </Topbar>
 
       <div className="card">
+        {contactAiOpen && (
+          <AiInsightBox
+            title={aiContact ? `ZORVI Contact Brief: ${aiContact.name}` : 'ZORVI Contact Brief'}
+            loading={contactAiLoading}
+            error={contactAiErr}
+            uncertainty={contactAiData?.uncertainty}
+            providerMeta={contactAiData?.meta}
+            onRefresh={() => aiContact && runContactAi(aiContact)}
+            onClose={() => setContactAiOpen(false)}
+          >
+            {contactAiData && (
+              <div>
+                <p style={{ margin: '0 0 6px' }}>{contactAiData.summary}</p>
+                <div className="zx-ai-tags">
+                  <span className={`zx-ai-tag ${contactAiData.urgency}`}>Urgency: {contactAiData.urgency}</span>
+                </div>
+                {contactAiData.followUpActions?.length > 0 && (
+                  <ul className="zx-ai-list" style={{ fontSize: '12px', marginTop: '6px' }}>
+                    {contactAiData.followUpActions.map((f, i) => <li key={i}>{f}</li>)}
+                  </ul>
+                )}
+                {contactAiData.draftReply && (
+                  <div style={{ marginTop: '8px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#42526e', marginBottom: 4 }}>Suggested Draft Reply (Copy / Review Before Sending):</div>
+                    <textarea
+                      readOnly
+                      rows={5}
+                      value={contactAiData.draftReply}
+                      style={{ width: '100%', padding: 8, fontSize: 12, borderRadius: 6, border: '1px solid #dfe1e6', background: '#ffffff' }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </AiInsightBox>
+        )}
         <div className="small" style={{ marginBottom: 8 }}>Total: {total}</div>
         <div className="table-wrap-cand">
           <table className="table-cand">
@@ -132,23 +192,34 @@ export default function Contacts() {
                     </select>
                   </td>
                   <td className="row-actions">
-                    {isAdmin ? (
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <button
-                          className="button ghost"
-                          style={{ padding: '4px 8px', fontSize: '0.74rem', height: 'auto', fontWeight: 700 }}
-                          onClick={() => convertToDeal(r)}
-                          title="Convert to CRM Deal"
-                        >
-                          + Deal
-                        </button>
-                        <button className="buttondanger" onClick={() => del(r.id)} title="Delete Contact">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M9 3v1H4v2h16V4h-5V3H9zm-2 6v11a1 1 0 001 1h8a1 1 0 001-1V9H7zm2 2h2v9H9v-9zm4 0h2v9h-2v-9z" />
-                          </svg>
-                        </button>
-                      </div>
-                    ) : <span className="small">—</span>}
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        className="button ghost"
+                        style={{ padding: '4px 8px', fontSize: '0.74rem', height: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                        onClick={() => runContactAi(r)}
+                        title="ZORVI Summary & Follow-up Draft"
+                      >
+                        <SparklesIcon size={12} color="#4c3fb6" /> ZORVI
+                      </button>
+                      {isAdmin && (
+                        <>
+                          <button
+                            className="button ghost"
+                            style={{ padding: '4px 8px', fontSize: '0.74rem', height: 'auto', fontWeight: 700 }}
+                            onClick={() => convertToDeal(r)}
+                            title="Convert to CRM Deal"
+                          >
+                            + Deal
+                          </button>
+                          <button className="buttondanger" onClick={() => del(r.id)} title="Delete Contact">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M9 3v1H4v2h16V4h-5V3H9zm-2 6v11a1 1 0 001 1h8a1 1 0 001-1V9H7zm2 2h2v9H9v-9zm4 0h2v9h-2v-9z" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

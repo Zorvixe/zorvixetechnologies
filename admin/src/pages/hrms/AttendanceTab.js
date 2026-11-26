@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { apiAttendanceToday, apiAttendancePunch, apiMyAttendance, apiListAttendance, apiSaveManualAttendance } from '../../api';
-import { UsersIcon, CheckIcon, ClockIcon, CalendarIcon, FileTextIcon } from '../../components/CrmHrmsIcons';
+import { apiAttendanceToday, apiAttendancePunch, apiMyAttendance, apiListAttendance, apiSaveManualAttendance, apiAiAttendanceSummary } from '../../api';
+import AiInsightBox from '../../components/AiInsightBox';
+import { UsersIcon, CheckIcon, ClockIcon, CalendarIcon, FileTextIcon, SparklesIcon } from '../../components/CrmHrmsIcons';
 import './AttendanceTab.css';
 
 export default function AttendanceTab({ isAdmin, user }) {
@@ -38,6 +39,30 @@ export default function AttendanceTab({ isAdmin, user }) {
     note: ''
   });
   const [manualSaving, setManualSaving] = useState(false);
+
+  // AI Attendance Summary & Anomaly Flags
+  const [attAiOpen, setAttAiOpen] = useState(false);
+  const [attAiLoading, setAttAiLoading] = useState(false);
+  const [attAiErr, setAttAiErr] = useState('');
+  const [attAiData, setAttAiData] = useState(null);
+
+  const runAttendanceAi = async () => {
+    setAttAiOpen(true);
+    setAttAiLoading(true);
+    setAttAiErr('');
+    try {
+      const res = await apiAiAttendanceSummary({
+        month: selectedMonth,
+        year: selectedYear,
+        department: isAdmin ? adminDept : ''
+      });
+      setAttAiData(res);
+    } catch (err) {
+      setAttAiErr(err.message || 'Failed to generate attendance insights');
+    } finally {
+      setAttAiLoading(false);
+    }
+  };
 
   // Real-time ticking clock
   useEffect(() => {
@@ -250,6 +275,47 @@ export default function AttendanceTab({ isAdmin, user }) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* AI Attendance Summary & Flagged Review Strip */}
+      <div style={{ margin: '12px 0' }}>
+        {!attAiOpen ? (
+          <button type="button" className="zx-ai-pill-btn" onClick={runAttendanceAi}>
+            <SparklesIcon size={13} />
+            <span>{isAdmin ? 'ZORVI Workforce Attendance Summary & Flags' : 'ZORVI Summarize My Attendance'}</span>
+          </button>
+        ) : (
+          <AiInsightBox
+            title={isAdmin ? 'ZORVI Attendance Trends & Review Flags' : 'ZORVI Personal Attendance Summary'}
+            loading={attAiLoading}
+            error={attAiErr}
+            uncertainty={attAiData?.uncertainty}
+            providerMeta={attAiData?.meta}
+            onRefresh={runAttendanceAi}
+            onClose={() => setAttAiOpen(false)}
+          >
+            {attAiData && (
+              <div>
+                <p style={{ margin: '0 0 6px' }}>{attAiData.summary}</p>
+                {attAiData.trends?.length > 0 && (
+                  <ul className="zx-ai-list" style={{ fontSize: '12px' }}>
+                    {attAiData.trends.map((t, i) => <li key={i}>{t}</li>)}
+                  </ul>
+                )}
+                {attAiData.flaggedForReview?.length > 0 && (
+                  <div style={{ marginTop: '8px', fontSize: '12px' }}>
+                    <strong>Records Flagged for Review:</strong>
+                    <ul className="zx-ai-list">
+                      {attAiData.flaggedForReview.map((f, i) => (
+                        <li key={i}><strong>{f.employeeName}</strong> ({f.department}): {f.reasons.join('; ')}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </AiInsightBox>
+        )}
       </div>
 
       {/* Admin Live Overview Cards */}

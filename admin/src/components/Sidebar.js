@@ -1,6 +1,7 @@
 import { useAuth } from '../auth'
 import { usePresence } from '../context/PresenceContext'
 import ActivityRemindersDrawer from './ActivityRemindersDrawer'
+import ZorviAiLogo from '../assets/zorvi_ai_logo.png'
 import "./Sidebar.css"
 
 const VALID_VIEWS = new Set([
@@ -139,6 +140,26 @@ export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
         <a href="#account" className={`navlink sidebar-mobile-only ${current === 'account' || current === 'profile' ? 'active' : ''}`} onClick={goto('account')} title="My Account">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
           <span>My Account</span>
+        </a>
+
+        <a
+          href="#ai-assistant"
+          className="navlink sidebar-mobile-only"
+          onClick={(e) => {
+            e.preventDefault();
+            window.dispatchEvent(new CustomEvent('zorvixe:open-ai-assistant'));
+            if (onClose) onClose();
+          }}
+          title="ZORVI AI Assistant"
+        >
+          <img
+            src={ZorviAiLogo}
+            width="20"
+            height="20"
+            alt="ZORVI AI"
+            style={{ borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }}
+          />
+          <span>ZORVI AI</span>
         </a>
       </nav>
 

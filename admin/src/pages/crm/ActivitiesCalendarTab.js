@@ -890,7 +890,10 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
             </div>
 
             {loading ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: '#5e6c84' }}>Loading activities...</div>
+              <div className="loader_container">
+                <p className="loader_spinner"></p>
+                <p>Loading Activities...</p>
+              </div>
             ) : filteredActivities.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#5e6c84', background: '#fafbfc', borderRadius: '8px' }}>
                 No scheduled activities found. Click <strong>Create</strong> above to add a meeting, call, or task!

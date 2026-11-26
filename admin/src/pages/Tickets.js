@@ -17,7 +17,13 @@ import {
   apiDeleteTicket,
   apiRecordTicketView,
   apiGetTicketViewers,
+  apiAiAnalyzeTicket,
+  apiAiDraftTicketReply,
+  apiAiRecommendTicketAssignments,
+  apiAiConfirmTicketAssignment,
 } from "../api";
+import AiInsightBox from "../components/AiInsightBox";
+import { SparklesIcon } from "../components/CrmHrmsIcons";
 import { useAuth } from "../auth";
 import "./Tickets.css";
 
@@ -259,6 +265,68 @@ export default function Tickets() {
     assigned_to: "",
   });
 
+  // AI Daily Assignment Recommendations Modal State
+  const [showAiAssignModal, setShowAiAssignModal] = useState(false);
+  const [aiAssignLoading, setAiAssignLoading] = useState(false);
+  const [aiAssignError, setAiAssignError] = useState("");
+  const [aiAssignData, setAiAssignData] = useState(null);
+  const [aiSelectedAssignees, setAiSelectedAssignees] = useState({});
+  const [confirmingTicketId, setConfirmingTicketId] = useState(null);
+
+  const openAiAssignmentPlanner = async () => {
+    setShowAiAssignModal(true);
+    setAiAssignLoading(true);
+    setAiAssignError("");
+    try {
+      const res = await apiAiRecommendTicketAssignments({});
+      setAiAssignData(res);
+      const defaults = {};
+      (res.recommendations || []).forEach((r) => {
+        if (r.recommendedAssigneeId) defaults[r.ticketId] = String(r.recommendedAssigneeId);
+      });
+      setAiSelectedAssignees(defaults);
+    } catch (err) {
+      setAiAssignError(err.message || "Failed to generate AI assignment recommendations");
+    } finally {
+      setAiAssignLoading(false);
+    }
+  };
+
+  const confirmAiAssignment = async (rec) => {
+    const chosenAssignee = aiSelectedAssignees[rec.ticketId] || rec.recommendedAssigneeId;
+    if (!chosenAssignee) {
+      showToast("Please select a team member first", "error");
+      return;
+    }
+    setConfirmingTicketId(rec.ticketId);
+    try {
+      const res = await apiAiConfirmTicketAssignment({
+        ticketId: rec.ticketId,
+        assignedTo: Number(chosenAssignee),
+        suggestedAssigneeId: rec.recommendedAssigneeId,
+        reasons: rec.reasons,
+      });
+      showToast(res.message || "Ticket assignment confirmed", "success");
+      await fetchTickets();
+      setAiAssignData((prev) =>
+        prev
+          ? {
+              ...prev,
+              recommendations: (prev.recommendations || []).map((item) =>
+                item.ticketId === rec.ticketId
+                  ? { ...item, confirmed: true, currentAssigneeName: res.assignee?.name || item.recommendedAssigneeName }
+                  : item
+              ),
+            }
+          : prev
+      );
+    } catch (err) {
+      showToast(err.message || "Failed to confirm assignment", "error");
+    } finally {
+      setConfirmingTicketId(null);
+    }
+  };
+
   const canManageTicket = (t) =>
     !!user &&
     (t?.creator_id === user.id || user.role === "admin" || t?.creator?.id === user.id);
@@ -489,7 +557,16 @@ export default function Tickets() {
   return (
     <div className="tickets-container">
       <Topbar title="Tickets">
-        <div className="">
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="zx-ai-pill-btn"
+            onClick={openAiAssignmentPlanner}
+            title="ZORVI Daily Assignment Planner & Triage"
+          >
+            <SparklesIcon size={13} />
+            <span>ZORVI Assign &amp; Triage</span>
+          </button>
           <button
             className="btn btn-primary"
             onClick={() => setShowCreate(true)}
@@ -930,6 +1007,107 @@ export default function Tickets() {
         </div>
       </BootstrapModal>
 
+      {/* --------------------------- AI Daily Assignments Modal --------------------------- */}
+      <BootstrapModal
+        open={showAiAssignModal}
+        onClose={() => setShowAiAssignModal(false)}
+        title="ZORVI Daily Ticket Assignment Recommendations"
+        centered
+        scrollable
+        dialogClassName="modal-xl"
+        footer={
+          <button type="button" className="btn btn-secondary" onClick={() => setShowAiAssignModal(false)}>
+            Close
+          </button>
+        }
+      >
+        <AiInsightBox
+          title="Workload, Skills & Availability-Based Triage"
+          subtitle="Review recommendations below. Assignments require explicit human confirmation."
+          loading={aiAssignLoading}
+          error={aiAssignError}
+          uncertainty={aiAssignData?.uncertainty}
+          providerMeta={aiAssignData?.meta}
+          onRefresh={openAiAssignmentPlanner}
+          refreshLabel="Re-evaluate"
+        >
+          {aiAssignData && (aiAssignData.recommendations || []).length === 0 ? (
+            <p style={{ margin: 0, color: "#5e6c84" }}>No active open/in-progress tickets found for assignment review.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {(aiAssignData?.recommendations || []).map((rec) => {
+                const rawTicket = allTickets.find((t) => Number(t.id) === Number(rec.ticketId));
+                const canConfirm = user?.role === "admin" || (rawTicket && Number(rawTicket.creator_id) === Number(user?.id));
+                return (
+                  <div
+                    key={rec.ticketId}
+                    style={{
+                      border: "1px solid #dfe1e6",
+                      borderRadius: "8px",
+                      padding: "10px 12px",
+                      background: rec.confirmed ? "#f3fdf8" : "#ffffff",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", flexWrap: "wrap" }}>
+                      <div>
+                        <strong style={{ color: "#172b4d" }}>#{rec.ticketId}: {rec.ticketTitle}</strong>
+                        <div className="zx-ai-tags">
+                          <span className={`zx-ai-tag ${rec.priority}`}>{rec.priority}</span>
+                          <span className={`zx-ai-tag ${rec.slaRisk}`}>SLA Risk: {rec.slaRisk}</span>
+                          <span className="zx-ai-tag">Confidence: {rec.confidence}</span>
+                          {rec.currentAssigneeName && (
+                            <span className="zx-ai-tag">Current: {rec.currentAssigneeName}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <select
+                          className="form-select form-select-sm"
+                          style={{ minWidth: "180px" }}
+                          value={aiSelectedAssignees[rec.ticketId] || ""}
+                          onChange={(e) =>
+                            setAiSelectedAssignees((prev) => ({ ...prev, [rec.ticketId]: e.target.value }))
+                          }
+                          disabled={rec.confirmed || !canConfirm}
+                        >
+                          <option value="">Select assignee...</option>
+                          {(aiAssignData?.teamSummary || []).map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name} ({m.openWorkload} open • {m.onApprovedLeaveToday ? "On Leave" : m.presenceStatus})
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          className="zx-ai-btn-primary"
+                          disabled={rec.confirmed || !canConfirm || confirmingTicketId === rec.ticketId}
+                          onClick={() => confirmAiAssignment(rec)}
+                          title={!canConfirm ? "Only Admins or the ticket creator can confirm reassignments" : "Confirm and notify assignee"}
+                        >
+                          {rec.confirmed
+                            ? "Confirmed"
+                            : confirmingTicketId === rec.ticketId
+                              ? "Saving..."
+                              : "Confirm Assignment"}
+                        </button>
+                      </div>
+                    </div>
+                    <ul className="zx-ai-list" style={{ fontSize: "12px", color: "#42526e" }}>
+                      {(rec.reasons || []).map((r, i) => <li key={i}>{r}</li>)}
+                    </ul>
+                    {rec.uncertainty && (
+                      <div style={{ fontSize: "11px", color: "#6b778c", marginTop: "4px" }}>
+                        Note: {rec.uncertainty}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </AiInsightBox>
+      </BootstrapModal>
+
       <div className={`toastx ${toast.type} ${toast.open ? 'show' : ''}`} role="status" aria-live="polite">
         <div className="toastx-icon">
           {toast.type === 'success' ? (
@@ -957,6 +1135,13 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
   const [viewers, setViewers] = useState([]);
   const [showAllViewers, setShowAllViewers] = useState(false);
   const viewersRef = useRef(null);
+
+  // Ticket AI Insights & Reply Draft
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [aiAnalyzeErr, setAiAnalyzeErr] = useState("");
+  const [draftLoading, setDraftLoading] = useState(false);
+  const [draftNote, setDraftNote] = useState("");
 
 
 
@@ -988,8 +1173,42 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
     setViewLoading(true);
     setComments(ticket?.comments || []);
     setNewComment("");
+    setAiAnalysis(null);
+    setAiAnalyzeErr("");
+    setDraftNote("");
     setViewLoading(false);
   }, [ticket]);
+
+  const runTicketAiAnalysis = async () => {
+    if (!ticket?.id) return;
+    setAiAnalyzing(true);
+    setAiAnalyzeErr("");
+    try {
+      const res = await apiAiAnalyzeTicket(ticket.id);
+      setAiAnalysis(res);
+    } catch (err) {
+      setAiAnalyzeErr(err.message || "AI analysis failed");
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
+
+  const handleDraftTicketReply = async () => {
+    if (!ticket?.id) return;
+    setDraftLoading(true);
+    setDraftNote("");
+    try {
+      const res = await apiAiDraftTicketReply(ticket.id, { tone: "professional" });
+      if (res?.draftReply) {
+        setNewComment(res.draftReply.replace(/\n/g, "<br/>"));
+        setDraftNote(res.uncertainty || "Review and edit this draft before clicking Update Ticket.");
+      }
+    } catch (err) {
+      setDraftNote(err.message || "Failed to generate reply draft.");
+    } finally {
+      setDraftLoading(false);
+    }
+  };
 
 
   // Record view when modal opens
@@ -1241,9 +1460,77 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
 
       <hr></hr>
 
+      {/* AI Triage, SLA & Duplicate Insights inside Ticket Modal */}
+      <div style={{ marginBottom: "12px" }}>
+        {!aiAnalysis && !aiAnalyzing && !aiAnalyzeErr ? (
+          <button type="button" className="zx-ai-pill-btn" onClick={runTicketAiAnalysis}>
+            <SparklesIcon size={13} />
+            <span>ZORVI Summarize, Check SLA &amp; Duplicates</span>
+          </button>
+        ) : (
+          <AiInsightBox
+            title="ZORVI Ticket Triage & SLA Check"
+            loading={aiAnalyzing}
+            error={aiAnalyzeErr}
+            uncertainty={aiAnalysis?.uncertainty}
+            providerMeta={aiAnalysis?.meta}
+            onRefresh={runTicketAiAnalysis}
+            onClose={() => { setAiAnalysis(null); setAiAnalyzeErr(""); }}
+          >
+            {aiAnalysis && (
+              <div>
+                <p style={{ margin: "0 0 6px" }}>{aiAnalysis.summary}</p>
+                <div className="zx-ai-tags">
+                  <span className="zx-ai-tag">Category: {aiAnalysis.category}</span>
+                  <span className={`zx-ai-tag ${aiAnalysis.suggestedPriority}`}>
+                    Suggested Priority: {aiAnalysis.suggestedPriority} ({aiAnalysis.urgencyScore}/100)
+                  </span>
+                  <span className={`zx-ai-tag ${aiAnalysis.slaRisk?.level}`}>
+                    SLA Risk: {aiAnalysis.slaRisk?.level}
+                  </span>
+                </div>
+                {aiAnalysis.slaRisk?.reason && (
+                  <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#42526e" }}>{aiAnalysis.slaRisk.reason}</p>
+                )}
+                {aiAnalysis.possibleDuplicates?.length > 0 && (
+                  <div style={{ marginTop: "6px", fontSize: "12px" }}>
+                    <strong>Possible Duplicates:</strong>
+                    <ul className="zx-ai-list">
+                      {aiAnalysis.possibleDuplicates.map((d) => (
+                        <li key={d.id}>#{d.id} ({d.title}) — {d.reason || `${d.similarity}% match`}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {aiAnalysis.recommendedNextSteps?.length > 0 && (
+                  <div style={{ marginTop: "6px", fontSize: "12px" }}>
+                    <strong>Suggested Next Steps:</strong>
+                    <ul className="zx-ai-list">
+                      {aiAnalysis.recommendedNextSteps.map((s, idx) => <li key={idx}>{s}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </AiInsightBox>
+        )}
+      </div>
+
       {/* Comments Section (unchanged) */}
       <div className="comments-section">
         <form onSubmit={addComment} className="" >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", flexWrap: "wrap", gap: "8px" }}>
+            <button
+              type="button"
+              className="zx-ai-btn-sm"
+              onClick={handleDraftTicketReply}
+              disabled={draftLoading}
+            >
+              <SparklesIcon size={12} />
+              <span>{draftLoading ? "Drafting Reply..." : "ZORVI Draft Reply"}</span>
+            </button>
+            {draftNote && <span style={{ fontSize: "11px", color: "#5e6c84" }}>{draftNote}</span>}
+          </div>
           <div className="form-group comment_input_con">
             <RichTextEditor
               value={newComment}

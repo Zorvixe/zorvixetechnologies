@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiListEmailTemplates, apiSendCrmEmail } from '../../api';
+import { apiListEmailTemplates, apiSendCrmEmail, apiAiCrmDraftEmail } from '../../api';
+import { SparklesIcon } from '../../components/CrmHrmsIcons';
 import { useAuth } from '../../auth';
 import './SendEmailModal.css';
 
@@ -20,6 +21,9 @@ export default function SendEmailModal({
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [aiDrafting, setAiDrafting] = useState(false);
+  const [aiTone, setAiTone] = useState('consultative');
+  const [aiDraftMeta, setAiDraftMeta] = useState(null);
 
   // Fetch templates on open
   useEffect(() => {
@@ -30,6 +34,7 @@ export default function SendEmailModal({
     setSubject(defaultRecipient.subject || '');
     setBody(defaultRecipient.body || '');
     setErrorMsg('');
+    setAiDraftMeta(null);
 
     const loadTemplates = async () => {
       try {
@@ -97,6 +102,32 @@ export default function SendEmailModal({
     setBody(prev => prev + tag);
   };
 
+  const handleDraftWithAi = async () => {
+    setAiDrafting(true);
+    setErrorMsg('');
+    try {
+      const res = await apiAiCrmDraftEmail({
+        relatedType,
+        relatedId,
+        recipientName: toName || defaultRecipient.name,
+        recipientEmail: toEmail || defaultRecipient.email,
+        company: defaultRecipient.company,
+        goal: defaultRecipient.goal || 'Follow up and align on next steps',
+        tone: aiTone
+      });
+      if (res?.subject) setSubject(res.subject);
+      if (res?.body) setBody(res.body);
+      setAiDraftMeta({
+        auditId: res?.auditId || null,
+        uncertainty: res?.uncertainty || 'Review and verify details before sending.'
+      });
+    } catch (err) {
+      setErrorMsg(err.message || 'AI draft generation failed.');
+    } finally {
+      setAiDrafting(false);
+    }
+  };
+
   const handleSend = async (e) => {
     e.preventDefault();
     if (!toEmail) {
@@ -122,7 +153,9 @@ export default function SendEmailModal({
         subject: subject,
         body: body,
         relatedType: relatedType,
-        relatedId: relatedId
+        relatedId: relatedId,
+        aiAssisted: Boolean(aiDraftMeta),
+        aiAuditId: aiDraftMeta?.auditId || null
       });
 
       alert(res.message || 'Email sent successfully!');
@@ -173,7 +206,34 @@ export default function SendEmailModal({
                 </option>
               ))}
             </select>
+            <select
+              value={aiTone}
+              onChange={(e) => setAiTone(e.target.value)}
+              className="email-template-select"
+              style={{ maxWidth: '140px' }}
+              title="AI email tone"
+            >
+              <option value="consultative">Consultative</option>
+              <option value="followup">Warm Follow-up</option>
+              <option value="executive">Executive Concise</option>
+            </select>
+            <button
+              type="button"
+              className="zx-ai-btn-primary"
+              onClick={handleDraftWithAi}
+              disabled={aiDrafting}
+              title="Draft grounded sales email for human review"
+            >
+              <SparklesIcon size={12} />
+              <span>{aiDrafting ? 'Drafting...' : 'ZORVI Draft'}</span>
+            </button>
           </div>
+
+          {aiDraftMeta && (
+            <div style={{ fontSize: '11px', color: '#403294', background: '#f4f7ff', border: '1px solid #cfe0ff', borderRadius: '6px', padding: '6px 10px', marginBottom: '8px' }}>
+              <strong>ZORVI Draft Ready for Review:</strong> {aiDraftMeta.uncertainty}
+            </div>
+          )}
 
           <div className="email-form-row two-col">
             <div className="email-form-group">

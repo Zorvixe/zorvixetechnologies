@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../auth";
+import { apiAiLeaveSummary } from "../../api";
+import AiInsightBox from "../../components/AiInsightBox";
+import { SparklesIcon } from "../../components/CrmHrmsIcons";
 
 import LeaveBalance from "../LeaveBalance/LeaveBalance";
 import ApplyLeave from "../ApplyLeave/ApplyLeave";
@@ -19,6 +22,24 @@ const LeaveManagement = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   const isAdmin = user?.role === "admin";
+  const [leaveAiOpen, setLeaveAiOpen] = useState(false);
+  const [leaveAiLoading, setLeaveAiLoading] = useState(false);
+  const [leaveAiErr, setLeaveAiErr] = useState("");
+  const [leaveAiData, setLeaveAiData] = useState(null);
+
+  const runLeaveAiSummary = async () => {
+    setLeaveAiOpen(true);
+    setLeaveAiLoading(true);
+    setLeaveAiErr("");
+    try {
+      const res = await apiAiLeaveSummary({ status: "pending" });
+      setLeaveAiData(res);
+    } catch (err) {
+      setLeaveAiErr(err.message || "Failed to summarize leave requests");
+    } finally {
+      setLeaveAiLoading(false);
+    }
+  };
 
   const refreshBalance = async () => {
     try {
@@ -75,7 +96,43 @@ const LeaveManagement = () => {
 
   return (
     <div className="leave-management-container-LeaveManagement">
-      <h2 className="page-title-LeaveManagement">Leave Management</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "8px" }}>
+        <h2 className="page-title-LeaveManagement" style={{ marginBottom: 0 }}>Leave Management</h2>
+        <button type="button" className="zx-ai-pill-btn" onClick={runLeaveAiSummary}>
+          <SparklesIcon size={13} />
+          <span>ZORVI Summarize Leave Queue</span>
+        </button>
+      </div>
+
+      {leaveAiOpen && (
+        <AiInsightBox
+          title="ZORVI Leave Requests Overview"
+          subtitle="Role-scoped summary • Approvals/rejections always require human confirmation."
+          loading={leaveAiLoading}
+          error={leaveAiErr}
+          uncertainty={leaveAiData?.uncertainty}
+          providerMeta={leaveAiData?.meta}
+          onRefresh={runLeaveAiSummary}
+          onClose={() => setLeaveAiOpen(false)}
+        >
+          {leaveAiData && (
+            <div>
+              <p style={{ margin: "0 0 6px" }}>{leaveAiData.summary}</p>
+              {leaveAiData.coverageAlerts?.length > 0 && (
+                <div style={{ fontSize: "12px", marginTop: "4px" }}>
+                  <strong>Overlap / Coverage Alerts:</strong>
+                  <ul className="zx-ai-list">{leaveAiData.coverageAlerts.map((a, i) => <li key={i}>{a}</li>)}</ul>
+                </div>
+              )}
+              {leaveAiData.highlights?.length > 0 && (
+                <ul className="zx-ai-list" style={{ fontSize: "12px" }}>
+                  {leaveAiData.highlights.map((h, i) => <li key={i}>{h}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+        </AiInsightBox>
+      )}
 
       {error && (
         <div className="alert-LeaveManagement">

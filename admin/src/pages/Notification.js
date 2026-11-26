@@ -1,7 +1,9 @@
 // src/pages/Notification.js
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiStatsNotifications, apiResetNotificationCount, apiMarkNotificationRead } from '../api';
+import { apiStatsNotifications, apiResetNotificationCount, apiMarkNotificationRead, apiAiNotificationsSummary } from '../api';
+import AiInsightBox from '../components/AiInsightBox';
+import { SparklesIcon } from '../components/CrmHrmsIcons';
 import { useAuth } from '../auth';
 import './Notifications.css';
 import { buildDeepLink } from '../deeplink/resourceRegistry';
@@ -60,6 +62,32 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
   const [selectedDate, setSelectedDate] = useState(isModalMode ? localYMD() : '');
   const [activeFilter, setActiveFilter] = useState('all'); // for mobile page: 'all' | 'unread'
   const [searchQuery, setSearchQuery] = useState('');
+
+  // AI Notification Summary
+  const [aiSummaryOpen, setAiSummaryOpen] = useState(false);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const [aiSummaryErr, setAiSummaryErr] = useState('');
+  const [aiSummaryData, setAiSummaryData] = useState(null);
+
+  const runNotificationAiSummary = async () => {
+    setAiSummaryOpen(true);
+    setAiSummaryLoading(true);
+    setAiSummaryErr('');
+    try {
+      const payload = notifications.slice(0, 25).map((n) => ({
+        type: n.related_type || 'notification',
+        at: n.created_at,
+        text: `${n.title}: ${n.message}`,
+        is_new: Boolean(n.is_new),
+      }));
+      const res = await apiAiNotificationsSummary({ activities: payload });
+      setAiSummaryData(res);
+    } catch (e) {
+      setAiSummaryErr(e?.message || 'Failed to summarize notifications');
+    } finally {
+      setAiSummaryLoading(false);
+    }
+  };
 
   const modalRef = useRef(null);
   const mobileDateInputRef = useRef(null);
@@ -513,20 +541,57 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
         <div ref={modalRef} className="notification-modal">
           <div className="notification-header">
             <h3>ZOR - Notify</h3>
-            <div className="date-filter-input">
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                max={localYMD()}
-              />
-              {selectedDate && (
-                <button className="clear-date-btn" onClick={() => setSelectedDate('')} title="Clear filter">
-                  ×
-                </button>
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                className="zx-ai-pill-btn"
+                style={{ padding: '3px 8px', fontSize: '11px' }}
+                onClick={runNotificationAiSummary}
+                title="Summarize recent alerts with ZORVI"
+              >
+                <SparklesIcon size={12} />
+                <span>ZORVI Brief</span>
+              </button>
+              <div className="date-filter-input">
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  max={localYMD()}
+                />
+                {selectedDate && (
+                  <button className="clear-date-btn" onClick={() => setSelectedDate('')} title="Clear filter">
+                    ×
+                  </button>
+                )}
+              </div>
             </div>
           </div>
+
+          {aiSummaryOpen && (
+            <div style={{ padding: '8px 12px 0' }}>
+              <AiInsightBox
+                title="ZORVI Notification Brief"
+                loading={aiSummaryLoading}
+                error={aiSummaryErr}
+                uncertainty={aiSummaryData?.uncertainty}
+                providerMeta={aiSummaryData?.meta}
+                onRefresh={runNotificationAiSummary}
+                onClose={() => setAiSummaryOpen(false)}
+              >
+                {aiSummaryData && (
+                  <div>
+                    <p style={{ margin: '0 0 4px', fontSize: '12px' }}>{aiSummaryData.summary}</p>
+                    {aiSummaryData.priorityAlerts?.length > 0 && (
+                      <ul className="zx-ai-list" style={{ fontSize: '12px' }}>
+                        {aiSummaryData.priorityAlerts.map((a, idx) => <li key={idx}>{a}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </AiInsightBox>
+            </div>
+          )}
 
           <div className="notification-list">
             {loading ? (
@@ -674,6 +739,16 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
 
               <button
                 type="button"
+                className="zx-ai-pill-btn"
+                style={{ padding: '4px 10px', fontSize: '11px' }}
+                onClick={runNotificationAiSummary}
+              >
+                <SparklesIcon size={12} />
+                <span>ZORVI Summary</span>
+              </button>
+
+              <button
+                type="button"
                 className={`li-chip ${activeFilter === 'unread' ? 'active' : ''}`}
                 onClick={() => setActiveFilter('unread')}
               >
@@ -745,6 +820,31 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
             </div>
           </div>
 
+          {aiSummaryOpen && (
+            <div style={{ padding: '10px 14px 0' }}>
+              <AiInsightBox
+                title="ZORVI Notification Brief"
+                loading={aiSummaryLoading}
+                error={aiSummaryErr}
+                uncertainty={aiSummaryData?.uncertainty}
+                providerMeta={aiSummaryData?.meta}
+                onRefresh={runNotificationAiSummary}
+                onClose={() => setAiSummaryOpen(false)}
+              >
+                {aiSummaryData && (
+                  <div>
+                    <p style={{ margin: '0 0 6px', fontSize: '13px' }}>{aiSummaryData.summary}</p>
+                    {aiSummaryData.priorityAlerts?.length > 0 && (
+                      <ul className="zx-ai-list" style={{ fontSize: '12px' }}>
+                        {aiSummaryData.priorityAlerts.map((a, idx) => <li key={idx}>{a}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </AiInsightBox>
+            </div>
+          )}
+
           {/* LinkedIn Notification List */}
           <div className="li-list">
             {loading ? (
@@ -763,17 +863,17 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
                   {searchQuery
                     ? `No notifications matching "${searchQuery}"`
                     : activeFilter === 'unread'
-                    ? 'No unread notifications'
-                    : selectedDate
-                      ? `No updates for ${new Date(selectedDate).toLocaleDateString()}`
-                      : 'No notifications right now'}
+                      ? 'No unread notifications'
+                      : selectedDate
+                        ? `No updates for ${new Date(selectedDate).toLocaleDateString()}`
+                        : 'No notifications right now'}
                 </h3>
                 <p className="li-empty-desc">
                   {searchQuery
                     ? 'Try searching with different keywords.'
                     : activeFilter === 'unread'
-                    ? "You're completely caught up! Great job."
-                    : "We'll notify you when new activity happens in your workspace."}
+                      ? "You're completely caught up! Great job."
+                      : "We'll notify you when new activity happens in your workspace."}
                 </p>
               </div>
             ) : (

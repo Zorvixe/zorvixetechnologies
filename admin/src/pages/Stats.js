@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiStats, apiGlobalSearch } from "../api";
+import { apiStats, apiGlobalSearch, apiAiDashboardDigest } from "../api";
+import AiInsightBox from "../components/AiInsightBox";
+import { SparklesIcon } from "../components/CrmHrmsIcons";
 import { useAuth } from "../auth";
 
 // Import banners with unique names
@@ -22,6 +24,26 @@ export default function Stats() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+
+  /* ------------------- AI DAILY DIGEST & RISK RADAR ------------------- */
+  const [digestOpen, setDigestOpen] = useState(false);
+  const [digestLoading, setDigestLoading] = useState(false);
+  const [digestError, setDigestError] = useState("");
+  const [digestData, setDigestData] = useState(null);
+
+  const loadAiDigest = async () => {
+    setDigestOpen(true);
+    setDigestLoading(true);
+    setDigestError("");
+    try {
+      const res = await apiAiDashboardDigest();
+      setDigestData(res);
+    } catch (e) {
+      setDigestError(e?.message || "Failed to generate AI digest");
+    } finally {
+      setDigestLoading(false);
+    }
+  };
 
   /* ------------------- GLOBAL SEARCH (MOBILE / SMALL DEVICES) ------------------- */
   const [searchQuery, setSearchQuery] = useState("");
@@ -401,6 +423,73 @@ export default function Stats() {
         <DashboardSkeleton />
       ) : data ? (
         <div className="stats-dashboard-grid">
+          {/* Role-Scoped AI Daily Digest & Emerging Risks */}
+          <section className="stats-card stats-card-full" style={{ padding: "12px 16px" }} aria-label="AI Daily Digest">
+            {!digestOpen ? (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span className="zx-ai-badge-icon"><SparklesIcon size={28} /></span>
+                  <div>
+                    <strong style={{ fontSize: "14px", color: "#172b4d" }}>ZORVI Daily Digest &amp; Risk Radar</strong>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <button type="button" className="zx-ai-btn-primary" onClick={loadAiDigest}>
+                    <SparklesIcon size={13} />
+                    <span>Today&apos;s Digest</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="zx-ai-btn-sm"
+                    onClick={() => window.dispatchEvent(new CustomEvent("zorvixe:open-ai-assistant"))}
+                  >
+                    <SparklesIcon size={13} />
+                    Ask ZORVI
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <AiInsightBox
+                title={digestData?.headline || "ZORVI Daily Digest & Risk Radar"}
+                subtitle={`Role-scoped (${isAdmin ? "Admin" : "Employee"}) • Grounded in live database queues`}
+                loading={digestLoading}
+                error={digestError}
+                uncertainty={digestData?.uncertainty}
+                providerMeta={digestData?.meta}
+                onRefresh={loadAiDigest}
+                onClose={() => setDigestOpen(false)}
+              >
+                {digestData && (
+                  <div>
+                    <p style={{ margin: "0 0 8px" }}>{digestData.digestSummary}</p>
+                    {digestData.emergingRisks?.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px" }}>
+                        <strong style={{ fontSize: "12px", color: "#42526e" }}>Emerging Risks &amp; Queues:</strong>
+                        {digestData.emergingRisks.map((risk, idx) => (
+                          <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", background: "#ffffff", border: "1px solid #dfe1e6", borderRadius: "6px", padding: "6px 10px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <span className={`zx-ai-tag ${risk.severity}`}>{risk.severity}</span>
+                              <span style={{ fontSize: "12px" }}>{risk.title}</span>
+                            </div>
+                            {risk.url && (
+                              <button
+                                type="button"
+                                className="zx-ai-btn-sm"
+                                onClick={() => navigate(risk.url)}
+                              >
+                                Inspect →
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </AiInsightBox>
+            )}
+          </section>
+
           {/* KPIs Section - Full Width */}
           <section className="stats-card stats-card-full stats-kpis" aria-labelledby="kpi-heading">
             <div className="stats-kpis-header">

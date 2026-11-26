@@ -294,7 +294,10 @@ async function handleZorvixeLeadSubmit(e) {
           </div>
 
           {loading ? (
-            <div className="crm-loading-state">Loading templates...</div>
+            <div className="loader_container">
+              <p className="loader_spinner"></p>
+              <p>Loading Templates...</p>
+            </div>
           ) : (
             <div className="templates-grid">
               {templates.map(tmpl => (

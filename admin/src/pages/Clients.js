@@ -19,7 +19,11 @@ import {
   apiPatchClient,
   apiDeleteClient,
   apiMe,
+  apiAiClientSummary,
+  apiAiProjectSummary,
 } from "../api"
+import AiInsightBox from "../components/AiInsightBox"
+import { SparklesIcon } from "../components/CrmHrmsIcons"
 
 import ProjectComments from "../components/ProjectComments"
 
@@ -134,6 +138,47 @@ export default function Clients() {
   const [selected, setSelected] = useState(null)
   const [projects, setProjects] = useState([])
   const [projLoading, setProjLoading] = useState(false)
+
+  // AI Client & Project Summaries
+  const [clientAiOpen, setClientAiOpen] = useState(false)
+  const [clientAiLoading, setClientAiLoading] = useState(false)
+  const [clientAiErr, setClientAiErr] = useState("")
+  const [clientAiData, setClientAiData] = useState(null)
+
+  const [projAiOpen, setProjAiOpen] = useState(false)
+  const [projAiLoading, setProjAiLoading] = useState(false)
+  const [projAiErr, setProjAiErr] = useState("")
+  const [projAiData, setProjAiData] = useState(null)
+
+  const runClientAiSummary = async (cid) => {
+    if (!cid) return
+    setClientAiOpen(true)
+    setClientAiLoading(true)
+    setClientAiErr("")
+    try {
+      const res = await apiAiClientSummary(cid)
+      setClientAiData(res)
+    } catch (e) {
+      setClientAiErr(e?.message || "Failed to summarize client")
+    } finally {
+      setClientAiLoading(false)
+    }
+  }
+
+  const runProjectAiSummary = async (pid) => {
+    if (!pid) return
+    setProjAiOpen(true)
+    setProjAiLoading(true)
+    setProjAiErr("")
+    try {
+      const res = await apiAiProjectSummary(pid)
+      setProjAiData(res)
+    } catch (e) {
+      setProjAiErr(e?.message || "Failed to summarize project")
+    } finally {
+      setProjAiLoading(false)
+    }
+  }
 
   // Inline project edit
   const [projEditId, setProjEditId] = useState(null)
@@ -460,7 +505,11 @@ export default function Clients() {
       ) : (
         <>
           <Topbar title={`Client: ${selected.name}`}>
-            <button className="secondary" onClick={() => { setSelected(null); setProjects([]) }}>Back</button>
+            <button className="secondary" onClick={() => { setSelected(null); setProjects([]); setClientAiOpen(false); }}>Back</button>
+            <button type="button" className="zx-ai-pill-btn" onClick={() => runClientAiSummary(selected.id)}>
+              <SparklesIcon size={13} />
+              <span>ZORVI Client Brief</span>
+            </button>
             {isAdmin && (
               <button className="btn btn-primary" onClick={() => setShowCreateProject(true)}>
                 New Project
@@ -469,6 +518,35 @@ export default function Clients() {
           </Topbar>
 
           <div className="card">
+            {clientAiOpen && (
+              <AiInsightBox
+                title={`ZORVI Client History & Follow-ups: ${selected.company || selected.name}`}
+                loading={clientAiLoading}
+                error={clientAiErr}
+                uncertainty={clientAiData?.uncertainty}
+                providerMeta={clientAiData?.meta}
+                onRefresh={() => runClientAiSummary(selected.id)}
+                onClose={() => setClientAiOpen(false)}
+              >
+                {clientAiData && (
+                  <div>
+                    <p style={{ margin: "0 0 6px" }}>{clientAiData.summary}</p>
+                    {clientAiData.openIssuesAndRisks?.length > 0 && (
+                      <div style={{ fontSize: "12px", marginTop: "4px" }}>
+                        <strong>Open Issues &amp; Risks:</strong>
+                        <ul className="zx-ai-list">{clientAiData.openIssuesAndRisks.map((r, i) => <li key={i}>{r}</li>)}</ul>
+                      </div>
+                    )}
+                    {clientAiData.followUpActions?.length > 0 && (
+                      <div style={{ fontSize: "12px", marginTop: "4px" }}>
+                        <strong>Follow-up Actions:</strong>
+                        <ul className="zx-ai-list">{clientAiData.followUpActions.map((a, i) => <li key={i}>{a}</li>)}</ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </AiInsightBox>
+            )}
             {projLoading ? (
               <div className="loader_container">
                 <p className="loader_spinner"></p>
@@ -733,9 +811,48 @@ export default function Clients() {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">{viewProject.name || "Project Details"}</h5>
-                <button type="button" className="btn-close" onClick={() => setViewProject(null)} aria-label="Close" />
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <button
+                    type="button"
+                    className="zx-ai-pill-btn"
+                    onClick={() => runProjectAiSummary(viewProject.id)}
+                  >
+                    <SparklesIcon size={12} />
+                    <span>ZORVI Summary &amp; Risks</span>
+                  </button>
+                  <button type="button" className="btn-close" onClick={() => { setViewProject(null); setProjAiOpen(false); }} aria-label="Close" />
+                </div>
               </div>
               <div className="modal-body">
+                {projAiOpen && (
+                  <AiInsightBox
+                    title="ZORVI Project Brief & Blockers"
+                    loading={projAiLoading}
+                    error={projAiErr}
+                    uncertainty={projAiData?.uncertainty}
+                    providerMeta={projAiData?.meta}
+                    onRefresh={() => runProjectAiSummary(viewProject.id)}
+                    onClose={() => setProjAiOpen(false)}
+                  >
+                    {projAiData && (
+                      <div>
+                        <p style={{ margin: "0 0 6px" }}>{projAiData.summary}</p>
+                        {projAiData.openIssues?.length > 0 && (
+                          <div style={{ fontSize: "12px", marginTop: "4px" }}>
+                            <strong>Open Issues &amp; Discussion Risks:</strong>
+                            <ul className="zx-ai-list">{projAiData.openIssues.map((it, i) => <li key={i}>{it}</li>)}</ul>
+                          </div>
+                        )}
+                        {projAiData.followUpActions?.length > 0 && (
+                          <div style={{ fontSize: "12px", marginTop: "4px" }}>
+                            <strong>Extracted Follow-ups:</strong>
+                            <ul className="zx-ai-list">{projAiData.followUpActions.map((a, i) => <li key={i}>{a}</li>)}</ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </AiInsightBox>
+                )}
                 {/* Add tabs for Details and Comments */}
                 <ul className="nav nav-tabs" role="tablist">
                   <li className="nav-item" role="presentation">

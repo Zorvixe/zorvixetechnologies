@@ -9,8 +9,10 @@ import {
   apiHireCandidate,
   apiListCompliance,
   apiUpdateCompliance,
-  downloadCandidatePdf
+  downloadCandidatePdf,
+  apiAiCompareCandidate
 } from '../../api';
+import AiInsightBox from '../../components/AiInsightBox';
 import {
   LeadsIcon,
   SearchIcon,
@@ -22,7 +24,8 @@ import {
   BriefcaseIcon,
   ShieldIcon,
   PhoneIcon,
-  UsersIcon
+  UsersIcon,
+  SparklesIcon
 } from '../../components/CrmHrmsIcons';
 import './RecruitmentComplianceTab.css';
 
@@ -62,6 +65,32 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
   });
   const [updatingCandidate, setUpdatingCandidate] = useState(false);
   const [hiringId, setHiringId] = useState(null);
+
+  // AI Resume vs Job Requirements Comparison (Advisory Only)
+  const [candAiOpen, setCandAiOpen] = useState(false);
+  const [candAiLoading, setCandAiLoading] = useState(false);
+  const [candAiErr, setCandAiErr] = useState('');
+  const [candAiData, setCandAiData] = useState(null);
+
+  useEffect(() => {
+    setCandAiOpen(false);
+    setCandAiData(null);
+    setCandAiErr('');
+  }, [selectedCandidate?.id]);
+
+  const runCandidateAiCompare = async (candId) => {
+    setCandAiOpen(true);
+    setCandAiLoading(true);
+    setCandAiErr('');
+    try {
+      const res = await apiAiCompareCandidate({ candidateId: candId });
+      setCandAiData(res);
+    } catch (err) {
+      setCandAiErr(err.message || 'Failed to compare candidate with job requirements');
+    } finally {
+      setCandAiLoading(false);
+    }
+  };
 
   // Compliance
   const [complianceList, setComplianceList] = useState([]);
@@ -740,6 +769,60 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                   )}
                 </div>
               )}
+
+              {/* Advisory AI Resume vs Job Comparison */}
+              <div style={{ marginBottom: '12px' }}>
+                {!candAiOpen ? (
+                  <button
+                    type="button"
+                    className="zx-ai-pill-btn"
+                    onClick={() => runCandidateAiCompare(selectedCandidate.id)}
+                  >
+                    <SparklesIcon size={13} />
+                    <span>ZORVI Compare Resume vs Job Requirements</span>
+                  </button>
+                ) : (
+                  <AiInsightBox
+                    title="ZORVI Candidate vs Job Fit (Advisory Only)"
+                    subtitle="Helps screen resumes faster — hiring & stage changes remain strictly human."
+                    loading={candAiLoading}
+                    error={candAiErr}
+                    uncertainty={candAiData?.uncertainty}
+                    providerMeta={candAiData?.meta}
+                    onRefresh={() => runCandidateAiCompare(selectedCandidate.id)}
+                    onClose={() => setCandAiOpen(false)}
+                  >
+                    {candAiData && (
+                      <div>
+                        <p style={{ margin: '0 0 6px' }}>{candAiData.summary}</p>
+                        {typeof candAiData.advisoryMatchScore === 'number' && (
+                          <div className="zx-ai-tags">
+                            <span className="zx-ai-tag">Advisory Match Score: {candAiData.advisoryMatchScore}/100</span>
+                          </div>
+                        )}
+                        {candAiData.matchingStrengths?.length > 0 && (
+                          <div style={{ marginTop: '6px', fontSize: '12px' }}>
+                            <strong>Observed Matches:</strong>
+                            <ul className="zx-ai-list">{candAiData.matchingStrengths.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                          </div>
+                        )}
+                        {candAiData.gapsOrUnclear?.length > 0 && (
+                          <div style={{ marginTop: '6px', fontSize: '12px' }}>
+                            <strong>Gaps / Unverified Requirements:</strong>
+                            <ul className="zx-ai-list">{candAiData.gapsOrUnclear.map((g, i) => <li key={i}>{g}</li>)}</ul>
+                          </div>
+                        )}
+                        {candAiData.suggestedInterviewQuestions?.length > 0 && (
+                          <div style={{ marginTop: '6px', fontSize: '12px' }}>
+                            <strong>Suggested Interview Questions:</strong>
+                            <ul className="zx-ai-list">{candAiData.suggestedInterviewQuestions.map((q, i) => <li key={i}>{q}</li>)}</ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </AiInsightBox>
+                )}
+              </div>
               <div className="rc-form-group form-group">
                 <label className="rc-form-label">Pipeline Stage</label>
                 <select

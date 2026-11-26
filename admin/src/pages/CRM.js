@@ -7,8 +7,11 @@ import {
   apiListCrmActivities,
   apiCreateCrmActivity,
   apiListClients,
-  apiUpdateDealStage
+  apiUpdateDealStage,
+  apiAiCrmStaleDeals,
+  apiAiCrmSummarize
 } from '../api';
+import AiInsightBox from '../components/AiInsightBox';
 
 import LeadsTab from './crm/LeadsTab';
 import AccountsTab from './crm/AccountsTab';
@@ -34,7 +37,8 @@ import {
   HandshakeIcon,
   AwardIcon,
   FolderIcon,
-  CalendarIcon
+  CalendarIcon,
+  SparklesIcon
 } from '../components/CrmHrmsIcons';
 
 import './CRM.css';
@@ -117,6 +121,45 @@ export default function CRM({ defaultTab }) {
     due_date: new Date(Date.now() + 86400000).toISOString().slice(0, 16)
   });
   const [savingActivity, setSavingActivity] = useState(false);
+
+  // CRM AI: Stale Deals Scanner & Deal Summary
+  const [staleOpen, setStaleOpen] = useState(false);
+  const [staleLoading, setStaleLoading] = useState(false);
+  const [staleError, setStaleError] = useState('');
+  const [staleData, setStaleData] = useState(null);
+
+  const [dealAiOpen, setDealAiOpen] = useState(false);
+  const [dealAiLoading, setDealAiLoading] = useState(false);
+  const [dealAiErr, setDealAiErr] = useState('');
+  const [dealAiData, setDealAiData] = useState(null);
+
+  const runStaleDealsScan = async () => {
+    setStaleOpen(true);
+    setStaleLoading(true);
+    setStaleError('');
+    try {
+      const res = await apiAiCrmStaleDeals();
+      setStaleData(res);
+    } catch (err) {
+      setStaleError(err.message || 'Failed to scan stale deals');
+    } finally {
+      setStaleLoading(false);
+    }
+  };
+
+  const runDealSummary = async (dealId) => {
+    setDealAiOpen(true);
+    setDealAiLoading(true);
+    setDealAiErr('');
+    try {
+      const res = await apiAiCrmSummarize({ entityType: 'deal', entityId: dealId });
+      setDealAiData(res);
+    } catch (err) {
+      setDealAiErr(err.message || 'Failed to summarize deal');
+    } finally {
+      setDealAiLoading(false);
+    }
+  };
 
   const fetchStats = useCallback(async () => {
     try {
@@ -296,6 +339,10 @@ export default function CRM({ defaultTab }) {
           </div>
 
           <div className="jira-header-actions">
+            <button type="button" className="zx-ai-pill-btn" onClick={runStaleDealsScan} title="Detect stale deals & follow-ups">
+              <SparklesIcon size={13} />
+              <span>ZORVI Stale Deals</span>
+            </button>
             <button className="jira-btn jira-btn-primary" onClick={() => setShowDealModal(true)}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -457,6 +504,108 @@ export default function CRM({ defaultTab }) {
         </div>
       )}
 
+      {/* AI CRM Insights Panels (Stale Deals or Single Deal Brief) */}
+      {(staleOpen || dealAiOpen) && (
+        <div style={{ padding: '10px 24px 0' }}>
+          {staleOpen && (
+            <AiInsightBox
+              title="ZORVI Stale Deals & Follow-up Radar"
+              subtitle="Identifies idle/overdue deals and prepares follow-up actions for confirmation."
+              loading={staleLoading}
+              error={staleError}
+              uncertainty={staleData?.uncertainty}
+              providerMeta={staleData?.meta}
+              onRefresh={runStaleDealsScan}
+              onClose={() => setStaleOpen(false)}
+            >
+              {staleData && (
+                <div>
+                  <p style={{ margin: '0 0 8px' }}>{staleData.summary}</p>
+                  {staleData.staleDeals?.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {staleData.staleDeals.map((sd) => (
+                        <div key={sd.dealId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: '#ffffff', border: '1px solid #dfe1e6', borderRadius: '6px', padding: '8px 10px' }}>
+                          <div>
+                            <strong>DEAL-{sd.dealId}: {sd.title}</strong> ({sd.clientName}) — <span className="zx-ai-tag">{sd.stage}</span> <span className="zx-ai-tag at_risk">{sd.daysIdle}d idle</span>
+                            <div style={{ fontSize: '12px', color: '#42526e', marginTop: '3px' }}>{sd.suggestedFollowUp}</div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              className="zx-ai-btn-sm"
+                              onClick={() => {
+                                setActivityForm({
+                                  deal_id: sd.dealId,
+                                  client_id: sd.clientId || '',
+                                  type: 'call',
+                                  title: `Follow up: ${sd.title}`,
+                                  description: sd.suggestedFollowUp,
+                                  due_date: new Date(Date.now() + 86400000).toISOString().slice(0, 16)
+                                });
+                                setShowActivityModal(true);
+                              }}
+                            >
+                              Log Activity
+                            </button>
+                            {sd.clientEmail && (
+                              <button
+                                type="button"
+                                className="zx-ai-btn-primary"
+                                onClick={() => setEmailModalConfig({
+                                  isOpen: true,
+                                  recipient: {
+                                    email: sd.clientEmail,
+                                    name: sd.clientName,
+                                    company: sd.clientName,
+                                    dealTitle: sd.title,
+                                    amount: sd.value,
+                                    goal: sd.suggestedFollowUp
+                                  },
+                                  relatedType: 'deal',
+                                  relatedId: sd.dealId
+                                })}
+                              >
+                                Draft Email
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </AiInsightBox>
+          )}
+
+          {dealAiOpen && (
+            <AiInsightBox
+              title={dealAiData?.entityId ? `ZORVI Deal Brief (DEAL-${dealAiData.entityId})` : 'ZORVI Deal Brief'}
+              loading={dealAiLoading}
+              error={dealAiErr}
+              uncertainty={dealAiData?.uncertainty}
+              providerMeta={dealAiData?.meta}
+              onClose={() => setDealAiOpen(false)}
+            >
+              {dealAiData && (
+                <div>
+                  <p style={{ margin: '0 0 6px' }}>{dealAiData.summary}</p>
+                  <div className="zx-ai-tags">
+                    <span className={`zx-ai-tag ${dealAiData.healthStatus}`}>Health: {dealAiData.healthStatus}</span>
+                    {(dealAiData.keySignals || []).map((s, idx) => <span key={idx} className="zx-ai-tag">{s}</span>)}
+                  </div>
+                  {dealAiData.nextSteps?.length > 0 && (
+                    <ul className="zx-ai-list" style={{ fontSize: '12px', marginTop: '6px' }}>
+                      {dealAiData.nextSteps.map((st, idx) => <li key={idx}>{st}</li>)}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </AiInsightBox>
+          )}
+        </div>
+      )}
+
       {/* VIEW 1: JIRA KANBAN BOARD */}
       {activeTab === 'pipeline' && (
         <div className="jira-kanban-board-canvas">
@@ -515,14 +664,25 @@ export default function CRM({ defaultTab }) {
                                   <span className="jira-issue-type-icon">💼</span>
                                   <span className="jira-issue-key">DEAL-{deal.id}</span>
                                 </div>
-                                <button
-                                  type="button"
-                                  className="jira-card-del-btn"
-                                  onClick={() => handleDeleteDeal(deal.id)}
-                                  title="Delete Deal"
-                                >
-                                  ×
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <button
+                                    type="button"
+                                    className="zx-ai-btn-sm"
+                                    style={{ padding: '1px 6px', fontSize: '10px' }}
+                                    onClick={() => runDealSummary(deal.id)}
+                                    title="ZORVI Deal Brief & Next Steps"
+                                  >
+                                    ZORVI Brief
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="jira-card-del-btn"
+                                    onClick={() => handleDeleteDeal(deal.id)}
+                                    title="Delete Deal"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Title */}

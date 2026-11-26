@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import Topbar from '../components/Topbar'
-import { apiListUsers, apiCreateUser, apiPatchUser, apiDeleteUser, apiMe } from '../api'
+import { apiListUsers, apiCreateUser, apiPatchUser, apiDeleteUser, apiMe, apiAiStatus, apiAiUpdateSettings, apiAiAuditLogs } from '../api'
+import { SparklesIcon } from '../components/CrmHrmsIcons'
 import "./Users.css"
 
 export default function Users() {
@@ -40,6 +41,39 @@ export default function Users() {
     position: ''
   })
   const [editSaving, setEditSaving] = useState(false)
+
+  // Admin AI Platform Governance & Audit
+  const [aiCfg, setAiCfg] = useState(null)
+  const [aiLogs, setAiLogs] = useState([])
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiSaving, setAiSaving] = useState(false)
+  const [showAiLogs, setShowAiLogs] = useState(false)
+
+  const loadAiGovernance = async () => {
+    setAiLoading(true)
+    try {
+      const [st, lg] = await Promise.all([apiAiStatus(), apiAiAuditLogs({ limit: 20 })])
+      setAiCfg(st)
+      setAiLogs(lg?.logs || [])
+    } catch { }
+    finally { setAiLoading(false) }
+  }
+
+  const toggleAiEnabled = async () => {
+    if (!aiCfg) return
+    setAiSaving(true)
+    try {
+      const next = !aiCfg.dbEnabled
+      const res = await apiAiUpdateSettings({ enabled: next })
+      setAiCfg(res)
+      showToast(`AI features ${next ? 'enabled' : 'disabled'}`, 'success')
+      loadAiGovernance()
+    } catch (err) {
+      showToast(err?.message || 'Failed to update AI setting', 'error')
+    } finally {
+      setAiSaving(false)
+    }
+  }
 
   const openEdit = (u) => {
     setEditingUser(u)
@@ -94,6 +128,7 @@ export default function Users() {
         const me = await apiMe()
         const role = (me.me?.role || me.user?.role || "").toLowerCase()
         setIsAdmin(role === 'admin')
+        if (role === 'admin') loadAiGovernance()
       } catch {
         setIsAdmin(false)
       }
@@ -572,6 +607,73 @@ export default function Users() {
           <div className="small">Page {page} / {totalPages || 1}</div>
           <button className="button ghost" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</button>
         </div>
+
+        {/* Admin AI Settings & Audit Governance */}
+        {isAdmin && (
+          <div style={{ marginTop: 20, padding: '14px 16px', background: '#f8faff', border: '1px solid #cfe0ff', borderRadius: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <SparklesIcon size={24} />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#172b4d' }}>ZORVI AI Capabilities &amp; Audit Governance</div>
+                  <div className="small" style={{ color: '#5e6c84' }}>
+                    {aiCfg
+                      ? `Status: ${aiCfg.enabled ? 'Enabled' : 'Disabled'} • Mode: ${aiCfg.providerConfigured ? `${aiCfg.provider} (${aiCfg.model})` : 'Grounded Analytical Engine'}${!aiCfg.envEnabled ? ' (Blocked by AI_ENABLED=false)' : ''}`
+                      : 'Loading AI status...'}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="button ghost"
+                  onClick={() => setShowAiLogs((v) => !v)}
+                >
+                  {showAiLogs ? 'Hide Audit Log' : `Audit Log (${aiLogs.length})`}
+                </button>
+                <button
+                  type="button"
+                  className={aiCfg?.dbEnabled ? 'buttondanger' : 'button primary'}
+                  disabled={aiSaving || aiLoading || !aiCfg || !aiCfg.envEnabled}
+                  onClick={toggleAiEnabled}
+                >
+                  {aiSaving ? 'Saving...' : aiCfg?.dbEnabled ? 'Disable AI Features' : 'Enable AI Features'}
+                </button>
+              </div>
+            </div>
+
+            {showAiLogs && (
+              <div style={{ marginTop: 12, overflowX: 'auto' }}>
+                <table className="table-cand" style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>User</th>
+                      <th>Feature</th>
+                      <th>Action</th>
+                      <th>Entity</th>
+                      <th>Mode / Model</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aiLogs.length === 0 ? (
+                      <tr><td colSpan={6}>No AI audit logs recorded yet.</td></tr>
+                    ) : aiLogs.map((l) => (
+                      <tr key={l.id}>
+                        <td>{new Date(l.created_at).toLocaleString()}</td>
+                        <td>{l.user_name || l.user_email || `#${l.user_id}`} ({l.user_role})</td>
+                        <td><code>{l.feature}</code></td>
+                        <td><strong>{l.action_status}</strong></td>
+                        <td>{l.entity_type ? `${l.entity_type} #${l.entity_id}` : '—'}</td>
+                        <td>{l.provider} ({l.model})</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Toast */}
         <div className={`toastx ${toast.type} ${toast.open ? 'show' : ''}`} role="status" aria-live="polite">

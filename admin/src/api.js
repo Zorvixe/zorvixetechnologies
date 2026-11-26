@@ -486,6 +486,28 @@ export const apiGetMyPresence = () => request("/api/presence/me");
 export const apiUpdateMyPresence = (body) => request("/api/presence/me", { method: "PATCH", body });
 export const apiPresenceHeartbeat = () => request("/api/presence/heartbeat", { method: "POST" });
 
+/* --------------------------- AI Intelligence Suite --------------------------- */
+export const apiAiStatus = () => request("/api/ai/status");
+export const apiAiUpdateSettings = (body) => request("/api/ai/settings", { method: "PATCH", body });
+export const apiAiAuditLogs = (params) => request("/api/ai/audit-logs", { params });
+export const apiAiAssistantChat = (body) => request("/api/ai/assistant/chat", { method: "POST", body });
+export const apiAiAnalyzeTicket = (ticketId) => request(`/api/ai/tickets/${ticketId}/analyze`, { method: "POST" });
+export const apiAiDraftTicketReply = (ticketId, body) => request(`/api/ai/tickets/${ticketId}/draft-reply`, { method: "POST", body });
+export const apiAiRecommendTicketAssignments = (body = {}) => request("/api/ai/tickets/recommend-assignments", { method: "POST", body });
+export const apiAiConfirmTicketAssignment = (body) => request("/api/ai/tickets/confirm-assignment", { method: "POST", body });
+export const apiAiCrmSummarize = (body) => request("/api/ai/crm/summarize", { method: "POST", body });
+export const apiAiCrmStaleDeals = () => request("/api/ai/crm/stale-deals", { method: "POST" });
+export const apiAiCrmDraftEmail = (body) => request("/api/ai/crm/draft-email", { method: "POST", body });
+export const apiAiAttendanceSummary = (body = {}) => request("/api/ai/hrms/attendance-summary", { method: "POST", body });
+export const apiAiCompareCandidate = (body) => request("/api/ai/hrms/compare-candidate", { method: "POST", body });
+export const apiAiLeaveSummary = (body = {}) => request("/api/ai/hrms/leave-summary", { method: "POST", body });
+export const apiAiPayrollAudit = (body = {}) => request("/api/ai/hrms/payroll-audit", { method: "POST", body });
+export const apiAiClientSummary = (clientId) => request(`/api/ai/clients/${clientId}/summary`, { method: "POST" });
+export const apiAiProjectSummary = (projectId) => request(`/api/ai/projects/${projectId}/summary`, { method: "POST" });
+export const apiAiContactAssist = (contactId) => request(`/api/ai/contacts/${contactId}/assist`, { method: "POST" });
+export const apiAiDashboardDigest = () => request("/api/ai/dashboard/digest", { method: "POST" });
+export const apiAiNotificationsSummary = (body = {}) => request("/api/ai/notifications/summary", { method: "POST", body });
+
 /* --------------------------- Helpers --------------------------- */
 export const formatDate = (d) => {
   if (!d) return "-"

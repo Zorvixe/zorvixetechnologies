@@ -152,7 +152,10 @@ export default function ContactsTab() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" className="table-state-msg">Loading business contacts...</td>
+                <div colSpan="7" className="loader_container">
+                  <p className="loader_spinner"></p>
+                  <p>Loading business contacts...</p>
+                </div>
               </tr>
             ) : filteredContacts.length === 0 ? (
               <tr>

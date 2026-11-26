@@ -271,7 +271,10 @@ export default function QuotesTab() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" className="table-state-msg">Loading quotations...</td>
+                <div className="loader_container">
+                  <p className="loader_spinner"></p>
+                  <p>Loading quotations...</p>
+                </div>
               </tr>
             ) : quotes.length === 0 ? (
               <tr>

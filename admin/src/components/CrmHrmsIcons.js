@@ -1,4 +1,5 @@
 import React from 'react';
+import ZorviAiLogoImg from '../assets/zorvi_ai_logo.png';
 
 // Common SVG Wrapper matching Sidebar.js SVG specifications
 const createIcon = (paths) => ({ size = 16, color = 'currentColor', strokeWidth = 2, className = '', style = {}, ...props }) => (
@@ -368,3 +369,19 @@ export const XIcon = createIcon(
     <line x1="6" y1="6" x2="18" y2="18" />
   </>
 );
+
+export const ZorviLogoIcon = ({ size = 16, color: _color, strokeWidth: _strokeWidth, className = '', style = {}, alt = 'ZORVI AI', ...props }) => {
+  const renderSize = size <= 14 ? 16 : size;
+  return (
+    <img
+      src={ZorviAiLogoImg}
+      alt={alt}
+      width={renderSize}
+      className={`zorvi-logo-icon ${className}`.trim()}
+
+      {...props}
+    />
+  );
+};
+
+export const SparklesIcon = ZorviLogoIcon;
