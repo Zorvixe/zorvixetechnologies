@@ -84,7 +84,7 @@ function getEnvProviderConfig() {
     baseUrl,
     apiKey,
     providerConfigured,
-    timeoutMs: DEFAULT_TIMEOUT_MS,
+    timeoutMs: Math.max(3000, Number(process.env.AI_TIMEOUT_MS || DEFAULT_TIMEOUT_MS)),
   };
 }
 
@@ -224,7 +224,8 @@ async function callGeminiProvider(cfg, systemPrompt, userPrompt) {
     }
 
     const data = await res.json();
-    const content = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
+    const parts = Array.isArray(data?.candidates?.[0]?.content?.parts) ? data.candidates[0].content.parts : [];
+    const content = parts.filter((p) => !p?.thought).map((p) => p?.text || '').join('');
     return { rawText: content, usage: data?.usageMetadata || null };
   } catch (err) {
     if (err.name === 'AbortError') {
