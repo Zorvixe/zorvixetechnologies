@@ -491,6 +491,10 @@ export const apiAiStatus = () => request("/api/ai/status");
 export const apiAiUpdateSettings = (body) => request("/api/ai/settings", { method: "PATCH", body });
 export const apiAiAuditLogs = (params) => request("/api/ai/audit-logs", { params });
 export const apiAiAssistantChat = (body) => request("/api/ai/assistant/chat", { method: "POST", body });
+export const apiAiCopilotSession = (params) => request("/api/ai/copilot/session", { params });
+export const apiAiCopilotReset = () => request("/api/ai/copilot/session/reset", { method: "POST" });
+export const apiAiCopilotConfirm = (body) => request("/api/ai/copilot/confirm", { method: "POST", body });
+export const apiAiCopilotCancel = (body) => request("/api/ai/copilot/cancel", { method: "POST", body });
 export const apiAiAnalyzeTicket = (ticketId) => request(`/api/ai/tickets/${ticketId}/analyze`, { method: "POST" });
 export const apiAiDraftTicketReply = (ticketId, body) => request(`/api/ai/tickets/${ticketId}/draft-reply`, { method: "POST", body });
 export const apiAiRecommendTicketAssignments = (body = {}) => request("/api/ai/tickets/recommend-assignments", { method: "POST", body });
@@ -507,6 +511,7 @@ export const apiAiProjectSummary = (projectId) => request(`/api/ai/projects/${pr
 export const apiAiContactAssist = (contactId) => request(`/api/ai/contacts/${contactId}/assist`, { method: "POST" });
 export const apiAiDashboardDigest = () => request("/api/ai/dashboard/digest", { method: "POST" });
 export const apiAiNotificationsSummary = (body = {}) => request("/api/ai/notifications/summary", { method: "POST", body });
+export const apiAiAssistField = (body = {}) => request("/api/ai/assist-field", { method: "POST", body });
 
 /* --------------------------- Helpers --------------------------- */
 export const formatDate = (d) => {

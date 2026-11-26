@@ -505,11 +505,11 @@ export default function Clients() {
       ) : (
         <>
           <Topbar title={`Client: ${selected.name}`}>
-            <button className="secondary" onClick={() => { setSelected(null); setProjects([]); setClientAiOpen(false); }}>Back</button>
-            <button type="button" className="zx-ai-pill-btn" onClick={() => runClientAiSummary(selected.id)}>
-              <SparklesIcon size={13} />
-              <span>ZORVI Client Brief</span>
+            <button type="button" className="ticket-ai-header-btn" onClick={() => runClientAiSummary(selected.id)}>
+              <SparklesIcon size={25} />
             </button>
+            <button className="secondary" onClick={() => { setSelected(null); setProjects([]); setClientAiOpen(false); }}>Back</button>
+
             {isAdmin && (
               <button className="btn btn-primary" onClick={() => setShowCreateProject(true)}>
                 New Project

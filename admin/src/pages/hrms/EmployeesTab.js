@@ -212,30 +212,30 @@ export default function EmployeesTab({ isAdmin, user }) {
 
       {/* DETAILED PROFILE DRAWER / MODAL */}
       {selectedEmpId && (
-        <div className="modal-backdrop" onClick={() => setSelectedEmpId(null)}>
-          <div className="modal-card emp-profile-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="emp-modal-backdrop" onClick={() => setSelectedEmpId(null)}>
+          <div className="emp-profile-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Employee Profile">
+            <div className="emp-modal-header">
               <div className="profile-modal-title-box">
                 <h4>{selectedDetails?.name || 'Employee Profile'}</h4>
                 <span className="code-tag">{selectedDetails?.employee_code || `ZOR-EMP-${selectedEmpId}`}</span>
               </div>
               <div className="header-modal-actions">
                 {isAdmin && !isEditing && (
-                  <button className="btn-edit-mode" onClick={() => setIsEditing(true)}>
+                  <button type="button" className="btn-edit-mode" onClick={() => setIsEditing(true)}>
                     ✏️ Edit Profile
                   </button>
                 )}
                 {isEditing && (
-                  <button className="btn-cancel-edit" onClick={() => setIsEditing(false)}>
+                  <button type="button" className="btn-cancel-edit" onClick={() => setIsEditing(false)}>
                     Cancel Edit
                   </button>
                 )}
-                <button className="btn-close" onClick={() => setSelectedEmpId(null)}>×</button>
+                <button type="button" className="emp-modal-close" onClick={() => setSelectedEmpId(null)} aria-label="Close">×</button>
               </div>
             </div>
 
             {detailsLoading ? (
-              <div className="modal-loading">Loading employee record details...</div>
+              <div className="emp-modal-loading">Loading employee record details...</div>
             ) : selectedDetails ? (
               <form onSubmit={handleSaveProfile} className="profile-form-body">
                 {/* Section 1: Personal Details */}
@@ -463,11 +463,11 @@ export default function EmployeesTab({ isAdmin, user }) {
                 </div>
 
                 {isEditing && (
-                  <div className="modal-actions sticky-actions">
-                    <button type="button" className="btn-cancel" onClick={() => setIsEditing(false)}>
+                  <div className="emp-modal-actions sticky-actions">
+                    <button type="button" className="emp-btn-cancel" onClick={() => setIsEditing(false)}>
                       Cancel
                     </button>
-                    <button type="submit" className="btn-save" disabled={saving}>
+                    <button type="submit" className="emp-btn-save" disabled={saving}>
                       {saving ? 'Saving...' : 'Save Employee Profile'}
                     </button>
                   </div>

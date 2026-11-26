@@ -144,10 +144,25 @@ function requireProjectPayments() {
 }
 
 /* ----------------------------- DB Initialization -------------------------- */
-async function initDb() {
+async function ensureColumns(client, tableName, columnDefs) {
+  const { rows } = await client.query(
+    `SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1`,
+    [tableName]
+  )
+  const existing = new Set(rows.map((r) => String(r.column_name || '').toLowerCase()))
+  for (const [colName, sqlDef] of columnDefs) {
+    if (!existing.has(String(colName).toLowerCase())) {
+      await client.query(`ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS ${sqlDef};`)
+    }
+  }
+}
+
+async function runInitDbAttempt() {
   const client = await pool.connect()
+  let lockAcquired = false
   try {
-    await client.query('BEGIN')
+    await client.query('SELECT pg_advisory_lock(92837461)')
+    lockAcquired = true
 
     // updated_at trigger
     await client.query(`
@@ -176,23 +191,31 @@ async function initDb() {
       );
     `)
     await client.query(`
-      DROP TRIGGER IF EXISTS trg_admin_users_updated_at ON admin_users;
-      CREATE TRIGGER trg_admin_users_updated_at
-      BEFORE UPDATE ON admin_users
-      FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_trigger WHERE tgname = 'trg_admin_users_updated_at'
+        ) THEN
+          CREATE TRIGGER trg_admin_users_updated_at
+          BEFORE UPDATE ON admin_users
+          FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+        END IF;
+      END $$;
     `)
-    // ensure columns exist when upgrading
-    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS username VARCHAR(60) UNIQUE;`)
-    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'admin';`)
-    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;`)
-    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS presence_status VARCHAR(30) NOT NULL DEFAULT 'Available';`)
-    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS dnd_until TIMESTAMPTZ;`)
-    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;`)
-    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS chat_preferences JSONB DEFAULT '{"soundNotif": true, "oneOneChats": true, "mentionNotif": true, "pauseChat": false}'::jsonb;`)
-    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS notif_last_read_at TIMESTAMPTZ;`)
-    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS ticket_last_read_at TIMESTAMPTZ;`)
-    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS notif_seen_keys JSONB DEFAULT '[]'::jsonb;`)
-    await client.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS ticket_seen_keys JSONB DEFAULT '[]'::jsonb;`)
+    // ensure columns exist when upgrading without taking unnecessary AccessExclusiveLocks
+    await ensureColumns(client, 'admin_users', [
+      ['username', 'username VARCHAR(60) UNIQUE'],
+      ['role', "role VARCHAR(20) NOT NULL DEFAULT 'admin'"],
+      ['last_login_at', 'last_login_at TIMESTAMPTZ'],
+      ['presence_status', "presence_status VARCHAR(30) NOT NULL DEFAULT 'Available'"],
+      ['dnd_until', 'dnd_until TIMESTAMPTZ'],
+      ['last_seen_at', 'last_seen_at TIMESTAMPTZ'],
+      ['chat_preferences', `chat_preferences JSONB DEFAULT '{"soundNotif": true, "oneOneChats": true, "mentionNotif": true, "pauseChat": false}'::jsonb`],
+      ['notif_last_read_at', 'notif_last_read_at TIMESTAMPTZ'],
+      ['ticket_last_read_at', 'ticket_last_read_at TIMESTAMPTZ'],
+      ['notif_seen_keys', "notif_seen_keys JSONB DEFAULT '[]'::jsonb"],
+      ['ticket_seen_keys', "ticket_seen_keys JSONB DEFAULT '[]'::jsonb"],
+    ])
 
     // Contacts
     await client.query(`
@@ -815,21 +838,28 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
     `);
 
     // 9. Comprehensive Zoho-Grade Enterprise CRM Tables
+    await ensureColumns(client, 'clients', [
+      ['industry', 'industry VARCHAR(100)'],
+      ['website', 'website VARCHAR(200)'],
+      ['annual_revenue', 'annual_revenue NUMERIC(15,2)'],
+      ['address', 'address TEXT'],
+      ['city', 'city VARCHAR(100)'],
+      ['country', "country VARCHAR(100) DEFAULT 'India'"],
+    ]);
+
+    await ensureColumns(client, 'crm_deals', [
+      ['loss_reason', 'loss_reason VARCHAR(100)'],
+      ['deal_type', "deal_type VARCHAR(50) DEFAULT 'new_business'"],
+      ['loss_notes', 'loss_notes TEXT'],
+    ]);
+
+    await ensureColumns(client, 'crm_activities', [
+      ['duration_minutes', 'duration_minutes INTEGER DEFAULT 15'],
+      ['outcome', 'outcome VARCHAR(50)'],
+      ['priority', "priority VARCHAR(20) DEFAULT 'normal'"],
+    ]);
+
     await client.query(`
-      -- Alter existing clients & deals tables for deeper CRM intelligence
-      ALTER TABLE clients ADD COLUMN IF NOT EXISTS industry VARCHAR(100);
-      ALTER TABLE clients ADD COLUMN IF NOT EXISTS website VARCHAR(200);
-      ALTER TABLE clients ADD COLUMN IF NOT EXISTS annual_revenue NUMERIC(15,2);
-      ALTER TABLE clients ADD COLUMN IF NOT EXISTS address TEXT;
-      ALTER TABLE clients ADD COLUMN IF NOT EXISTS city VARCHAR(100);
-      ALTER TABLE clients ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'India';
-
-      ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS loss_reason VARCHAR(100);
-      ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS deal_type VARCHAR(50) DEFAULT 'new_business';
-
-      ALTER TABLE crm_activities ADD COLUMN IF NOT EXISTS duration_minutes INTEGER DEFAULT 15;
-      ALTER TABLE crm_activities ADD COLUMN IF NOT EXISTS outcome VARCHAR(50);
-      ALTER TABLE crm_activities ADD COLUMN IF NOT EXISTS priority VARCHAR(20) DEFAULT 'normal';
 
       -- CRM Leads Pool
       CREATE TABLE IF NOT EXISTS crm_leads (
@@ -950,14 +980,14 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_crm_emails_related ON crm_emails(related_type, related_id);
-
-      -- Extend leads & deals for UTM, assignments, loss notes
-      ALTER TABLE crm_leads ADD COLUMN IF NOT EXISTS utm_source VARCHAR(100);
-      ALTER TABLE crm_leads ADD COLUMN IF NOT EXISTS utm_medium VARCHAR(100);
-      ALTER TABLE crm_leads ADD COLUMN IF NOT EXISTS utm_campaign VARCHAR(100);
-      ALTER TABLE crm_leads ADD COLUMN IF NOT EXISTS assigned_to BIGINT REFERENCES admin_users(id) ON DELETE SET NULL;
-      ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS loss_notes TEXT;
     `);
+
+    await ensureColumns(client, 'crm_leads', [
+      ['utm_source', 'utm_source VARCHAR(100)'],
+      ['utm_medium', 'utm_medium VARCHAR(100)'],
+      ['utm_campaign', 'utm_campaign VARCHAR(100)'],
+      ['assigned_to', 'assigned_to BIGINT REFERENCES admin_users(id) ON DELETE SET NULL'],
+    ]);
 
     // Seed default Phase 2 Email Templates if table is empty
     await client.query(`
@@ -1069,6 +1099,27 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
       );
       CREATE INDEX IF NOT EXISTS idx_ai_audit_feature_created ON ai_audit_logs(feature, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_ai_audit_user_created ON ai_audit_logs(user_id, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS ai_copilot_sessions (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+        title VARCHAR(180) DEFAULT 'Zorvi Session',
+        pending_action JSONB,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_ai_copilot_sessions_user ON ai_copilot_sessions(user_id, updated_at DESC);
+
+      CREATE TABLE IF NOT EXISTS ai_copilot_messages (
+        id BIGSERIAL PRIMARY KEY,
+        session_id BIGINT NOT NULL REFERENCES ai_copilot_sessions(id) ON DELETE CASCADE,
+        user_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+        role VARCHAR(20) NOT NULL,
+        content TEXT NOT NULL,
+        payload JSONB DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_ai_copilot_messages_session ON ai_copilot_messages(session_id, created_at ASC);
     `);
 
 
@@ -1093,13 +1144,29 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
       }
     }
 
-    await client.query('COMMIT')
   } catch (e) {
-    await client.query('ROLLBACK')
     console.error('DB init error:', e)
     throw e
   } finally {
+    if (lockAcquired) {
+      await client.query('SELECT pg_advisory_unlock(92837461)').catch(() => {})
+    }
     client.release()
+  }
+}
+
+async function initDb() {
+  const maxAttempts = 3
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await runInitDbAttempt()
+      return
+    } catch (e) {
+      const retryable = e && (e.code === '40P01' || e.code === '55P03')
+      if (!retryable || attempt === maxAttempts) throw e
+      console.warn(`DB init lock contention (attempt ${attempt}/${maxAttempts}), retrying...`)
+      await new Promise((r) => setTimeout(r, 400 * attempt))
+    }
   }
 }
 
@@ -9770,6 +9837,12 @@ app.use(
     isAdmin,
     extractResumeText,
     sendTicketAssignedEmail,
+    sendTicketCommentEmail,
+    sendLeaveStatusEmail,
+    sendEmail,
+    genProjectCode,
+    genZorvixeId,
+    userCanEditProject,
   })
 );
 

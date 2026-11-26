@@ -12,6 +12,8 @@ import {
   apiAiCrmSummarize
 } from '../api';
 import AiInsightBox from '../components/AiInsightBox';
+import RichTextEditor from '../components/RichTextEditor';
+import { renderSafeHtml } from '../utils/safeHtml';
 
 import LeadsTab from './crm/LeadsTab';
 import AccountsTab from './crm/AccountsTab';
@@ -716,7 +718,10 @@ export default function CRM({ defaultTab }) {
                               )}
 
                               {deal.description && (
-                                <p className="jira-card-desc">{deal.description}</p>
+                                <div
+                                  className="jira-card-desc"
+                                  dangerouslySetInnerHTML={{ __html: renderSafeHtml(deal.description) }}
+                                />
                               )}
 
                               {/* Card Footer: Fast Stage Navigation, Email & Assignee */}
@@ -900,11 +905,12 @@ export default function CRM({ defaultTab }) {
 
               <div className="jira-form-group">
                 <label>Scope / Notes</label>
-                <textarea
-                  rows="3"
-                  placeholder="Client requirements, deliverables, budget details..."
+                <RichTextEditor
                   value={dealForm.description}
-                  onChange={(e) => setDealForm({ ...dealForm, description: e.target.value })}
+                  placeholder="Client requirements, deliverables, budget details..."
+                  minHeight="100px"
+                  aiFieldLabel="Deal Scope / Notes"
+                  onChange={(content) => setDealForm((prev) => ({ ...prev, description: content }))}
                 />
               </div>
 
@@ -977,11 +983,12 @@ export default function CRM({ defaultTab }) {
 
               <div className="jira-form-group">
                 <label>Notes</label>
-                <textarea
-                  rows="3"
-                  placeholder="Key discussion points, customer feedback, next steps..."
+                <RichTextEditor
                   value={activityForm.description}
-                  onChange={(e) => setActivityForm({ ...activityForm, description: e.target.value })}
+                  placeholder="Key discussion points, customer feedback, next steps..."
+                  minHeight="100px"
+                  aiFieldLabel="CRM Activity Notes"
+                  onChange={(content) => setActivityForm((prev) => ({ ...prev, description: content }))}
                 />
               </div>
 
@@ -1038,11 +1045,12 @@ export default function CRM({ defaultTab }) {
 
               <div className="jira-form-group">
                 <label>Loss Debrief Notes</label>
-                <textarea
-                  rows="3"
-                  placeholder="Details on client decision, competitor pricing, or future re-engagement timing..."
+                <RichTextEditor
                   value={lostDealModal.notes}
-                  onChange={(e) => setLostDealModal({ ...lostDealModal, notes: e.target.value })}
+                  placeholder="Details on client decision, competitor pricing, or future re-engagement timing..."
+                  minHeight="100px"
+                  aiFieldLabel="Loss Debrief Notes"
+                  onChange={(content) => setLostDealModal((prev) => ({ ...prev, notes: content }))}
                 />
               </div>
 

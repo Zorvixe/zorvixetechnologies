@@ -129,6 +129,21 @@
   max-height: 280px !important;
 }
 
+.editor-content.has-footer {
+  min-height: 96px;
+  border-radius: 0;
+}
+
+.editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 6px 12px 10px;
+  border-radius: 0 0 8px 8px;
+  flex-wrap: wrap;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .editor-toolbar {

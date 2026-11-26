@@ -293,7 +293,7 @@
 }
 
 /* Jira Modal Backdrop & Card */
-.modal-backdrop {
+.emp-modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(9, 30, 66, 0.54);
@@ -301,7 +301,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1050;
+  z-index: 2050;
   padding: 16px;
 }
 
@@ -318,7 +318,7 @@
   overflow: hidden;
 }
 
-.modal-header {
+.emp-modal-header {
   padding: 14px 20px;
   border-bottom: 1px solid #ebecf0;
   display: flex;
@@ -391,7 +391,7 @@
   background: rgba(9, 30, 66, 0.04);
 }
 
-.btn-close {
+.emp-modal-close {
   background: transparent;
   border: none;
   font-size: 20px;
@@ -402,12 +402,12 @@
   border-radius: 3px;
 }
 
-.btn-close:hover {
+.emp-modal-close:hover {
   background: rgba(9, 30, 66, 0.08);
   color: #172b4d;
 }
 
-.modal-loading {
+.emp-modal-loading {
   padding: 40px;
   text-align: center;
   color: #5e6c84;
@@ -494,7 +494,7 @@
   box-shadow: 0 0 0 1px #4c9aff;
 }
 
-.modal-actions {
+.emp-modal-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -511,7 +511,7 @@
   margin-top: 4px;
 }
 
-.btn-cancel {
+.emp-btn-cancel {
   height: 32px;
   background: transparent;
   border: 1px solid #dfe1e6;
@@ -523,11 +523,11 @@
   cursor: pointer;
 }
 
-.btn-cancel:hover {
+.emp-btn-cancel:hover {
   background: rgba(9, 30, 66, 0.04);
 }
 
-.btn-save {
+.emp-btn-save {
   height: 32px;
   background: #0052cc;
   border: none;
@@ -540,11 +540,11 @@
   transition: background 0.15s ease;
 }
 
-.btn-save:hover:not(:disabled) {
+.emp-btn-save:hover:not(:disabled) {
   background: #0065ff;
 }
 
-.btn-save:disabled {
+.emp-btn-save:disabled {
   background: #ebecf0;
   color: #a5adba;
   cursor: not-allowed;

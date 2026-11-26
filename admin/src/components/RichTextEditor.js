@@ -1,5 +1,7 @@
 // Rich Text Editor Component
 import React, { useState, useRef, useEffect } from 'react';
+import { apiAiAssistField } from '../api';
+import { extractNearbyFormContext, ZorviAiInlineButton } from './AiTextareaWrap';
 
 import "./RichTextEditor.css"
 
@@ -11,12 +13,19 @@ const RichTextEditor = ({
   maxHeight = "200px",   // optional
   disabled = false,
   style = {},  // accept external style overrides
-  className = ''
+  className = '',
+  footerContent = null,
+  disableAiAssist = false,
+  aiFieldLabel = '',
+  aiContext = {}
 }) => {
+  const containerRef = useRef(null);
   const editorRef = useRef(null);
   const [isExpanded, setIsExpanded] = useState(false);
-   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const [textColor, setTextColor] = useState("#000000");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiErr, setAiErr] = useState("");
 
   useEffect(() => {
     if (editorRef.current && value !== editorRef.current.innerHTML) {
@@ -90,14 +99,43 @@ const RichTextEditor = ({
     }
   };
 
-   const applyColor = (color) => {
+  const applyColor = (color) => {
     setTextColor(color);
     execCommand("foreColor", color);
     setShowColorPicker(false);
   };
 
+  const handleDefaultAiAssist = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (aiLoading || disabled || !onChange) return;
+    setAiLoading(true);
+    setAiErr("");
+    try {
+      const groupLabel = containerRef.current?.closest('.col-12, .form-group, div')?.querySelector('label')?.textContent?.trim();
+      const ctx = extractNearbyFormContext(containerRef.current, aiContext);
+      const res = await apiAiAssistField({
+        fieldLabel: aiFieldLabel || groupLabel || placeholder || 'Description',
+        currentText: editorRef.current?.innerText || value || '',
+        pagePath: typeof window !== 'undefined' ? window.location.pathname : '/',
+        context: ctx,
+      });
+      if (res?.html || res?.text) {
+        const nextHtml = res.html || `<p>${res.text}</p>`;
+        if (editorRef.current) editorRef.current.innerHTML = nextHtml;
+        onChange(nextHtml);
+      }
+    } catch (err) {
+      setAiErr(err?.message || 'Unable to draft with ZORVI AI right now.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const showAutoAiFooter = !footerContent && !disableAiAssist && !disabled;
+
   return (
-    <div className={`rich-text-editor ${isExpanded ? 'expanded' : ''} ${className}`} style={style}>
+    <div ref={containerRef} className={`rich-text-editor ${isExpanded ? 'expanded' : ''} ${className}`} style={style}>
       <div className="editor-toolbar">
         <div className="toolbar-group">
           <button
@@ -236,7 +274,7 @@ const RichTextEditor = ({
 
       <div
         ref={editorRef}
-        className="editor-content"
+        className={`editor-content${footerContent || showAutoAiFooter ? ' has-footer' : ''}`}
         contentEditable={!disabled}
         onInput={handleInput}
         onKeyDown={handleKeyDown}
@@ -247,6 +285,20 @@ const RichTextEditor = ({
         data-placeholder={placeholder}
         suppressContentEditableWarning={true}
       />
+      {(footerContent || showAutoAiFooter) && (
+        <div className="editor-footer">
+          {footerContent || (
+            <>
+              {aiErr && <span className="zx-ai-field-err" style={{ marginRight: 'auto' }}>{aiErr}</span>}
+              <ZorviAiInlineButton
+                loading={aiLoading}
+                disabled={disabled}
+                onClick={handleDefaultAiAssist}
+              />
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -48,6 +48,7 @@ export default function PayrollTab({ isAdmin, user }) {
   const [structures, setStructures] = useState([]);
   const [structuresLoading, setStructuresLoading] = useState(false);
   const [editingStructure, setEditingStructure] = useState(null);
+  const [savingStructure, setSavingStructure] = useState(false);
   const [structForm, setStructForm] = useState({
     ctc_annual: 600000,
     basic_monthly: 25000,
@@ -58,7 +59,8 @@ export default function PayrollTab({ isAdmin, user }) {
     pf_employee_monthly: 1800,
     esi_employee_monthly: 0,
     professional_tax_monthly: 200,
-    tds_monthly: 0
+    tds_monthly: 0,
+    effective_from: ''
   });
 
   // Edit Payroll record (bonus, other deductions, status)
@@ -181,32 +183,39 @@ export default function PayrollTab({ isAdmin, user }) {
 
   const openEditStructure = (item) => {
     setEditingStructure(item);
+    const hasConfigured = Number(item.ctc_annual || 0) > 0 || Number(item.basic_monthly || 0) > 0;
     setStructForm({
-      ctc_annual: item.ctc_annual || 600000,
-      basic_monthly: item.basic_monthly || 25000,
-      hra_monthly: item.hra_monthly || 10000,
-      special_allowance_monthly: item.special_allowance_monthly || 10000,
-      conveyance_monthly: item.conveyance_monthly || 2500,
-      medical_allowance_monthly: item.medical_allowance_monthly || 2500,
-      pf_employee_monthly: item.pf_employee_monthly || 1800,
-      esi_employee_monthly: item.esi_employee_monthly || 0,
-      professional_tax_monthly: item.professional_tax_monthly || 200,
-      tds_monthly: item.tds_monthly || 0
+      ctc_annual: hasConfigured ? Number(item.ctc_annual ?? 0) : 600000,
+      basic_monthly: hasConfigured ? Number(item.basic_monthly ?? 0) : 25000,
+      hra_monthly: hasConfigured ? Number(item.hra_monthly ?? 0) : 10000,
+      special_allowance_monthly: hasConfigured ? Number(item.special_allowance_monthly ?? 0) : 10000,
+      conveyance_monthly: hasConfigured ? Number(item.conveyance_monthly ?? 0) : 2500,
+      medical_allowance_monthly: hasConfigured ? Number(item.medical_allowance_monthly ?? 0) : 2500,
+      pf_employee_monthly: hasConfigured ? Number(item.pf_employee_monthly ?? 0) : 1800,
+      esi_employee_monthly: Number(item.esi_employee_monthly ?? 0),
+      professional_tax_monthly: Number(item.professional_tax_monthly ?? 200),
+      tds_monthly: Number(item.tds_monthly ?? 0),
+      effective_from: item.effective_from ? String(item.effective_from).slice(0, 10) : ''
     });
   };
 
   const handleCtcChange = (ctc) => {
-    const num = Number(ctc || 0);
+    if (ctc === '') {
+      setStructForm((prev) => ({ ...prev, ctc_annual: '' }));
+      return;
+    }
+    const num = Math.max(0, Number(ctc || 0));
     const monthlyGross = Math.round(num / 12);
     const basic = Math.round(monthlyGross * 0.5); // 50% basic
-    const hra = Math.round(basic * 0.4); // 40% of basic
-    const conv = 2500;
-    const med = 2500;
+    const hra = Math.round(basic * 0.4); // 20% of gross
+    const conv = monthlyGross >= 15000 ? 2500 : Math.round(monthlyGross * 0.1);
+    const med = monthlyGross >= 15000 ? 2500 : Math.round(monthlyGross * 0.1);
     const special = Math.max(0, monthlyGross - (basic + hra + conv + med));
     const pf = Math.min(1800, Math.round(basic * 0.12));
-    const esi = monthlyGross <= 21000 ? Math.round(monthlyGross * 0.0075) : 0;
+    const esi = monthlyGross > 0 && monthlyGross <= 21000 ? Math.round(monthlyGross * 0.0075) : 0;
 
-    setStructForm({
+    setStructForm((prev) => ({
+      ...prev,
       ctc_annual: num,
       basic_monthly: basic,
       hra_monthly: hra,
@@ -215,21 +224,35 @@ export default function PayrollTab({ isAdmin, user }) {
       medical_allowance_monthly: med,
       pf_employee_monthly: pf,
       esi_employee_monthly: esi,
-      professional_tax_monthly: 200,
-      tds_monthly: structForm.tds_monthly
-    });
+      professional_tax_monthly: monthlyGross > 10000 ? 200 : 0,
+    }));
   };
 
   const handleSaveStructure = async (e) => {
     e.preventDefault();
-    if (!editingStructure) return;
+    if (!editingStructure || savingStructure) return;
+    setSavingStructure(true);
     try {
-      await apiUpdateSalaryStructure(editingStructure.user_id, structForm);
-      alert('Salary structure saved successfully');
+      await apiUpdateSalaryStructure(editingStructure.user_id, {
+        ...structForm,
+        ctc_annual: Number(structForm.ctc_annual || 0),
+        basic_monthly: Number(structForm.basic_monthly || 0),
+        hra_monthly: Number(structForm.hra_monthly || 0),
+        special_allowance_monthly: Number(structForm.special_allowance_monthly || 0),
+        conveyance_monthly: Number(structForm.conveyance_monthly || 0),
+        medical_allowance_monthly: Number(structForm.medical_allowance_monthly || 0),
+        pf_employee_monthly: Number(structForm.pf_employee_monthly || 0),
+        esi_employee_monthly: Number(structForm.esi_employee_monthly || 0),
+        professional_tax_monthly: Number(structForm.professional_tax_monthly || 0),
+        tds_monthly: Number(structForm.tds_monthly || 0),
+        effective_from: structForm.effective_from || null,
+      });
       setEditingStructure(null);
       fetchStructures();
     } catch (err) {
       alert(err.message || 'Failed to save salary structure');
+    } finally {
+      setSavingStructure(false);
     }
   };
 
@@ -432,11 +455,12 @@ export default function PayrollTab({ isAdmin, user }) {
               <tbody>
                 {loading ? (
                   <tr>
-                    <div> <div className="loader_container">
-                      <p className="loader_spinner"></p>
-                      <p>Loading Please Wait...</p>
-                    </div>
-                    </div>
+                    <td colSpan="9">
+                      <div className="loader_container">
+                        <p className="loader_spinner"></p>
+                        <p>Loading Please Wait...</p>
+                      </div>
+                    </td>
                   </tr>
                 ) : payrolls.length === 0 ? (
                   <tr>
@@ -538,11 +562,14 @@ export default function PayrollTab({ isAdmin, user }) {
               </thead>
               <tbody>
                 {structuresLoading ? (
-                  <tr><div> <div className="loader_container">
-                    <p className="loader_spinner"></p>
-                    <p>Loading Please Wait...</p>
-                  </div>
-                  </div></tr>
+                  <tr>
+                    <td colSpan="9">
+                      <div className="loader_container">
+                        <p className="loader_spinner"></p>
+                        <p>Loading Please Wait...</p>
+                      </div>
+                    </td>
+                  </tr>
                 ) : (
                   structures.map((s) => (
                     <tr key={s.user_id}>
@@ -829,127 +856,189 @@ export default function PayrollTab({ isAdmin, user }) {
       })()}
 
       {/* EDIT SALARY STRUCTURE MODAL */}
-      {editingStructure && (
-        <div className="modal-backdrop" onClick={() => setEditingStructure(null)}>
-          <div className="modal-card modal-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h4>Salary Structure: {editingStructure.name}</h4>
-              <button className="btn-close" onClick={() => setEditingStructure(null)}>×</button>
+      {editingStructure && (() => {
+        const monthlyGross =
+          Number(structForm.basic_monthly || 0) +
+          Number(structForm.hra_monthly || 0) +
+          Number(structForm.special_allowance_monthly || 0) +
+          Number(structForm.conveyance_monthly || 0) +
+          Number(structForm.medical_allowance_monthly || 0);
+        const monthlyDed =
+          Number(structForm.pf_employee_monthly || 0) +
+          Number(structForm.esi_employee_monthly || 0) +
+          Number(structForm.professional_tax_monthly || 0) +
+          Number(structForm.tds_monthly || 0);
+        const monthlyNet = monthlyGross - monthlyDed;
+
+        return (
+          <div className="pay-modal-backdrop" onClick={() => setEditingStructure(null)}>
+            <div className="pay-modal-card pay-modal-lg" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Edit Salary Structure">
+              <div className="pay-modal-header">
+                <div>
+                  <h4>Salary Structure: {editingStructure.name}</h4>
+                  <span className="pay-modal-sub">
+                    {editingStructure.employee_code || editingStructure.email} &bull; {editingStructure.department || 'General'}
+                  </span>
+                </div>
+                <button type="button" className="pay-modal-close" onClick={() => setEditingStructure(null)} aria-label="Close">×</button>
+              </div>
+              <form onSubmit={handleSaveStructure} className="pay-modal-form">
+                <div className="pay-highlight-row">
+                  <div className="pay-form-group pay-highlight-group">
+                    <label>Annual CTC (₹) *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={structForm.ctc_annual}
+                      onChange={(e) => handleCtcChange(e.target.value)}
+                      required
+                    />
+                    <small className="pay-help-text">
+                      Updating CTC automatically balances Basic (50%), HRA (20%), Allowances, PF &amp; ESIC.
+                    </small>
+                  </div>
+                  <div className="pay-form-group pay-highlight-group">
+                    <label>Effective From</label>
+                    <input
+                      type="date"
+                      value={structForm.effective_from}
+                      onChange={(e) => setStructForm({ ...structForm, effective_from: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Live Computed Summary Strip */}
+                <div className="pay-struct-preview">
+                  <div className="pay-preview-item">
+                    <span>Monthly Gross</span>
+                    <strong>{fmtCurrency(monthlyGross)}</strong>
+                  </div>
+                  <div className="pay-preview-item">
+                    <span>Monthly Deductions</span>
+                    <strong className="text-danger">-{fmtCurrency(monthlyDed)}</strong>
+                  </div>
+                  <div className="pay-preview-item">
+                    <span>Est. Net Pay / Mo</span>
+                    <strong className="net-salary-highlight">{fmtCurrency(monthlyNet)}</strong>
+                  </div>
+                </div>
+
+                <div className="pay-section-divider">Earnings Breakdown (Monthly)</div>
+                <div className="pay-form-row-3">
+                  <div className="pay-form-group">
+                    <label>Basic Pay (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={structForm.basic_monthly}
+                      onChange={(e) => setStructForm({ ...structForm, basic_monthly: e.target.value === '' ? '' : Number(e.target.value) })}
+                      required
+                    />
+                  </div>
+                  <div className="pay-form-group">
+                    <label>HRA (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={structForm.hra_monthly}
+                      onChange={(e) => setStructForm({ ...structForm, hra_monthly: e.target.value === '' ? '' : Number(e.target.value) })}
+                      required
+                    />
+                  </div>
+                  <div className="pay-form-group">
+                    <label>Special Allowance (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={structForm.special_allowance_monthly}
+                      onChange={(e) => setStructForm({ ...structForm, special_allowance_monthly: e.target.value === '' ? '' : Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div className="pay-form-row-3">
+                  <div className="pay-form-group">
+                    <label>Conveyance (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={structForm.conveyance_monthly}
+                      onChange={(e) => setStructForm({ ...structForm, conveyance_monthly: e.target.value === '' ? '' : Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="pay-form-group">
+                    <label>Medical Allowance (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={structForm.medical_allowance_monthly}
+                      onChange={(e) => setStructForm({ ...structForm, medical_allowance_monthly: e.target.value === '' ? '' : Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div className="pay-section-divider">Statutory Deductions (Monthly)</div>
+                <div className="pay-form-row-3">
+                  <div className="pay-form-group">
+                    <label>EPF Employee (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={structForm.pf_employee_monthly}
+                      onChange={(e) => setStructForm({ ...structForm, pf_employee_monthly: e.target.value === '' ? '' : Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="pay-form-group">
+                    <label>ESIC Employee (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={structForm.esi_employee_monthly}
+                      onChange={(e) => setStructForm({ ...structForm, esi_employee_monthly: e.target.value === '' ? '' : Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="pay-form-group">
+                    <label>Professional Tax (PT) (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={structForm.professional_tax_monthly}
+                      onChange={(e) => setStructForm({ ...structForm, professional_tax_monthly: e.target.value === '' ? '' : Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="pay-form-group">
+                    <label>TDS / Tax Monthly (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={structForm.tds_monthly}
+                      onChange={(e) => setStructForm({ ...structForm, tds_monthly: e.target.value === '' ? '' : Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div className="pay-modal-actions">
+                  <button type="button" className="pay-btn-cancel" onClick={() => setEditingStructure(null)} disabled={savingStructure}>Cancel</button>
+                  <button type="submit" className="pay-btn-save" disabled={savingStructure}>
+                    {savingStructure ? 'Saving...' : 'Save Structure'}
+                  </button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={handleSaveStructure} className="modal-form">
-              <div className="form-group highlight-group">
-                <label>Annual CTC (₹) *</label>
-                <input
-                  type="number"
-                  value={structForm.ctc_annual}
-                  onChange={(e) => handleCtcChange(e.target.value)}
-                  required
-                />
-                <small className="help-text">Changing CTC will automatically balance Basic (50%), HRA (20%), Special Allowances & PF.</small>
-              </div>
-
-              <div className="form-row-3">
-                <div className="form-group">
-                  <label>Basic Pay Monthly (₹)</label>
-                  <input
-                    type="number"
-                    value={structForm.basic_monthly}
-                    onChange={(e) => setStructForm({ ...structForm, basic_monthly: Number(e.target.value) })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>HRA Monthly (₹)</label>
-                  <input
-                    type="number"
-                    value={structForm.hra_monthly}
-                    onChange={(e) => setStructForm({ ...structForm, hra_monthly: Number(e.target.value) })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Special Allowance (₹)</label>
-                  <input
-                    type="number"
-                    value={structForm.special_allowance_monthly}
-                    onChange={(e) => setStructForm({ ...structForm, special_allowance_monthly: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-
-              <div className="form-row-3">
-                <div className="form-group">
-                  <label>Conveyance (₹)</label>
-                  <input
-                    type="number"
-                    value={structForm.conveyance_monthly}
-                    onChange={(e) => setStructForm({ ...structForm, conveyance_monthly: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Medical Allowance (₹)</label>
-                  <input
-                    type="number"
-                    value={structForm.medical_allowance_monthly}
-                    onChange={(e) => setStructForm({ ...structForm, medical_allowance_monthly: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>EPF Employee (₹)</label>
-                  <input
-                    type="number"
-                    value={structForm.pf_employee_monthly}
-                    onChange={(e) => setStructForm({ ...structForm, pf_employee_monthly: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-
-              <div className="form-row-3">
-                <div className="form-group">
-                  <label>ESIC Employee (₹)</label>
-                  <input
-                    type="number"
-                    value={structForm.esi_employee_monthly}
-                    onChange={(e) => setStructForm({ ...structForm, esi_employee_monthly: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Professional Tax (PT) (₹)</label>
-                  <input
-                    type="number"
-                    value={structForm.professional_tax_monthly}
-                    onChange={(e) => setStructForm({ ...structForm, professional_tax_monthly: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>TDS / Tax Monthly (₹)</label>
-                  <input
-                    type="number"
-                    value={structForm.tds_monthly}
-                    onChange={(e) => setStructForm({ ...structForm, tds_monthly: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-
-              <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setEditingStructure(null)}>Cancel</button>
-                <button type="submit" className="btn-save">Save Structure</button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ADJUST PAYROLL MODAL */}
       {editingPayroll && (
-        <div className="modal-backdrop" onClick={() => setEditingPayroll(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="pay-modal-backdrop" onClick={() => setEditingPayroll(null)}>
+          <div className="pay-modal-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Adjust Payroll">
+            <div className="pay-modal-header">
               <h4>Adjust Payroll: {editingPayroll.name}</h4>
-              <button className="btn-close" onClick={() => setEditingPayroll(null)}>×</button>
+              <button type="button" className="pay-modal-close" onClick={() => setEditingPayroll(null)} aria-label="Close">×</button>
             </div>
-            <form onSubmit={handleSaveAdjustment} className="modal-form">
-              <div className="form-group">
+            <form onSubmit={handleSaveAdjustment} className="pay-modal-form">
+              <div className="pay-form-group">
                 <label>Status</label>
                 <select
                   value={adjustForm.status}
@@ -960,8 +1049,8 @@ export default function PayrollTab({ isAdmin, user }) {
                   <option value="paid">Paid</option>
                 </select>
               </div>
-              <div className="form-row">
-                <div className="form-group">
+              <div className="pay-form-row">
+                <div className="pay-form-group">
                   <label>Incentives / Bonus (₹)</label>
                   <input
                     type="number"
@@ -969,7 +1058,7 @@ export default function PayrollTab({ isAdmin, user }) {
                     onChange={(e) => setAdjustForm({ ...adjustForm, bonus: Number(e.target.value) })}
                   />
                 </div>
-                <div className="form-group">
+                <div className="pay-form-group">
                   <label>Other Deductions (₹)</label>
                   <input
                     type="number"
@@ -978,7 +1067,7 @@ export default function PayrollTab({ isAdmin, user }) {
                   />
                 </div>
               </div>
-              <div className="form-group">
+              <div className="pay-form-group">
                 <label>Payment Mode</label>
                 <input
                   type="text"
@@ -986,7 +1075,7 @@ export default function PayrollTab({ isAdmin, user }) {
                   onChange={(e) => setAdjustForm({ ...adjustForm, payment_mode: e.target.value })}
                 />
               </div>
-              <div className="form-group">
+              <div className="pay-form-group">
                 <label>Remarks</label>
                 <input
                   type="text"
@@ -994,9 +1083,9 @@ export default function PayrollTab({ isAdmin, user }) {
                   onChange={(e) => setAdjustForm({ ...adjustForm, notes: e.target.value })}
                 />
               </div>
-              <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setEditingPayroll(null)}>Cancel</button>
-                <button type="submit" className="btn-save">Update Record</button>
+              <div className="pay-modal-actions">
+                <button type="button" className="pay-btn-cancel" onClick={() => setEditingPayroll(null)}>Cancel</button>
+                <button type="submit" className="pay-btn-save">Update Record</button>
               </div>
             </form>
           </div>

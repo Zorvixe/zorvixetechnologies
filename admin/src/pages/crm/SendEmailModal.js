@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiListEmailTemplates, apiSendCrmEmail, apiAiCrmDraftEmail } from '../../api';
 import { SparklesIcon } from '../../components/CrmHrmsIcons';
+import AiTextareaWrap from '../../components/AiTextareaWrap';
 import { useAuth } from '../../auth';
 import './SendEmailModal.css';
 
@@ -280,13 +281,20 @@ export default function SendEmailModal({
 
           <div className="email-form-group">
             <label>Email Body *</label>
-            <textarea
-              rows={9}
+            <AiTextareaWrap
+              fieldLabel="Sales Email Body"
+              aiContext={{ subject, recipient: toName || toEmail, relatedType }}
               value={body}
-              onChange={e => setBody(e.target.value)}
-              placeholder="Write your email proposal or notes here..."
-              required
-            />
+              onAiApply={(text) => setBody(text)}
+            >
+              <textarea
+                rows={9}
+                value={body}
+                onChange={e => setBody(e.target.value)}
+                placeholder="Write your email proposal or notes here..."
+                required
+              />
+            </AiTextareaWrap>
           </div>
 
           <div className="email-modal-footer">

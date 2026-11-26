@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiListCrmContacts, apiCreateCrmContact, apiDeleteCrmContact, apiListAccounts } from '../../api';
 import { GlobeIcon, TrashIcon } from '../../components/CrmHrmsIcons';
+import RichTextEditor from '../../components/RichTextEditor';
 import './ContactsTab.css';
 
 export default function ContactsTab() {
@@ -314,11 +315,12 @@ export default function ContactsTab() {
 
               <div className="crm-form-group">
                 <label>Notes / Bio</label>
-                <textarea
-                  rows="2"
-                  placeholder="Decision making power, communication preferences..."
+                <RichTextEditor
                   value={contactForm.notes}
-                  onChange={(e) => setContactForm({ ...contactForm, notes: e.target.value })}
+                  placeholder="Decision making power, communication preferences..."
+                  minHeight="90px"
+                  aiFieldLabel="Contact Notes / Bio"
+                  onChange={(content) => setContactForm({ ...contactForm, notes: content })}
                 />
               </div>
 

@@ -43,8 +43,20 @@ function Shell() {
 
   React.useEffect(() => {
     const onOpenAi = () => setAiDrawerOpen(true);
+    const onKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key || '').toLowerCase() === 'j') {
+        e.preventDefault();
+        setAiDrawerOpen((prev) => !prev);
+      } else if (e.key === 'Escape') {
+        setAiDrawerOpen(false);
+      }
+    };
     window.addEventListener('zorvixe:open-ai-assistant', onOpenAi);
-    return () => window.removeEventListener('zorvixe:open-ai-assistant', onOpenAi);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('zorvixe:open-ai-assistant', onOpenAi);
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, []);
 
   if (loading) {

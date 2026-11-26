@@ -1,6 +1,8 @@
 // src/components/LeaveApproval/LeaveApproval.js
 import React, { useState, useEffect, useRef } from "react";
 import { apiGetLeavesForApproval, apiUpdateLeaveStatus } from "../../api";
+import RichTextEditor from "../../components/RichTextEditor";
+import { renderSafeHtml } from "../../utils/safeHtml";
 import "./LeaveApproval.css";
 
 const LeaveApproval = () => {
@@ -360,9 +362,10 @@ const LeaveApproval = () => {
                         </div>
                       </td>
                       <td>
-                        <div className="reason-text">
-                          {leave.reason}
-                        </div>
+                        <div
+                          className="reason-text"
+                          dangerouslySetInnerHTML={{ __html: renderSafeHtml(leave.reason) }}
+                        />
                       </td>
                       <td>
                         <div className="applied-date">
@@ -543,13 +546,14 @@ const LeaveApproval = () => {
 
                   <div className="mb-3">
                     <label className="form-label fw-semibold">Comments</label>
-                    <textarea
-                      className="form-control"
-                      rows="3"
-                      placeholder="Add comments that will be visible to the employee..."
+                    <RichTextEditor
                       value={comments}
-                      onChange={(e) => setComments(e.target.value)}
-                    ></textarea>
+                      placeholder="Add comments that will be visible to the employee..."
+                      minHeight="95px"
+                      aiFieldLabel="Leave Approval Comments"
+                      aiContext={{ employee: selectedLeave?.employee_name, leaveType: selectedLeave?.leave_type, decision: actionType }}
+                      onChange={(content) => setComments(content)}
+                    />
                     <div className="form-text">
                       These comments will be shared with the employee
                     </div>

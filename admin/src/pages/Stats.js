@@ -435,7 +435,7 @@ export default function Stats() {
                 </div>
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                   <button type="button" className="zx-ai-btn-primary" onClick={loadAiDigest}>
-                    <SparklesIcon size={13} />
+                    <SparklesIcon size={20} />
                     <span>Today&apos;s Digest</span>
                   </button>
                   <button
@@ -443,7 +443,7 @@ export default function Stats() {
                     className="zx-ai-btn-sm"
                     onClick={() => window.dispatchEvent(new CustomEvent("zorvixe:open-ai-assistant"))}
                   >
-                    <SparklesIcon size={13} />
+                    <SparklesIcon size={20} />
                     Ask ZORVI
                   </button>
                 </div>

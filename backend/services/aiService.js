@@ -58,23 +58,24 @@ function getEnvProviderConfig() {
     else provider = 'fallback';
   }
 
+  // In getEnvProviderConfig() inside aiService.js:
   let apiKey = '';
   let defaultModel = 'deterministic-grounded-v1';
-  if (provider === 'openai') {
+
+  if (provider === 'gemini') {
+    apiKey = geminiKey;
+    defaultModel = 'gemini-3.8-flash';
+  } else if (provider === 'openai') {
     apiKey = openaiKey;
     defaultModel = 'gpt-4o-mini';
-  } else if (provider === 'gemini') {
-    apiKey = geminiKey;
-    defaultModel = 'gemini-2.0-flash';
   } else if (provider === 'anthropic') {
     apiKey = anthropicKey;
     defaultModel = 'claude-3-5-haiku-latest';
   } else {
     provider = 'fallback';
   }
-
   const providerConfigured = Boolean(apiKey) && provider !== 'fallback';
-  const model = (process.env.AI_MODEL || defaultModel).trim();
+  const model = (process.env.AI_MODEL).trim();
   const baseUrl = (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
 
   return {
@@ -193,14 +194,18 @@ async function callOpenAIProvider(cfg, systemPrompt, userPrompt) {
   }
 }
 
+// In callGeminiProvider() inside aiService.js:
 async function callGeminiProvider(cfg, systemPrompt, userPrompt) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), cfg.timeoutMs);
   try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model)}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model)}:generateContent`;
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': cfg.apiKey,
+      },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
@@ -297,25 +302,7 @@ CRITICAL SECURITY & GROUNDING RULES:
 4. Never automate binding financial, payroll, employment, hiring, or external email actions — frame outputs as recommendations for human review.
 5. Output ONLY valid JSON matching the requested schema.`;
 
-/**
- * Execute an AI structured task via configured LLM provider with automatic grounded fallback.
- *
- * @param {Object} opts
- * @param {import('pg').Pool} opts.pool
- * @param {string} opts.taskInstruction
- * @param {string} opts.schemaHint
- * @param {Object} opts.untrustedPayload
- * @param {Function} opts.fallbackBuilder - () => validated fallback object built solely from real SQL data
- * @param {Function} opts.validator - (parsedObj, fallbackObj) => sanitized & validated structured result
- */
-async function runStructuredAiTask({
-  pool,
-  taskInstruction,
-  schemaHint,
-  untrustedPayload,
-  fallbackBuilder,
-  validator,
-}) {
+async function invokeConfiguredProviderJson({ pool, systemPrompt, userPrompt }) {
   const runtimeCfg = await getAiRuntimeConfig(pool);
   if (!runtimeCfg.enabled) {
     const err = new Error(
@@ -328,33 +315,28 @@ async function runStructuredAiTask({
     throw err;
   }
 
-  const fallbackResult = fallbackBuilder();
   const envCfg = getEnvProviderConfig();
-
   if (!envCfg.providerConfigured) {
     return {
-      result: validator(fallbackResult, fallbackResult),
+      parsed: null,
       meta: {
         provider: 'deterministic_fallback',
         model: 'deterministic-grounded-v1',
         fallbackUsed: true,
         providerConfigured: false,
-        notice: 'Running grounded analytical engine (no external LLM API key configured on server).',
+        notice: 'No external LLM API key configured on server; using Zorvi deterministic engine.',
       },
     };
   }
 
-  const fullSystemPrompt = `${CORE_SYSTEM_SECURITY_PREAMBLE}\n\nTASK:\n${taskInstruction}\n\nREQUIRED JSON SCHEMA:\n${schemaHint}`;
-  const userPrompt = wrapUntrustedData('authorized_context', untrustedPayload);
-
   try {
     let providerRes;
     if (envCfg.provider === 'openai') {
-      providerRes = await callOpenAIProvider(envCfg, fullSystemPrompt, userPrompt);
+      providerRes = await callOpenAIProvider(envCfg, systemPrompt, userPrompt);
     } else if (envCfg.provider === 'gemini') {
-      providerRes = await callGeminiProvider(envCfg, fullSystemPrompt, userPrompt);
+      providerRes = await callGeminiProvider(envCfg, systemPrompt, userPrompt);
     } else if (envCfg.provider === 'anthropic') {
-      providerRes = await callAnthropicProvider(envCfg, fullSystemPrompt, userPrompt);
+      providerRes = await callAnthropicProvider(envCfg, systemPrompt, userPrompt);
     } else {
       throw new Error('Unsupported AI provider');
     }
@@ -365,7 +347,7 @@ async function runStructuredAiTask({
     }
 
     return {
-      result: validator(parsed, fallbackResult),
+      parsed,
       meta: {
         provider: envCfg.provider,
         model: envCfg.model,
@@ -377,7 +359,7 @@ async function runStructuredAiTask({
   } catch (err) {
     console.warn(`[AI Service] Provider ${envCfg.provider} error (${err.code || err.message}); using grounded fallback.`);
     return {
-      result: validator(fallbackResult, fallbackResult),
+      parsed: null,
       meta: {
         provider: 'deterministic_fallback',
         model: 'deterministic-grounded-v1',
@@ -385,10 +367,43 @@ async function runStructuredAiTask({
         providerConfigured: true,
         providerError: err.message,
         providerErrorCode: err.code || 'AI_ERROR',
-        notice: `Live LLM provider unavailable (${err.message}); showing verified analytical fallback from live records.`,
+        notice: `Live LLM provider unavailable (${err.message}); using Zorvi grounded engine.`,
       },
     };
   }
+}
+
+/**
+ * Execute an AI structured task via configured LLM provider with automatic grounded fallback.
+ */
+async function runStructuredAiTask({
+  pool,
+  taskInstruction,
+  schemaHint,
+  untrustedPayload,
+  fallbackBuilder,
+  validator,
+}) {
+  const fullSystemPrompt = `${CORE_SYSTEM_SECURITY_PREAMBLE}\n\nTASK:\n${taskInstruction}\n\nREQUIRED JSON SCHEMA:\n${schemaHint}`;
+  const userPrompt = wrapUntrustedData('authorized_context', untrustedPayload);
+  const { parsed, meta } = await invokeConfiguredProviderJson({
+    pool,
+    systemPrompt: fullSystemPrompt,
+    userPrompt,
+  });
+  const fallbackResult = fallbackBuilder();
+
+  if (!parsed) {
+    return {
+      result: validator(fallbackResult, fallbackResult),
+      meta,
+    };
+  }
+
+  return {
+    result: validator(parsed, fallbackResult),
+    meta,
+  };
 }
 
 async function logAiAudit({
@@ -438,8 +453,10 @@ async function logAiAudit({
 
 module.exports = {
   sanitizeTextForPrompt,
+  wrapUntrustedData,
   getEnvProviderConfig,
   getAiRuntimeConfig,
+  invokeConfiguredProviderJson,
   runStructuredAiTask,
   logAiAudit,
 };

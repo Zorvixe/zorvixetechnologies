@@ -12,6 +12,7 @@ import {
   apiGetChatUnreadCount,
 } from "../api";
 import { playNotificationSound } from "../utils/notificationSound";
+import AiTextareaWrap from "../components/AiTextareaWrap";
 import "./Discussions.css";
 
 const getAvatarColor = (str = "") => {
@@ -726,15 +727,23 @@ export default function Discussions() {
                 )}
 
                 <form className="disc-composer" onSubmit={handleSendMessage}>
-                  <textarea
-                    ref={textareaRef}
-                    className="disc-input"
-                    placeholder={editingMessage ? "Edit message..." : `Message ${activeColleague.name.split(" ")[0]}...`}
-                    rows={2}
+                  <AiTextareaWrap
+                    fieldLabel="Direct Message"
+                    aiContext={{ recipient: activeColleague?.name }}
                     value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                  />
+                    onAiApply={(text) => setInputMessage(text)}
+                    style={{ flex: 1 }}
+                  >
+                    <textarea
+                      ref={textareaRef}
+                      className="disc-input"
+                      placeholder={editingMessage ? "Edit message..." : `Message ${activeColleague.name.split(" ")[0]}...`}
+                      rows={2}
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                    />
+                  </AiTextareaWrap>
                   <button
                     type="submit"
                     className={`disc-send-btn ${inputMessage.trim() ? "active" : ""}`}

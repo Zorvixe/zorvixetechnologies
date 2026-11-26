@@ -59,11 +59,11 @@ const LeaveManagement = () => {
               <LeaveBalance />
             </div>
             <div className="calendar-section">
-                <Calendar
-                  value={selectedDate}
-                  onChange={setSelectedDate}
-                  className="custom-calendar"
-                />
+              <Calendar
+                value={selectedDate}
+                onChange={setSelectedDate}
+                className="custom-calendar"
+              />
             </div>
           </div>
         ),
@@ -98,10 +98,7 @@ const LeaveManagement = () => {
     <div className="leave-management-container-LeaveManagement">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "8px" }}>
         <h2 className="page-title-LeaveManagement" style={{ marginBottom: 0 }}>Leave Management</h2>
-        <button type="button" className="zx-ai-pill-btn" onClick={runLeaveAiSummary}>
-          <SparklesIcon size={13} />
-          <span>ZORVI Summarize Leave Queue</span>
-        </button>
+
       </div>
 
       {leaveAiOpen && (
@@ -143,17 +140,21 @@ const LeaveManagement = () => {
 
       <div className="main-content-LeaveManagement">
         <div className="tabs-LeaveManagement">
-          {tabs.map((tab, index) => (
-            <button
-              key={index}
-              className={`tab-btn-LeaveManagement ${
-                currentTab === index ? "active" : ""
-              }`}
-              onClick={() => setCurrentTab(index)}
-            >
-              {tab.label}
-            </button>
-          ))}
+          <div>
+            {tabs.map((tab, index) => (
+              <button
+                key={index}
+                className={`tab-btn-LeaveManagement ${currentTab === index ? "active" : ""
+                  }`}
+                onClick={() => setCurrentTab(index)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <button type="button" className="ticket-ai-header-btn" onClick={runLeaveAiSummary}>
+            <SparklesIcon size={25} />
+          </button>
         </div>
 
         <div className="tab-content-LeaveManagement">{tabs[currentTab]?.component}</div>

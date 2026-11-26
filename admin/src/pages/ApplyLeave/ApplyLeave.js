@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./ApplyLeave.css";
 import { apiGetApprovers, apiApplyLeave } from "../../api";
+import RichTextEditor from "../../components/RichTextEditor";
+import { stripHtmlText } from "../../utils/safeHtml";
 
 const ApplyLeave = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -97,7 +99,7 @@ const ApplyLeave = ({ onSuccess }) => {
     if (!formData.approverId) errors.approverId = "Approver is required";
     if (!formData.startDate) errors.startDate = "Start date is required";
     if (!formData.endDate) errors.endDate = "End date is required";
-    if (!formData.reason) errors.reason = "Reason is required";
+    if (!stripHtmlText(formData.reason)) errors.reason = "Reason is required";
 
     if (formData.startDate && formData.endDate) {
       const start = new Date(formData.startDate);
@@ -182,7 +184,7 @@ const ApplyLeave = ({ onSuccess }) => {
   };
 
   const isFormValid = formData.leaveType && formData.startDate && formData.endDate &&
-    formData.reason && formData.approverId && totalDays > 0;
+    Boolean(stripHtmlText(formData.reason)) && formData.approverId && totalDays > 0;
 
   return (
     <div className="apply-leave-container">
@@ -343,18 +345,19 @@ const ApplyLeave = ({ onSuccess }) => {
             <label htmlFor="reason" className="form-label">
               Reason for Leave <span className="text-danger">*</span>
             </label>
-            <textarea
-              id="reason"
-              name="reason"
+            <RichTextEditor
               value={formData.reason}
-              onChange={handleChange}
-              rows="4"
-              className={`form-control ${formErrors.reason ? 'is-invalid' : ''}`}
               placeholder="Please provide a detailed reason for your leave application..."
-              required
+              minHeight="110px"
+              aiFieldLabel="Leave Reason"
+              aiContext={{ leaveType: formData.leaveType, startDate: formData.startDate, endDate: formData.endDate }}
+              onChange={(content) => {
+                setFormData((prev) => ({ ...prev, reason: content }));
+                if (formErrors.reason) setFormErrors((prev) => ({ ...prev, reason: '' }));
+              }}
             />
             {formErrors.reason && (
-              <div className="invalid-feedback">
+              <div className="invalid-feedback d-block">
                 {formErrors.reason}
               </div>
             )}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./LeaveHistory.css";
 import { apiGetMyLeaves, apiCancelLeave } from "../../api";
+import { renderSafeHtml } from "../../utils/safeHtml";
 
 
 const LeaveHistory = () => {
@@ -442,9 +443,10 @@ const LeaveHistory = () => {
                     <label className="form-label fw-semibold text-muted">Comments</label>
                     <div className="border rounded p-3 bg-light">
                       {selectedLeave.comments ? (
-                        <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>
-                          {selectedLeave.comments}
-                        </p>
+                        <div
+                          className="mb-0"
+                          dangerouslySetInnerHTML={{ __html: renderSafeHtml(selectedLeave.comments) }}
+                        />
                       ) : (
                         <p className="mb-0 text-muted fst-italic">
                           No comments provided by the approver.

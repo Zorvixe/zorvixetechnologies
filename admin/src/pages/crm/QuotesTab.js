@@ -11,6 +11,8 @@ import {
   apiListDeals
 } from '../../api';
 import SendEmailModal from './SendEmailModal';
+import RichTextEditor from '../../components/RichTextEditor';
+import { renderSafeHtml } from '../../utils/safeHtml';
 import {
   PackageIcon,
   BriefcaseIcon,
@@ -520,10 +522,12 @@ export default function QuotesTab() {
 
               <div className="crm-form-group">
                 <label>Terms & Conditions</label>
-                <textarea
-                  rows="2"
+                <RichTextEditor
                   value={quoteForm.terms_and_conditions}
-                  onChange={(e) => setQuoteForm({ ...quoteForm, terms_and_conditions: e.target.value })}
+                  placeholder="Specify payment terms, validity, and taxes..."
+                  minHeight="90px"
+                  aiFieldLabel="Quotation Terms & Conditions"
+                  onChange={(content) => setQuoteForm({ ...quoteForm, terms_and_conditions: content })}
                 />
               </div>
 
@@ -727,7 +731,7 @@ export default function QuotesTab() {
               {/* Terms */}
               <div className="doc-terms">
                 <h5>Terms & Conditions:</h5>
-                <p>{previewQuoteData.quote?.terms_and_conditions}</p>
+                <div dangerouslySetInnerHTML={{ __html: renderSafeHtml(previewQuoteData.quote?.terms_and_conditions) }} />
               </div>
             </div>
           </div>

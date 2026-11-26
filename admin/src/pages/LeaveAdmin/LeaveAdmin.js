@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiGetAllLeaves, apiUpdateLeaveStatus, apiCarryForwardLeaves } from '../../api';
+import RichTextEditor from '../../components/RichTextEditor';
+import { renderSafeHtml } from '../../utils/safeHtml';
 import './LeaveAdmin.css';
 
 
@@ -584,19 +586,20 @@ const LeaveAdmin = () => {
                   <div className="mb-3">
                     <label className="form-label fw-semibold text-muted">Reason</label>
                     <div className="border rounded p-3 bg-light">
-                      <p className="mb-0">{selectedLeave.reason}</p>
+                      <div className="mb-0" dangerouslySetInnerHTML={{ __html: renderSafeHtml(selectedLeave.reason) }} />
                     </div>
                   </div>
 
                   <div className="mb-3">
                     <label className="form-label fw-semibold">Comments</label>
-                    <textarea
-                      className="form-control"
-                      rows="3"
-                      placeholder="Add comments for the employee..."
+                    <RichTextEditor
                       value={comments}
-                      onChange={(e) => setComments(e.target.value)}
-                    ></textarea>
+                      placeholder="Add comments for the employee..."
+                      minHeight="95px"
+                      aiFieldLabel="Leave Approval Comments"
+                      aiContext={{ employee: selectedLeave?.employee_name, leaveType: selectedLeave?.leave_type, decision: actionType }}
+                      onChange={(content) => setComments(content)}
+                    />
                     <div className="form-text">
                       These comments will be shared with the employee
                     </div>

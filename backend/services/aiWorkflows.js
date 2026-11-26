@@ -2223,6 +2223,149 @@ async function summarizeNotifications({ pool, user, activities = [] }) {
   return { ...result, meta };
 }
 
+function escapeHtmlText(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function textToSimpleHtml(text) {
+  const lines = String(text || '').trim().split(/\n+/);
+  const parts = [];
+  let inList = false;
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (/^[-•*]\s+/.test(line)) {
+      if (!inList) { parts.push('<ul>'); inList = true; }
+      parts.push(`<li>${escapeHtmlText(line.replace(/^[-•*]\s+/, ''))}</li>`);
+    } else {
+      if (inList) { parts.push('</ul>'); inList = false; }
+      parts.push(`<p>${escapeHtmlText(line)}</p>`);
+    }
+  }
+  if (inList) parts.push('</ul>');
+  return parts.join('') || '<p></p>';
+}
+
+/* ============================================================================
+ * 8. Universal Field / Process AI Assist (Descriptions, Notes, Emails, Comments)
+ * ============================================================================ */
+async function assistTextField({ pool, user, fieldLabel = '', currentText = '', pagePath = '', context = {} }) {
+  const label = sanitizeTextForPrompt(fieldLabel || 'Description', 140);
+  const draft = sanitizeTextForPrompt(String(currentText || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(), 1600);
+  const page = sanitizeTextForPrompt(pagePath || '/', 120);
+
+  const cleanContext = {};
+  if (context && typeof context === 'object') {
+    for (const [k, v] of Object.entries(context).slice(0, 12)) {
+      const val = sanitizeTextForPrompt(String(v ?? ''), 240);
+      if (val) cleanContext[sanitizeTextForPrompt(k, 40)] = val;
+    }
+  }
+
+  const labelLower = label.toLowerCase();
+  const pageLower = page.toLowerCase();
+  const ctxTitle = cleanContext.title || cleanContext.subject || cleanContext.name || cleanContext.projectName || cleanContext.dealTitle || cleanContext.company || cleanContext.jobTitle || '';
+
+  const fallbackBuilder = () => {
+    let text = '';
+    if (draft && draft.length >= 18) {
+      // Polish and structure the existing user draft cleanly
+      const sentences = draft
+        .split(/(?<=[.!?])\s+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s) => s.charAt(0).toUpperCase() + s.slice(1));
+      const normalized = sentences.join(' ');
+      if (/description|scope|requirement|agenda|notes|terms/.test(labelLower)) {
+        text = normalized.endsWith('.') ? normalized : `${normalized}.`;
+        if (ctxTitle && !normalized.toLowerCase().includes(ctxTitle.toLowerCase())) {
+          text = `${ctxTitle} — ${text}`;
+        }
+      } else {
+        text = normalized;
+      }
+    } else if (/email|mail/.test(labelLower)) {
+      const recipient = cleanContext.recipient || cleanContext.name || cleanContext.company || 'there';
+      const topic = ctxTitle || 'our upcoming collaboration';
+      text = `Hi ${recipient},\n\nFollowing up regarding ${topic}. Please let us know if you have any questions or would like to review the next steps together.\n\nBest regards,\n${user?.name || 'Zorvixe Technologies Team'}`;
+    } else if (/requirement|skill/.test(labelLower) || /recruit/.test(labelLower)) {
+      text = `- Proven hands-on experience relevant to ${ctxTitle || 'the role'}\n- Strong problem-solving, clean implementation, and testing discipline\n- Clear team communication and ownership of deliverables`;
+    } else if (/job description|opening/.test(labelLower)) {
+      text = `${ctxTitle ? `${ctxTitle}: ` : ''}Design, build, and maintain scalable solutions with the Zorvixe Technologies team.\n- Own end-to-end feature delivery and code quality\n- Collaborate across product, design, and engineering`;
+    } else if (/interview|feedback/.test(labelLower)) {
+      text = `Candidate evaluation for ${ctxTitle || 'role'}:\n- Technical fundamentals: Solid grasp of core concepts\n- Problem solving & communication: Clear structured responses\n- Next step: Recommended for team review`;
+    } else if (/leave|reason/.test(labelLower) && !/comment|approval/.test(labelLower)) {
+      const leaveType = cleanContext.leaveType || 'leave';
+      text = `Requesting ${leaveType} due to personal commitments. All active tasks are documented and handover notes are shared with the team.`;
+    } else if (/comment|approval/.test(labelLower) && pageLower.includes('leave')) {
+      text = `Reviewed request and schedule coverage. Please ensure active deliverables remain updated during your time off.`;
+    } else if (/ticket/.test(pageLower) || /ticket/.test(labelLower)) {
+      text = `Issue Summary: ${ctxTitle || draft || 'Describe the reported issue'}\n- Impact: Specify affected users or workflow\n- Steps / Expected Behavior: Add reproduction steps and expected outcome`;
+    } else if (/project|client/.test(pageLower)) {
+      text = `${ctxTitle ? `${ctxTitle} — ` : ''}Project Scope & Deliverables:\n- Key Objectives: Outline primary milestones and client goals\n- Ownership & Timeline: Track sprint deliverables and review checkpoints`;
+    } else if (/crm|deal|lead|account|quote|activity/.test(pageLower) || /scope|deal|lead|terms|agenda/.test(labelLower)) {
+      if (/terms/.test(labelLower)) {
+        text = `- Payment Terms: 50% advance on kickoff, 50% upon milestone completion\n- Validity: This quotation is valid for 15 days from the date of issue\n- Taxes: GST (18%) applicable as per statutory norms`;
+      } else if (/address/.test(labelLower)) {
+        text = draft || `${ctxTitle ? `${ctxTitle} Office Address` : 'Corporate Office'} — Update street, city, and postal code.`;
+      } else {
+        text = `${ctxTitle ? `${ctxTitle}: ` : ''}Key Discussion & Next Steps:\n- Requirements / Budget alignment captured\n- Follow-up action & target timeline confirmed`;
+      }
+    } else {
+      text = ctxTitle
+        ? `${ctxTitle}: ${draft || 'Updated details, key action items, and next steps recorded.'}`
+        : draft || 'Clear summary of requirements, key points, and next steps.';
+    }
+
+    return {
+      text,
+      html: textToSimpleHtml(text),
+      summary: draft ? 'Refined draft using current form context.' : 'Generated structured draft from form context.',
+    };
+  };
+
+  const { result, meta } = await runStructuredAiTask({
+    pool,
+    taskInstruction: `Write or improve ONLY the text for the UI field "${label}" on page "${page}". Use ONLY the provided form/record context and user's existing draft. Do NOT invent fake metrics, customer names, prices, or promises not present in the context. Keep it clear, concise, and ready to submit.`,
+    schemaHint: `{
+  "text": "plain text version ready for a textarea (preserve line breaks / bullet dashes '- ' cleanly)",
+  "summary": "short 1-line note of what was drafted or improved"
+}`,
+    untrustedPayload: {
+      fieldLabel: label,
+      pagePath: page,
+      currentDraft: draft,
+      formContext: cleanContext,
+      signedInUser: { name: user?.name || '', role: user?.role || '' },
+    },
+    fallbackBuilder,
+    validator: (parsed, fb) => {
+      const text = String(parsed.text || '').trim().slice(0, 3500) || fb.text;
+      return {
+        text,
+        html: textToSimpleHtml(text),
+        summary: sanitizeTextForPrompt(parsed.summary || fb.summary, 180),
+      };
+    },
+  });
+
+  await logAiAudit({
+    pool,
+    user,
+    feature: 'assist_field',
+    entityType: 'form_field',
+    provider: meta.provider,
+    model: meta.model,
+    actionStatus: 'suggested',
+    requestMeta: { fieldLabel: label, pagePath: page, hadDraft: Boolean(draft) },
+  });
+
+  return { ...result, meta };
+}
+
 module.exports = {
   runAssistantChat,
   analyzeTicket,
@@ -2240,4 +2383,5 @@ module.exports = {
   assistContact,
   generateDashboardDigest,
   summarizeNotifications,
+  assistTextField,
 };

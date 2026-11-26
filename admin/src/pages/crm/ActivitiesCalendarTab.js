@@ -5,6 +5,8 @@ import {
   apiUpdateCrmActivity,
   apiDeleteCrmActivity
 } from '../../api';
+import RichTextEditor from '../../components/RichTextEditor';
+import { renderSafeHtml, stripHtmlText } from '../../utils/safeHtml';
 import {
   CalendarIcon,
   PhoneIcon,
@@ -939,7 +941,7 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                         >
                           {act.title}
                         </strong>
-                        {act.description && <div style={{ fontSize: '11px', color: '#5e6c84' }}>{act.description}</div>}
+                        {act.description && <div style={{ fontSize: '11px', color: '#5e6c84' }}>{stripHtmlText(act.description)}</div>}
                       </td>
                       <td style={{ padding: '10px 12px', color: '#42526e' }}>
                         {act.due_date ? new Date(act.due_date).toLocaleString() : '—'}
@@ -1061,12 +1063,12 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#172b4d', marginBottom: '4px' }}>
                   Agenda / Description / Notes
                 </label>
-                <textarea
-                  rows={3}
-                  placeholder="Key discussion points, dialing notes or follow-up commitments..."
+                <RichTextEditor
                   value={modalForm.description}
-                  onChange={(e) => setModalForm(prev => ({ ...prev, description: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #dfe1e6', borderRadius: '4px', fontSize: '13px' }}
+                  placeholder="Key discussion points, dialing notes or follow-up commitments..."
+                  minHeight="100px"
+                  aiFieldLabel="Agenda / Description / Notes"
+                  onChange={(content) => setModalForm(prev => ({ ...prev, description: content }))}
                 />
               </div>
 
@@ -1149,9 +1151,10 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                 )}
               </div>
               {viewDetailAct.description && (
-                <div style={{ background: '#f4f5f7', padding: '10px', borderRadius: '4px', fontSize: '12px', color: '#172b4d' }}>
-                  {viewDetailAct.description}
-                </div>
+                <div
+                  style={{ background: '#f4f5f7', padding: '10px', borderRadius: '4px', fontSize: '12px', color: '#172b4d' }}
+                  dangerouslySetInnerHTML={{ __html: renderSafeHtml(viewDetailAct.description) }}
+                />
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px' }}>

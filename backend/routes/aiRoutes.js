@@ -9,6 +9,7 @@ const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = rateLimit;
 const { getAiRuntimeConfig, logAiAudit } = require('../services/aiService');
 const aiWorkflows = require('../services/aiWorkflows');
+const zorviCopilot = require('../services/zorviCopilot');
 
 function createAiRouter({
   pool,
@@ -17,8 +18,24 @@ function createAiRouter({
   isAdmin,
   extractResumeText,
   sendTicketAssignedEmail,
+  sendTicketCommentEmail,
+  sendLeaveStatusEmail,
+  sendEmail,
+  genProjectCode,
+  genZorvixeId,
+  userCanEditProject,
 }) {
   const router = express.Router();
+  const copilotDeps = {
+    extractResumeText,
+    sendTicketAssignedEmail,
+    sendTicketCommentEmail,
+    sendLeaveStatusEmail,
+    sendEmail,
+    genProjectCode,
+    genZorvixeId,
+    userCanEditProject,
+  };
 
   const aiLimiter = rateLimit({
     windowMs: 5 * 60 * 1000,
@@ -125,16 +142,73 @@ function createAiRouter({
     }
   });
 
-  // 2. Role-Aware Global Assistant
+  // 2. Role-Aware Multi-Turn Copilot (Global Assistant & Actions)
+  router.get('/copilot/session', requireAuth, async (req, res) => {
+    try {
+      const data = await zorviCopilot.getOrCreateSession({
+        pool,
+        userId: Number(req.user.sub),
+        sessionId: req.query?.sessionId,
+      });
+      return res.json({ success: true, ...data });
+    } catch (err) {
+      return sendAiError(res, err, 'Failed to load Copilot session');
+    }
+  });
+
+  router.post('/copilot/session/reset', requireAuth, async (req, res) => {
+    try {
+      const data = await zorviCopilot.resetSession({
+        pool,
+        userId: Number(req.user.sub),
+      });
+      return res.json({ success: true, ...data });
+    } catch (err) {
+      return sendAiError(res, err, 'Failed to reset Copilot session');
+    }
+  });
+
+  router.post('/copilot/confirm', requireAuth, aiLimiter, async (req, res) => {
+    try {
+      const { sessionId, overrides } = req.body || {};
+      const data = await zorviCopilot.confirmCopilotAction({
+        pool,
+        user: req.user,
+        sessionId,
+        overrides: overrides || {},
+        deps: copilotDeps,
+      });
+      return res.json({ success: true, ...data });
+    } catch (err) {
+      return sendAiError(res, err, 'Failed to execute confirmed Copilot action');
+    }
+  });
+
+  router.post('/copilot/cancel', requireAuth, async (req, res) => {
+    try {
+      const { sessionId } = req.body || {};
+      const data = await zorviCopilot.cancelCopilotConfirmation({
+        pool,
+        user: req.user,
+        sessionId,
+      });
+      return res.json({ success: true, ...data });
+    } catch (err) {
+      return sendAiError(res, err, 'Failed to cancel pending confirmation');
+    }
+  });
+
   router.post('/assistant/chat', requireAuth, aiLimiter, async (req, res) => {
     try {
-      const { message, currentPath, contextEntity } = req.body || {};
-      const data = await aiWorkflows.runAssistantChat({
+      const { message, currentPath, contextEntity, sessionId } = req.body || {};
+      const data = await zorviCopilot.runCopilotTurn({
         pool,
         user: req.user,
         message,
         currentPath,
         contextEntity,
+        sessionId,
+        deps: copilotDeps,
       });
       return res.json({ success: true, ...data });
     } catch (err) {
@@ -397,6 +471,24 @@ function createAiRouter({
       return res.json({ success: true, ...data });
     } catch (err) {
       return sendAiError(res, err, 'Failed to summarize notifications');
+    }
+  });
+
+  // 8. Universal Field / Description / Comment AI Assist
+  router.post('/assist-field', requireAuth, aiLimiter, async (req, res) => {
+    try {
+      const { fieldLabel, currentText, pagePath, context } = req.body || {};
+      const data = await aiWorkflows.assistTextField({
+        pool,
+        user: req.user,
+        fieldLabel,
+        currentText,
+        pagePath,
+        context,
+      });
+      return res.json({ success: true, ...data });
+    } catch (err) {
+      return sendAiError(res, err, 'Failed to generate AI field suggestion');
     }
   });
 

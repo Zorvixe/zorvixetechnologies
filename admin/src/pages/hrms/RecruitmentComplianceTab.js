@@ -13,6 +13,8 @@ import {
   apiAiCompareCandidate
 } from '../../api';
 import AiInsightBox from '../../components/AiInsightBox';
+import RichTextEditor from '../../components/RichTextEditor';
+import { renderSafeHtml } from '../../utils/safeHtml';
 import {
   LeadsIcon,
   SearchIcon,
@@ -381,7 +383,10 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                             )}
 
                             {cand.interview_notes && (
-                              <p className="cand-notes-snippet">"{cand.interview_notes}"</p>
+                              <div
+                                className="cand-notes-snippet"
+                                dangerouslySetInnerHTML={{ __html: renderSafeHtml(cand.interview_notes) }}
+                              />
                             )}
 
                             {(() => {
@@ -501,7 +506,10 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                       <div className="meta-item"><span>Salary:</span> <strong>{job.salary_range}</strong></div>
                     </div>
 
-                    <p className="job-desc">{job.description}</p>
+                    <div
+                      className="job-desc"
+                      dangerouslySetInnerHTML={{ __html: renderSafeHtml(job.description) }}
+                    />
 
                     <div className="job-card-bottom">
                       <span className="applicant-counter">
@@ -603,13 +611,13 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
 
       {/* POST / EDIT JOB MODAL */}
       {showJobModal && (
-        <div className="rc-modal-backdrop modal-backdrop" onClick={() => setShowJobModal(false)}>
-          <div className="rc-modal-card rc-modal-lg modal-card modal-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="rc-modal-header modal-header">
+        <div className="rc-modal-backdrop" onClick={() => setShowJobModal(false)}>
+          <div className="rc-modal-card rc-modal-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="rc-modal-header">
               <h4 className="rc-modal-title">{editingJobId ? 'Edit Job Opening' : 'Post New Job Opening'}</h4>
-              <button type="button" className="rc-modal-close-btn btn-close" onClick={() => setShowJobModal(false)}>×</button>
+              <button type="button" className="rc-modal-close-btn" onClick={() => setShowJobModal(false)}>×</button>
             </div>
-            <form onSubmit={handleSaveJob} className="rc-modal-form modal-form">
+            <form onSubmit={handleSaveJob} className="rc-modal-form">
               <div className="rc-form-group form-group">
                 <label className="rc-form-label">Job Title *</label>
                 <input
@@ -697,27 +705,29 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
               </div>
               <div className="rc-form-group form-group">
                 <label className="rc-form-label">Job Description</label>
-                <textarea
-                  rows="3"
-                  className="rc-form-textarea"
-                  placeholder="Key responsibilities, role overview, and team details..."
+                <RichTextEditor
                   value={jobForm.description}
-                  onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+                  placeholder="Key responsibilities, role overview, and team details..."
+                  minHeight="100px"
+                  aiFieldLabel="Job Description"
+                  aiContext={{ jobTitle: jobForm.title, department: jobForm.department, experience: jobForm.experience_range }}
+                  onChange={(content) => setJobForm((prev) => ({ ...prev, description: content }))}
                 />
               </div>
               <div className="rc-form-group form-group">
                 <label className="rc-form-label">Requirements &amp; Key Skills</label>
-                <textarea
-                  rows="2"
-                  className="rc-form-textarea"
-                  placeholder="e.g. React.js, Node.js, PostgreSQL, REST APIs..."
+                <RichTextEditor
                   value={jobForm.requirements}
-                  onChange={(e) => setJobForm({ ...jobForm, requirements: e.target.value })}
+                  placeholder="e.g. React.js, Node.js, PostgreSQL, REST APIs..."
+                  minHeight="90px"
+                  aiFieldLabel="Requirements & Key Skills"
+                  aiContext={{ jobTitle: jobForm.title, department: jobForm.department }}
+                  onChange={(content) => setJobForm((prev) => ({ ...prev, requirements: content }))}
                 />
               </div>
-              <div className="rc-modal-actions modal-actions">
-                <button type="button" className="rc-btn-cancel btn-cancel" onClick={() => setShowJobModal(false)}>Cancel</button>
-                <button type="submit" className="rc-btn-save btn-save" disabled={savingJob}>
+              <div className="rc-modal-actions">
+                <button type="button" className="rc-btn-cancel" onClick={() => setShowJobModal(false)}>Cancel</button>
+                <button type="submit" className="rc-btn-save" disabled={savingJob}>
                   {savingJob ? 'Saving...' : editingJobId ? 'Update Job Opening' : 'Publish Job Opening'}
                 </button>
               </div>
@@ -728,13 +738,13 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
 
       {/* CANDIDATE INTERVIEW / EDIT MODAL */}
       {selectedCandidate && (
-        <div className="rc-modal-backdrop modal-backdrop" onClick={() => setSelectedCandidate(null)}>
-          <div className="rc-modal-card modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="rc-modal-header modal-header">
+        <div className="rc-modal-backdrop" onClick={() => setSelectedCandidate(null)}>
+          <div className="rc-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="rc-modal-header">
               <h4 className="rc-modal-title">Candidate: {selectedCandidate.name}</h4>
-              <button type="button" className="rc-modal-close-btn btn-close" onClick={() => setSelectedCandidate(null)}>×</button>
+              <button type="button" className="rc-modal-close-btn" onClick={() => setSelectedCandidate(null)}>×</button>
             </div>
-            <form onSubmit={handleUpdateCandidate} className="rc-modal-form modal-form">
+            <form onSubmit={handleUpdateCandidate} className="rc-modal-form">
               {(selectedCandidate.source === 'careers_portal' || selectedCandidate.resume_file_name || selectedCandidate.cover_letter || selectedCandidate.linkedin_url || selectedCandidate.portfolio_url) && (
                 <div className="cand-application-summary">
                   <div>
@@ -870,17 +880,18 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
               </div>
               <div className="rc-form-group form-group">
                 <label className="rc-form-label">Interview Feedback & Evaluator Notes</label>
-                <textarea
-                  rows="3"
-                  className="rc-form-textarea"
-                  placeholder="Technical strengths, communication, culture fit..."
+                <RichTextEditor
                   value={interviewForm.interview_notes}
-                  onChange={(e) => setInterviewForm({ ...interviewForm, interview_notes: e.target.value })}
+                  placeholder="Technical strengths, communication, culture fit..."
+                  minHeight="100px"
+                  aiFieldLabel="Interview Feedback & Evaluator Notes"
+                  aiContext={{ candidate: selectedCandidate?.name, role: selectedCandidate?.job_title || selectedCandidate?.position }}
+                  onChange={(content) => setInterviewForm((prev) => ({ ...prev, interview_notes: content }))}
                 />
               </div>
-              <div className="rc-modal-actions modal-actions">
-                <button type="button" className="rc-btn-cancel btn-cancel" onClick={() => setSelectedCandidate(null)}>Cancel</button>
-                <button type="submit" className="rc-btn-save btn-save" disabled={updatingCandidate}>
+              <div className="rc-modal-actions">
+                <button type="button" className="rc-btn-cancel" onClick={() => setSelectedCandidate(null)}>Cancel</button>
+                <button type="submit" className="rc-btn-save" disabled={updatingCandidate}>
                   {updatingCandidate ? 'Saving...' : 'Save Feedback'}
                 </button>
               </div>

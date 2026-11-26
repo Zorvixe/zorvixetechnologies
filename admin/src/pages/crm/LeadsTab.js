@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiListLeads, apiCreateLead, apiUpdateLead, apiDeleteLead, apiConvertLead, apiAiCrmSummarize } from '../../api';
 import AiInsightBox from '../../components/AiInsightBox';
+import RichTextEditor from '../../components/RichTextEditor';
 import SendEmailModal from './SendEmailModal';
 import { GlobeIcon, TrashIcon, BuildingIcon, UserIcon, SparklesIcon } from '../../components/CrmHrmsIcons';
 import './LeadsTab.css';
@@ -538,11 +539,12 @@ export default function LeadsTab() {
 
               <div className="crm-form-group">
                 <label>Lead Requirements / Description</label>
-                <textarea
-                  rows="3"
-                  placeholder="Client requirements, pain points, timeline..."
+                <RichTextEditor
                   value={leadForm.description}
-                  onChange={(e) => setLeadForm({ ...leadForm, description: e.target.value })}
+                  placeholder="Client requirements, pain points, timeline..."
+                  minHeight="100px"
+                  aiFieldLabel="Lead Requirements / Description"
+                  onChange={(content) => setLeadForm((prev) => ({ ...prev, description: content }))}
                 />
               </div>
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiListAccounts, apiGetAccount360, apiCreateAccount, apiCreateCrmContact, apiAiCrmSummarize } from '../../api';
 import AiInsightBox from '../../components/AiInsightBox';
+import AiTextareaWrap from '../../components/AiTextareaWrap';
+import { stripHtmlText } from '../../utils/safeHtml';
 import SendEmailModal from './SendEmailModal';
 import {
   GlobeIcon,
@@ -558,7 +560,7 @@ export default function AccountsTab() {
                                 {a.type === 'call' ? <PhoneIcon size={14} color="#0052cc" /> : a.type === 'meeting' ? <CalendarIcon size={14} color="#ffab00" /> : <CheckSquareIcon size={14} color="#00875a" />}
                                 {a.title}
                               </strong>
-                              <span className="item-meta">{a.description || 'No remarks recorded.'}</span>
+                              <span className="item-meta">{stripHtmlText(a.description) || 'No remarks recorded.'}</span>
                             </div>
                             <div className="item-right">
                               <span className={`status-pill ${a.completed ? 'status-qualified' : 'status-new'}`}>
@@ -679,12 +681,18 @@ export default function AccountsTab() {
 
               <div className="crm-form-group">
                 <label>Office Address</label>
-                <textarea
-                  rows="2"
-                  placeholder="Street address, business park, PIN code..."
+                <AiTextareaWrap
+                  fieldLabel="Office Address"
                   value={accountForm.address}
-                  onChange={(e) => setAccountForm({ ...accountForm, address: e.target.value })}
-                />
+                  onAiApply={(text) => setAccountForm((prev) => ({ ...prev, address: text }))}
+                >
+                  <textarea
+                    rows="2"
+                    placeholder="Street address, business park, PIN code..."
+                    value={accountForm.address}
+                    onChange={(e) => setAccountForm({ ...accountForm, address: e.target.value })}
+                  />
+                </AiTextareaWrap>
               </div>
 
               <div className="crm-modal-actions">

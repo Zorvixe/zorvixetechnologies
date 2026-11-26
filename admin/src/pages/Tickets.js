@@ -311,13 +311,13 @@ export default function Tickets() {
       setAiAssignData((prev) =>
         prev
           ? {
-              ...prev,
-              recommendations: (prev.recommendations || []).map((item) =>
-                item.ticketId === rec.ticketId
-                  ? { ...item, confirmed: true, currentAssigneeName: res.assignee?.name || item.recommendedAssigneeName }
-                  : item
-              ),
-            }
+            ...prev,
+            recommendations: (prev.recommendations || []).map((item) =>
+              item.ticketId === rec.ticketId
+                ? { ...item, confirmed: true, currentAssigneeName: res.assignee?.name || item.recommendedAssigneeName }
+                : item
+            ),
+          }
           : prev
       );
     } catch (err) {
@@ -560,12 +560,11 @@ export default function Tickets() {
         <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
           <button
             type="button"
-            className="zx-ai-pill-btn"
+            className='ticket-ai-header-btn'
             onClick={openAiAssignmentPlanner}
             title="ZORVI Daily Assignment Planner & Triage"
           >
-            <SparklesIcon size={13} />
-            <span>ZORVI Assign &amp; Triage</span>
+            <SparklesIcon size={25} />
           </button>
           <button
             className="btn btn-primary"
@@ -574,11 +573,11 @@ export default function Tickets() {
           >
             New Ticket
           </button>
-        </div></Topbar>
+        </div></Topbar >
 
 
       {/* Filters */}
-      <div className="tickets-filters mt-3">
+      < div className="tickets-filters mt-3" >
         <select
           value={filters.status}
           onChange={(e) => setFilters({ ...filters, status: e.target.value })}
@@ -652,156 +651,160 @@ export default function Tickets() {
           className="comment-input"
         />
 
-        {(filters.status !== "all" || filters.priority !== "all" || filters.assignee !== "all" || filters.date || filters.search) && (
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => setFilters({
-              status: "all",
-              priority: "all",
-              assignee: "all",
-              date: "",
-              search: ""
-            })}
-            title="Reset all filters"
-            style={{ whiteSpace: 'nowrap', padding: '6px 14px', fontSize: '13px' }}
-          >
-            Clear Filters
-          </button>
-        )}
-      </div>
+        {
+          (filters.status !== "all" || filters.priority !== "all" || filters.assignee !== "all" || filters.date || filters.search) && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setFilters({
+                status: "all",
+                priority: "all",
+                assignee: "all",
+                date: "",
+                search: ""
+              })}
+              title="Reset all filters"
+              style={{ whiteSpace: 'nowrap', padding: '6px 14px', fontSize: '13px' }}
+            >
+              Clear Filters
+            </button>
+          )
+        }
+      </div >
 
       {/* List */}
-      {loading ? (
-        <div className="loader_container">
-          <p className="loader_spinner"></p>
-          <p>Loading Tickets…</p>
-        </div>
-      ) : (
-        <div className="tickets-list">
-          {filteredTickets.length === 0 ? (
-            <div className="no-comments">
-              <p>No tickets found. {filters.search || filters.date || filters.status !== "all" || filters.priority !== "all" || filters.assignee !== "all" ? "Try clearing your filters." : "Create the first one!"}</p>
-            </div>
-          ) : (
-            filteredTickets.map((ticket) => {
-              const manageable = canManageTicket(ticket);
-              return (
-                <div
-                  key={ticket.id}
-                  className="ticket-item"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => openViewModal(ticket.id)}
-                  onKeyDown={(e) => (e.key === "Enter" ? openViewModal(ticket.id) : null)}
-                >
-                  {/* Hover action buttons (edit/delete) */}
-                  <div className="ticket-action-buttons">
-                    <button
-                      className="btn-link edit-btn"
-                      title="Edit ticket"
-                      onClick={(e) => openEditFromCard(ticket.id, e)}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 000-1.77l-2.34-2.34a1.25 1.25 0 00-1.77 0l-1.83 1.83 3.75 3.75 2.19-2.19z"
-                          fill="currentColor"
-                        />
-                      </svg>
-                    </button>
-                    {manageable && (
+      {
+        loading ? (
+          <div className="loader_container">
+            <p className="loader_spinner"></p>
+            <p>Loading Tickets…</p>
+          </div>
+        ) : (
+          <div className="tickets-list">
+            {filteredTickets.length === 0 ? (
+              <div className="no-comments">
+                <p>No tickets found. {filters.search || filters.date || filters.status !== "all" || filters.priority !== "all" || filters.assignee !== "all" ? "Try clearing your filters." : "Create the first one!"}</p>
+              </div>
+            ) : (
+              filteredTickets.map((ticket) => {
+                const manageable = canManageTicket(ticket);
+                return (
+                  <div
+                    key={ticket.id}
+                    className="ticket-item"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openViewModal(ticket.id)}
+                    onKeyDown={(e) => (e.key === "Enter" ? openViewModal(ticket.id) : null)}
+                  >
+                    {/* Hover action buttons (edit/delete) */}
+                    <div className="ticket-action-buttons">
                       <button
-                        className="btn-link delete-btn"
-                        title="Delete ticket"
-                        onClick={(e) => deleteTicket(ticket.id, e)}
+                        className="btn-link edit-btn"
+                        title="Edit ticket"
+                        onClick={(e) => openEditFromCard(ticket.id, e)}
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                           <path
-                            d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                            d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 000-1.77l-2.34-2.34a1.25 1.25 0 00-1.77 0l-1.83 1.83 3.75 3.75 2.19-2.19z"
                             fill="currentColor"
                           />
                         </svg>
                       </button>
-                    )}
-                  </div>
-
-                  {/* Header: Left + Right */}
-                  <div className="ticket-header">
-
-                    <div>
-                      <h4 className="ticket-title">{ticket.title}</h4>
-                      <div
-                        className="ticket-description"
-                        style={{ whiteSpace: 'pre-wrap' }}
-                        dangerouslySetInnerHTML={{
-                          __html: renderSafeHtmlWithLinks(
-                            ticket.description
-                              ? ticket.description.replace(/<[^>]*>/g, '').substring(0, 100) + '…'
-                              : ''
-                          ),
-                        }}
-                      />
-                    </div>
-
-                    {/* RIGHT */}
-                    <div className="ticket-right">
-                      {ticket.assignee_name && (
-                        <span className="ticket-assignee" title="Assigned to">
-                          <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                      {manageable && (
+                        <button
+                          className="btn-link delete-btn"
+                          title="Delete ticket"
+                          onClick={(e) => deleteTicket(ticket.id, e)}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                             <path
-                              d="M12 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 12c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"
+                              d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
                               fill="currentColor"
                             />
                           </svg>
-                          <span className="ticket-assignee-name">{ticket.assignee_name}</span>
-                        </span>
+                        </button>
                       )}
-                      <span className={`ticket-status ${ticket.status}`}>{ticket.status}</span>
-                      <span className={`ticket-priority ${ticket.priority}`}>{ticket.priority}</span>
                     </div>
-                  </div>
 
-                  {/* Bottom: title + description */}
-                  <div className="ticket-body">
-                    <div className="ticket-left">
-                      <UserAvatar name={ticket.creator_name} />
+                    {/* Header: Left + Right */}
+                    <div className="ticket-header">
 
-                      <h4 className="ticket-creator">{ticket.creator_name}</h4>
+                      <div>
+                        <h4 className="ticket-title">{ticket.title}</h4>
+                        <div
+                          className="ticket-description"
+                          style={{ whiteSpace: 'pre-wrap' }}
+                          dangerouslySetInnerHTML={{
+                            __html: renderSafeHtmlWithLinks(
+                              ticket.description
+                                ? ticket.description.replace(/<[^>]*>/g, '').substring(0, 100) + '…'
+                                : ''
+                            ),
+                          }}
+                        />
+                      </div>
 
-                      <div className="ticket-meta">
-                        {/* comment count */}
-                        <span className="ticket-meta-item" title="Comments">
-                          <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                            <path
-                              d="M20 2H4a2 2 0 0 0-2 2v13.5A1.5 1.5 0 0 0 3.5 19H6l3.6 3.2a1 1 0 0 0 1.4 0L14 19h6a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"
-                              fill="currentColor"
-                            />
-                          </svg>
-                          <span>{Number(ticket.comment_count || 0)}</span>
-                        </span>
-
-                        {/* last updated */}
-                        <span className="ticket-meta-item p-2" title="Created at">
-                          <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                            <path
-                              d="M12 1.75a10.25 10.25 0 1 0 0 20.5 10.25 10.25 0 0 0 0-20.5Zm.75 5.5a.75.75 0 0 0-1.5 0v5.25c0 .2.08.39.22.53l3.5 3.5a.75.75 0 0 0 1.06-1.06l-3.28-3.28V7.25Z"
-                              fill="currentColor"
-                            />
-                          </svg>
-                          <time dateTime={new Date(ticket.created_at).toISOString()}>
-                            {new Date(ticket.created_at).toLocaleString()}
-                          </time>
-                        </span>
+                      {/* RIGHT */}
+                      <div className="ticket-right">
+                        {ticket.assignee_name && (
+                          <span className="ticket-assignee" title="Assigned to">
+                            <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                              <path
+                                d="M12 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 12c-5.33 0-8 2.67-8 6v1h16v-1c0-3.33-2.67-6-8-6Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                            <span className="ticket-assignee-name">{ticket.assignee_name}</span>
+                          </span>
+                        )}
+                        <span className={`ticket-status ${ticket.status}`}>{ticket.status}</span>
+                        <span className={`ticket-priority ${ticket.priority}`}>{ticket.priority}</span>
                       </div>
                     </div>
-                    <span className="ticket-id-badge">{ticket.id}</span>
+
+                    {/* Bottom: title + description */}
+                    <div className="ticket-body">
+                      <div className="ticket-left">
+                        <UserAvatar name={ticket.creator_name} />
+
+                        <h4 className="ticket-creator">{ticket.creator_name}</h4>
+
+                        <div className="ticket-meta">
+                          {/* comment count */}
+                          <span className="ticket-meta-item" title="Comments">
+                            <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                              <path
+                                d="M20 2H4a2 2 0 0 0-2 2v13.5A1.5 1.5 0 0 0 3.5 19H6l3.6 3.2a1 1 0 0 0 1.4 0L14 19h6a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                            <span>{Number(ticket.comment_count || 0)}</span>
+                          </span>
+
+                          {/* last updated */}
+                          <span className="ticket-meta-item p-2" title="Created at">
+                            <svg className="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                              <path
+                                d="M12 1.75a10.25 10.25 0 1 0 0 20.5 10.25 10.25 0 0 0 0-20.5Zm.75 5.5a.75.75 0 0 0-1.5 0v5.25c0 .2.08.39.22.53l3.5 3.5a.75.75 0 0 0 1.06-1.06l-3.28-3.28V7.25Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                            <time dateTime={new Date(ticket.created_at).toISOString()}>
+                              {new Date(ticket.created_at).toLocaleString()}
+                            </time>
+                          </span>
+                        </div>
+                      </div>
+                      <span className="ticket-id-badge">{ticket.id}</span>
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
+                );
+              })
+            )}
+          </div>
+        )
+      }
 
       {/* --------------------------- Create Ticket Modal --------------------------- */}
       <BootstrapModal
@@ -1122,7 +1125,7 @@ export default function Tickets() {
         </div>
         <button className="toastx-close" onClick={hideToast} aria-label="Close">×</button>
       </div>
-    </div>
+    </div >
   );
 }
 
@@ -1355,62 +1358,73 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
                 )}
               </div>
 
-              {/* Viewers section */}
-              {/* Viewers section */}
-              <div className="ticket-viewers-section" ref={viewersRef}>
-                <div className="viewers-header" onClick={() => setShowAllViewers(!showAllViewers)}>
-                  <svg className="icon eye-icon" viewBox="0 0 24 24" width="16" height="16">
-                    <path
-                      d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  <div className="viewers-avatars flex items-center" style={{ gap: 0 }}>
-                    {viewers.slice(0, 2).map((viewer, i) => (
-                      <div
-                        key={viewer.id}
-                        style={{ marginLeft: i === 0 ? 0 : -8 }}
-                      >
-                        <UserAvatar name={viewer.name} size={25} />
-                      </div>
-                    ))}
+              {/* ZORVI Summarize & Viewers section side-by-side at top right */}
+              <div className="ticket-title-right-actions">
+                <button
+                  type="button"
+                  className="ticket-ai-header-btn"
+                  onClick={runTicketAiAnalysis}
+                  disabled={aiAnalyzing}
+                  title="ZORVI Summarize, Check SLA & Duplicates"
+                >
+                  <SparklesIcon size={25} />
+                </button>
 
-                    {viewers.length > 2 && (
-                      <button
-                        className="viewers-more-btn w-[25px] h-[25px] rounded-full border-2 border-white bg-orange-100 text-orange-600 text-xs font-medium flex items-center justify-center"
-                        onClick={() => setShowAllViewers(true)}
-                        title={`Show all ${viewers.length} viewers`}
-                        style={{ marginLeft: -8 }}
-                      >
-                        +{viewers.length - 2}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Viewers Popup - Now positioned relative to viewers-header */}
-                {showAllViewers && (
-                  <div className="viewers-popup">
-                    <div className="viewers-popup-header">
-                      <span className="viewers-popup-title">Ticket Viewers</span>
-                      <span className="viewers-popup-count">({viewers.length})</span>
-                    </div>
-                    <div className="viewers-popup-list">
-                      {viewers.map(viewer => (
-                        <div key={viewer.id} className="viewer-popup-item">
-                          <UserAvatar name={viewer.name} size={28} />
-                          <div className="viewer-popup-info">
-                            <div className="viewer-popup-name">{viewer.name}</div>
-                            <div className="viewer-popup-email">{viewer.email}</div>
-                            <div className="viewer-popup-date">
-                              Viewed {new Date(viewer.viewed_at).toLocaleString()}
-                            </div>
-                          </div>
+                <div className="ticket-viewers-section" ref={viewersRef}>
+                  <div className="viewers-header" onClick={() => setShowAllViewers(!showAllViewers)}>
+                    <svg className="icon eye-icon" viewBox="0 0 24 24" width="16" height="16">
+                      <path
+                        d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                    <div className="viewers-avatars flex items-center" style={{ gap: 0 }}>
+                      {viewers.slice(0, 2).map((viewer, i) => (
+                        <div
+                          key={viewer.id}
+                          style={{ marginLeft: i === 0 ? 0 : -8 }}
+                        >
+                          <UserAvatar name={viewer.name} size={25} />
                         </div>
                       ))}
+
+                      {viewers.length > 2 && (
+                        <button
+                          className="viewers-more-btn w-[25px] h-[25px] rounded-full border-2 border-white bg-orange-100 text-orange-600 text-xs font-medium flex items-center justify-center"
+                          onClick={() => setShowAllViewers(true)}
+                          title={`Show all ${viewers.length} viewers`}
+                          style={{ marginLeft: -8 }}
+                        >
+                          +{viewers.length - 2}
+                        </button>
+                      )}
                     </div>
                   </div>
-                )}
+
+                  {/* Viewers Popup - Now positioned relative to viewers-header */}
+                  {showAllViewers && (
+                    <div className="viewers-popup">
+                      <div className="viewers-popup-header">
+                        <span className="viewers-popup-title">Ticket Viewers</span>
+                        <span className="viewers-popup-count">({viewers.length})</span>
+                      </div>
+                      <div className="viewers-popup-list">
+                        {viewers.map(viewer => (
+                          <div key={viewer.id} className="viewer-popup-item">
+                            <UserAvatar name={viewer.name} size={28} />
+                            <div className="viewer-popup-info">
+                              <div className="viewer-popup-name">{viewer.name}</div>
+                              <div className="viewer-popup-email">{viewer.email}</div>
+                              <div className="viewer-popup-date">
+                                Viewed {new Date(viewer.viewed_at).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
             </div>
@@ -1460,14 +1474,9 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
 
       <hr></hr>
 
-      {/* AI Triage, SLA & Duplicate Insights inside Ticket Modal */}
-      <div style={{ marginBottom: "12px" }}>
-        {!aiAnalysis && !aiAnalyzing && !aiAnalyzeErr ? (
-          <button type="button" className="zx-ai-pill-btn" onClick={runTicketAiAnalysis}>
-            <SparklesIcon size={13} />
-            <span>ZORVI Summarize, Check SLA &amp; Duplicates</span>
-          </button>
-        ) : (
+      {/* AI Triage, SLA & Duplicate Insights inside Ticket Modal (triggered from top beside Viewers) */}
+      {(aiAnalysis || aiAnalyzing || aiAnalyzeErr) && (
+        <div style={{ marginBottom: "12px" }}>
           <AiInsightBox
             title="ZORVI Ticket Triage & SLA Check"
             loading={aiAnalyzing}
@@ -1513,36 +1522,38 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
               </div>
             )}
           </AiInsightBox>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Comments Section (unchanged) */}
+      {/* Comments Section */}
       <div className="comments-section">
-        <form onSubmit={addComment} className="" >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", flexWrap: "wrap", gap: "8px" }}>
-            <button
-              type="button"
-              className="zx-ai-btn-sm"
-              onClick={handleDraftTicketReply}
-              disabled={draftLoading}
-            >
-              <SparklesIcon size={12} />
-              <span>{draftLoading ? "Drafting Reply..." : "ZORVI Draft Reply"}</span>
-            </button>
-            {draftNote && <span style={{ fontSize: "11px", color: "#5e6c84" }}>{draftNote}</span>}
-          </div>
+        <form onSubmit={addComment} className="">
           <div className="form-group comment_input_con">
             <RichTextEditor
               value={newComment}
               onChange={(content) => setNewComment(content)}
               placeholder="Reply a Ticket..."
               className="comment-input-tiket"
+              footerContent={
+                <div className="ticket-reply-footer">
+                  {draftNote && <span className="ticket-reply-draft-note">{draftNote}</span>}
+                  <div className="ticket-reply-footer-actions">
+                    <button
+                      type="button"
+                      className="ticket-ai-header-btn"
+                      onClick={handleDraftTicketReply}
+                      disabled={draftLoading}
+                    >
+                      <SparklesIcon size={25} />
+                      <span>{draftLoading ? "..." : ""}</span>
+                    </button>
+                    <button type="submit" className="btn btn-primary btn-sm">
+                      Update Ticket
+                    </button>
+                  </div>
+                </div>
+              }
             />
-          </div>
-          <div className="form-actions">
-            <button type="submit" className="btn btn-primary">
-              Update Ticket
-            </button>
           </div>
         </form>
 
