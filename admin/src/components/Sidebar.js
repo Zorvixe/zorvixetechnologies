@@ -142,25 +142,7 @@ export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
           <span>My Account</span>
         </a>
 
-        <a
-          href="#ai-assistant"
-          className="navlink sidebar-mobile-only"
-          onClick={(e) => {
-            e.preventDefault();
-            window.dispatchEvent(new CustomEvent('zorvixe:open-ai-assistant'));
-            if (onClose) onClose();
-          }}
-          title="ZORVI AI Assistant"
-        >
-          <img
-            src={ZorviAiLogo}
-            width="20"
-            height="20"
-            alt="ZORVI AI"
-            style={{ borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }}
-          />
-          <span>ZORVI AI</span>
-        </a>
+
       </nav>
 
       {/* Sign Out: Mobile Only (Hidden on Desktop & other devices) */}

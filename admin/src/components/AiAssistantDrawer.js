@@ -103,7 +103,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
           setSessionId(sessionRes.session.id);
           try {
             sessionStorage.setItem(SESSION_STORAGE_KEY, String(sessionRes.session.id));
-          } catch {}
+          } catch { }
           setSessionPendingAction(sessionRes.session.pending_action || null);
           setMessages((sessionRes.messages || []).map(mapStoredMessage));
         }
@@ -177,15 +177,15 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
     if (p.includes('hrms') || p.includes('attendance') || p.includes('payroll') || p.includes('leave')) {
       return isAdmin
         ? [
-            'How many attendance punches and late marks happened today?',
-            'Summarize pending leave requests requiring review.',
-            'Audit current month payroll status for anomalies.',
-          ]
+          'How many attendance punches and late marks happened today?',
+          'Summarize pending leave requests requiring review.',
+          'Audit current month payroll status for anomalies.',
+        ]
         : [
-            'Summarize my recent attendance logs and hours.',
-            'What is the status of my leave requests?',
-            'Are any leave approvals waiting on me?',
-          ];
+          'Summarize my recent attendance logs and hours.',
+          'What is the status of my leave requests?',
+          'Are any leave approvals waiting on me?',
+        ];
     }
     if (p.includes('client') || p.includes('project')) {
       return [
@@ -207,15 +207,15 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
     }
     return isAdmin
       ? [
-          'Give me today’s executive summary and top risks.',
-          'Which tickets need urgent triage or assignment?',
-          'Summarize new applicants and pending leave requests.',
-        ]
+        'Give me today’s executive summary and top risks.',
+        'Which tickets need urgent triage or assignment?',
+        'Summarize new applicants and pending leave requests.',
+      ]
       : [
-          'Give me my daily operational summary.',
-          'Which open tickets are urgent or high priority?',
-          'Summarize my accessible projects and recent leaves.',
-        ];
+        'Give me my daily operational summary.',
+        'Which open tickets are urgent or high priority?',
+        'Summarize my accessible projects and recent leaves.',
+      ];
   }, [location.pathname, isAdmin]);
 
   const handleNewChat = async () => {
@@ -227,7 +227,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
         setSessionId(res.session.id);
         try {
           sessionStorage.setItem(SESSION_STORAGE_KEY, String(res.session.id));
-        } catch {}
+        } catch { }
       }
       setMessages([]);
       setSessionPendingAction(null);
@@ -267,7 +267,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
         setSessionId(res.sessionId);
         try {
           sessionStorage.setItem(SESSION_STORAGE_KEY, String(res.sessionId));
-        } catch {}
+        } catch { }
       }
 
       const nextPending = res.pendingConfirmation
@@ -309,8 +309,8 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
         toolName === 'send_external_email'
           ? { subject: draftOverrides.subject, body: draftOverrides.body }
           : toolName === 'review_leave_decision'
-          ? { comments: draftOverrides.comments }
-          : {};
+            ? { comments: draftOverrides.comments }
+            : {};
 
       const res = await apiAiCopilotConfirm({ sessionId, overrides });
       setSessionPendingAction(null);
@@ -379,8 +379,8 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
           <div className="zx-ai-drawer-title">
             <img src={ZorviAiLogo} alt="ZORVI AI" className="zx-ai-header-logo" />
             <div>
-              <h3>ZORVI Copilot</h3>
-              <p>Cross-platform AI assistant &bull; Ctrl+J</p>
+              <h3>ZORVI</h3>
+              <p>AI assistant &bull; Ctrl+J</p>
             </div>
           </div>
           <div className="zx-ai-header-controls">
@@ -399,27 +399,6 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
               <XIcon size={18} />
             </button>
           </div>
-        </div>
-
-        {/* Status Banner */}
-        <div className="zx-ai-status-strip">
-          {statusLoading ? (
-            <span>Checking AI service status...</span>
-          ) : aiStatus?.enabled === false ? (
-            <span className="zx-ai-strip-warn">
-              <AlertCircleIcon size={13} /> AI disabled ({!aiStatus.envEnabled ? 'env' : 'admin setting'}).
-            </span>
-          ) : (
-            <span>
-              Engine:{' '}
-              <strong>
-                {aiStatus?.providerConfigured ? `${aiStatus.provider} (${aiStatus.model})` : 'Deterministic Copilot'}
-              </strong>
-            </span>
-          )}
-          <span className="zx-ai-strip-path" title={location.pathname}>
-            {location.pathname}
-          </span>
         </div>
 
         {/* Conversation Body */}

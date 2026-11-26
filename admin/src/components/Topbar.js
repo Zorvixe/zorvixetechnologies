@@ -28,6 +28,7 @@ export default function Topbar({
   variant = "page",
   onToggleSidebar = () => { },
   sidebarCollapsed = false,
+  onClose,
 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -889,6 +890,24 @@ export default function Topbar({
               />
             )}
 
+            {/* AI ICON MOBILE */}
+            <a
+              href="#ai-assistant"
+              className="topbar-ai-icon-mobile"
+              onClick={(e) => {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent('zorvixe:open-ai-assistant'));
+                if (onClose) onClose();
+              }}
+              title="ZORVI AI Assistant"
+            >
+              <img
+                src={ZorviAiLogo}
+                width="30"
+                alt="ZORVI AI"
+              />
+            </a>
+
             {/* Avatar + profile dropdown (Images 1 & 2) */}
             <div className="profile-anchor">
               <button
@@ -935,176 +954,179 @@ export default function Topbar({
                     </div>
                   </div>
 
-                  {/* Big Avatar + Name + Presence Dropdown (Image 1) */}
-                  <div className="pm-card-hero">
-                    <div className="pm-big-avatar-wrapper">
-                      <span className="pm-big-avatar">{initials}</span>
-                      <span className={`pm-big-presence-dot ${toPresenceClass(presenceStatus)}`}></span>
-                    </div>
-                    <h4 className="pm-hero-name">{user?.name || user?.email || "User"}</h4>
+                  {/* Scrollable Body (Adapts to device height) */}
+                  <div className="pm-card-scroll">
+                    {/* Big Avatar + Name + Presence Dropdown (Image 1) */}
+                    <div className="pm-card-hero">
+                      <div className="pm-big-avatar-wrapper">
+                        <span className="pm-big-avatar">{initials}</span>
+                        <span className={`pm-big-presence-dot ${toPresenceClass(presenceStatus)}`}></span>
+                      </div>
+                      <h4 className="pm-hero-name">{user?.name || user?.email || "User"}</h4>
 
-                    {/* Status Dropdown Selector (Image 1) */}
-                    <div className="pm-presence-picker-anchor">
-                      <button
-                        type="button"
-                        className="pm-presence-picker-btn"
-                        onClick={() => setPresenceDropdownOpen(v => !v)}
-                      >
-                        <span className={`status-dot ${toPresenceClass(presenceStatus)}`}></span>
-                        <span className="pm-presence-label">{presenceStatus}</span>
-                        <span className="pm-presence-arrow">▾</span>
-                      </button>
+                      {/* Status Dropdown Selector (Image 1) */}
+                      <div className="pm-presence-picker-anchor">
+                        <button
+                          type="button"
+                          className="pm-presence-picker-btn"
+                          onClick={() => setPresenceDropdownOpen(v => !v)}
+                        >
+                          <span className={`status-dot ${toPresenceClass(presenceStatus)}`}></span>
+                          <span className="pm-presence-label">{presenceStatus}</span>
+                          <span className="pm-presence-arrow">▾</span>
+                        </button>
 
-                      {presenceDropdownOpen && (
-                        <div className="pm-presence-dropdown">
-                          <div className="pm-presence-group-title">Default status</div>
+                        {presenceDropdownOpen && (
+                          <div className="pm-presence-dropdown">
+                            <div className="pm-presence-group-title">Default status</div>
 
-                          <button
-                            type="button"
-                            className={`pm-presence-opt ${presenceStatus === 'Available' ? 'selected' : ''}`}
-                            onClick={() => handleSetPresence('Available')}
-                          >
-                            <div className="pm-opt-left">
-                              <span className="status-dot available"></span>
-                              <span>Available</span>
-                            </div>
-                            {presenceStatus === 'Available' && <span className="pm-check">✓</span>}
-                          </button>
-
-                          <button
-                            type="button"
-                            className={`pm-presence-opt ${presenceStatus === 'Away' ? 'selected' : ''}`}
-                            onClick={() => handleSetPresence('Away')}
-                          >
-                            <div className="pm-opt-left">
-                              <span className="status-dot away"></span>
-                              <span>Away</span>
-                            </div>
-                            {presenceStatus === 'Away' && <span className="pm-check">✓</span>}
-                          </button>
-
-                          <button
-                            type="button"
-                            className={`pm-presence-opt ${presenceStatus === 'Busy' ? 'selected' : ''}`}
-                            onClick={() => handleSetPresence('Busy')}
-                          >
-                            <div className="pm-opt-left">
-                              <span className="status-dot busy"></span>
-                              <span>Busy</span>
-                            </div>
-                            {presenceStatus === 'Busy' && <span className="pm-check">✓</span>}
-                          </button>
-
-                          <button
-                            type="button"
-                            className={`pm-presence-opt ${presenceStatus === 'Invisible' ? 'selected' : ''}`}
-                            onClick={() => handleSetPresence('Invisible')}
-                          >
-                            <div className="pm-opt-left">
-                              <span className="status-dot invisible"></span>
-                              <span>Invisible</span>
-                            </div>
-                            {presenceStatus === 'Invisible' && <span className="pm-check">✓</span>}
-                          </button>
-
-                          <div className="pm-presence-dnd-row">
                             <button
                               type="button"
-                              className={`pm-presence-opt ${presenceStatus === 'Do not disturb' ? 'selected' : ''}`}
-                              onClick={() => handleSetPresence('Do not disturb')}
+                              className={`pm-presence-opt ${presenceStatus === 'Available' ? 'selected' : ''}`}
+                              onClick={() => handleSetPresence('Available')}
                             >
                               <div className="pm-opt-left">
-                                <span className="status-dot dnd">🔕</span>
-                                <span>Do not disturb</span>
+                                <span className="status-dot available"></span>
+                                <span>Available</span>
                               </div>
-                              {presenceStatus === 'Do not disturb' && <span className="pm-check">✓</span>}
+                              {presenceStatus === 'Available' && <span className="pm-check">✓</span>}
                             </button>
-                            <select
-                              className="pm-dnd-select"
-                              value={dndDuration}
-                              onChange={(e) => updateDndDuration(e.target.value)}
-                              onClick={(e) => e.stopPropagation()}
+
+                            <button
+                              type="button"
+                              className={`pm-presence-opt ${presenceStatus === 'Away' ? 'selected' : ''}`}
+                              onClick={() => handleSetPresence('Away')}
                             >
-                              <option>15 Mins</option>
-                              <option>30 Mins</option>
-                              <option>1 Hour</option>
-                              <option>2 Hours</option>
-                              <option>Until tomorrow</option>
-                            </select>
+                              <div className="pm-opt-left">
+                                <span className="status-dot away"></span>
+                                <span>Away</span>
+                              </div>
+                              {presenceStatus === 'Away' && <span className="pm-check">✓</span>}
+                            </button>
+
+                            <button
+                              type="button"
+                              className={`pm-presence-opt ${presenceStatus === 'Busy' ? 'selected' : ''}`}
+                              onClick={() => handleSetPresence('Busy')}
+                            >
+                              <div className="pm-opt-left">
+                                <span className="status-dot busy"></span>
+                                <span>Busy</span>
+                              </div>
+                              {presenceStatus === 'Busy' && <span className="pm-check">✓</span>}
+                            </button>
+
+                            <button
+                              type="button"
+                              className={`pm-presence-opt ${presenceStatus === 'Invisible' ? 'selected' : ''}`}
+                              onClick={() => handleSetPresence('Invisible')}
+                            >
+                              <div className="pm-opt-left">
+                                <span className="status-dot invisible"></span>
+                                <span>Invisible</span>
+                              </div>
+                              {presenceStatus === 'Invisible' && <span className="pm-check">✓</span>}
+                            </button>
+
+                            <div className="pm-presence-dnd-row">
+                              <button
+                                type="button"
+                                className={`pm-presence-opt ${presenceStatus === 'Do not disturb' ? 'selected' : ''}`}
+                                onClick={() => handleSetPresence('Do not disturb')}
+                              >
+                                <div className="pm-opt-left">
+                                  <span className="status-dot dnd">🔕</span>
+                                  <span>Do not disturb</span>
+                                </div>
+                                {presenceStatus === 'Do not disturb' && <span className="pm-check">✓</span>}
+                              </button>
+                              <select
+                                className="pm-dnd-select"
+                                value={dndDuration}
+                                onChange={(e) => updateDndDuration(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <option>15 Mins</option>
+                                <option>30 Mins</option>
+                                <option>1 Hour</option>
+                                <option>2 Hours</option>
+                                <option>Until tomorrow</option>
+                              </select>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Feed History (Image 2) */}
-                  <div className="pm-card-section">
-                    <button type="button" className="pm-card-row-btn" onClick={handleLeave}>
-                      <span className="pm-row-icon">🕒</span>
-                      <span>Feed History</span>
-                    </button>
-                  </div>
-
-                  {/* Settings & Toggles (Images 1 & 2) */}
-                  <div className="pm-card-section">
-                    <div className="pm-section-heading">Settings</div>
-                    <div className="pm-section-subheading">General</div>
-
-                    <div className="pm-toggle-row">
-                      <span>Pause chat here</span>
-                      <label className="pm-switch">
-                        <input type="checkbox" checked={pauseChat} onChange={togglePauseChat} />
-                        <span className="pm-slider"></span>
-                      </label>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="pm-toggle-row">
-                      <span>Sound Notification</span>
-                      <label className="pm-switch">
-                        <input type="checkbox" checked={soundNotif} onChange={toggleSoundNotif} />
-                        <span className="pm-slider"></span>
-                      </label>
+                    {/* Feed History (Image 2) */}
+                    <div className="pm-card-section">
+                      <button type="button" className="pm-card-row-btn" onClick={handleLeave}>
+                        <span className="pm-row-icon">🕒</span>
+                        <span>Feed History</span>
+                      </button>
                     </div>
 
-                    <div className="pm-toggle-row">
-                      <span>One - One Chats</span>
-                      <label className="pm-switch">
-                        <input type="checkbox" checked={oneOneChats} onChange={toggleOneOneChats} />
-                        <span className="pm-slider"></span>
-                      </label>
+                    {/* Settings & Toggles (Images 1 & 2) */}
+                    <div className="pm-card-section">
+                      <div className="pm-section-heading">Settings</div>
+                      <div className="pm-section-subheading">General</div>
+
+                      <div className="pm-toggle-row">
+                        <span>Pause chat here</span>
+                        <label className="pm-switch">
+                          <input type="checkbox" checked={pauseChat} onChange={togglePauseChat} />
+                          <span className="pm-slider"></span>
+                        </label>
+                      </div>
+
+                      <div className="pm-toggle-row">
+                        <span>Sound Notification</span>
+                        <label className="pm-switch">
+                          <input type="checkbox" checked={soundNotif} onChange={toggleSoundNotif} />
+                          <span className="pm-slider"></span>
+                        </label>
+                      </div>
+
+                      <div className="pm-toggle-row">
+                        <span>One - One Chats</span>
+                        <label className="pm-switch">
+                          <input type="checkbox" checked={oneOneChats} onChange={toggleOneOneChats} />
+                          <span className="pm-slider"></span>
+                        </label>
+                      </div>
+
+                      <div className="pm-toggle-row">
+                        <span>Mention</span>
+                        <label className="pm-switch">
+                          <input type="checkbox" checked={mentionNotif} onChange={toggleMentionNotif} />
+                          <span className="pm-slider"></span>
+                        </label>
+                      </div>
                     </div>
 
-                    <div className="pm-toggle-row">
-                      <span>Mention</span>
-                      <label className="pm-switch">
-                        <input type="checkbox" checked={mentionNotif} onChange={toggleMentionNotif} />
-                        <span className="pm-slider"></span>
-                      </label>
+                    {/* Quick Action Links */}
+                    <div className="pm-card-section pm-card-actions">
+                      <button className="pm-action-link" onClick={handleAccount}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                        <span>My Account</span>
+                      </button>
+                      <button className="pm-action-link" onClick={handleLeave}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                        <span>Apply Leave</span>
+                      </button>
+                      <button className="pm-action-link" onClick={handleLogin}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                        <span>Login History</span>
+                      </button>
+                      <button className="pm-action-link" onClick={handleDiscussions}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                        <span>Discussions / Chat</span>
+                      </button>
+                      <button className="pm-action-link logout" onClick={logout}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                        <span>Sign Out</span>
+                      </button>
                     </div>
-                  </div>
-
-                  {/* Quick Action Links */}
-                  <div className="pm-card-section pm-card-actions">
-                    <button className="pm-action-link" onClick={handleAccount}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                      <span>My Account</span>
-                    </button>
-                    <button className="pm-action-link" onClick={handleLeave}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                      <span>Apply Leave</span>
-                    </button>
-                    <button className="pm-action-link" onClick={handleLogin}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                      <span>Login History</span>
-                    </button>
-                    <button className="pm-action-link" onClick={handleDiscussions}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                      <span>Discussions / Chat</span>
-                    </button>
-                    <button className="pm-action-link logout" onClick={logout}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-                      <span>Sign Out</span>
-                    </button>
                   </div>
                 </div>
               )}
