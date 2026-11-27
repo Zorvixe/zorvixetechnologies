@@ -354,7 +354,7 @@ export default function Candidates() {
             </svg>
             <input
               type="text"
-              placeholder="Search name, email, phone, candidate ID, role..."
+              placeholder="Search candidates"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />

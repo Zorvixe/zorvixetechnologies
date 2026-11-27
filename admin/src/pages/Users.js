@@ -316,7 +316,7 @@ export default function Users() {
             <input
               id="uSearch"
               type="text"
-              placeholder="Search by name, email, or username..."
+              placeholder="Search users"
               value={search}
               onChange={(e) => { setPage(1); setSearch(e.target.value) }}
             />

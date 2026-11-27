@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiStatsNotifications, apiResetNotificationCount, apiMarkNotificationRead, apiAiNotificationsSummary } from '../api';
 import AiInsightBox from '../components/AiInsightBox';
-import { SparklesIcon } from '../components/CrmHrmsIcons';
+import { SparklesIcon, UserIcon, CalendarIcon } from '../components/CrmHrmsIcons';
 import { useAuth } from '../auth';
 import './Notifications.css';
 import { buildDeepLink } from '../deeplink/resourceRegistry';
@@ -620,7 +620,7 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
                         </div>
                         {notification.assigned_to && (
                           <div className="notification-assigned">
-                            👤 {formatAssignedText(notification.assigned_to, notification.related_type)}
+                            <UserIcon size={13} /> {formatAssignedText(notification.assigned_to, notification.related_type)}
                           </div>
                         )}
                       </div>
@@ -705,7 +705,7 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
                   </svg>
                   <input
                     type="text"
-                    placeholder="Search Notifications..."
+                    placeholder="Search notifications"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -769,7 +769,7 @@ export default function Notification({ isOpen, onClose, lastChecked, onNewActivi
                   }
                 }}
               >
-                <span>📅</span>
+                <CalendarIcon size={13} />
                 <span>
                   {selectedDate
                     ? new Date(selectedDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })

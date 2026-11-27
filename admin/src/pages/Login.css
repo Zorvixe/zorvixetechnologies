@@ -5,63 +5,69 @@
   min-height: 100vh;
   height: 100%;
   overflow-y: auto;
-  background: #f8fafc;
-  padding: 16px;
+  background: var(--bg-canvas);
+  padding: var(--space-4);
   box-sizing: border-box;
 }
 
 .centerlogin .card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 32px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-hairline);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-md);
   width: 100%;
   max-width: 420px;
 }
 
 .centerlogin .card h3 {
-  margin-bottom: 16px;
-  font-size: 1.5rem;
-  color: #1e293b;
+  margin-bottom: var(--space-4);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
 .centerlogin .input {
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 14px;
+  padding: 10px var(--space-3);
   margin-top: 6px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.95rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .centerlogin .input:focus {
-  border-color: #2563eb;
+  border-color: var(--accent);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+  box-shadow: var(--accent-ring);
 }
 
 .centerlogin .button {
-  padding: 10px 16px;
-  border-radius: 8px;
+  padding: 10px var(--space-4);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
   border: none;
+  transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .centerlogin .button.primary {
-  background: #2563eb;
-  color: white;
+  background: var(--accent);
+  color: var(--text-inverse);
   width: 100%;
 }
 
 .centerlogin .button.primary:hover {
-  background: #1e40af;
+  background: var(--accent-hover);
 }
 
 .centerlogin .small {
-  color: #ef4444;
-  font-size: 0.85rem;
+  color: var(--negative);
+  font-size: 13px;
 }
 
 .zorvixe_login_logo {

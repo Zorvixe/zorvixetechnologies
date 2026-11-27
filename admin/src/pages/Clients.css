@@ -1,20 +1,21 @@
 /* src/pages/Clients.css */
 
-.controls {
+.clients-page .controls {
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
   flex-wrap: wrap;
-  margin-top: 10px;
+  margin-top: var(--space-3);
 }
 
-.input,
-.select,
-textarea {
-  padding: 8px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  background: #fff;
+.clients-page .input,
+.clients-page .select,
+.clients-page textarea {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
 }
 
 .textarea_description {
@@ -67,21 +68,23 @@ textarea {
   color: #ef4444;
 }
 
-button {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
-  background: #fff;
+.clients-page button {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-weight: 500;
   cursor: pointer;
 }
 
-button.primary {
-  background: #2563eb;
-  color: #fff;
+.clients-page button.primary {
+  background: var(--accent);
+  color: var(--text-inverse);
   border: none;
 }
 
-button.secondary {
+.clients-page button.secondary {
   background: transparent;
 }
 
@@ -356,7 +359,7 @@ button.secondary {
   border-radius: 50%;
   border: 1px solid #d1d5db;
   color: #4b5563;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 12px;
   background: #fff;
   cursor: default;
@@ -614,7 +617,7 @@ button.secondary {
     align-items: stretch;
     gap: 8px;
   }
-  .input, .select, textarea, .access_selection_input {
+  .clients-page .input, .clients-page .select, .clients-page textarea, .clients-page .access_selection_input {
     width: 100% !important;
     max-width: 100% !important;
   }

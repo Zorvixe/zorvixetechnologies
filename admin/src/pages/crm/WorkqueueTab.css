@@ -48,7 +48,7 @@
 
 .wq-section-title {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
 }
 
@@ -71,10 +71,9 @@
 
 .wq-group-label {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: #5e6c84;
-  text-transform: uppercase;
-  margin: 10px 0 4px 6px;
+margin: 10px 0 4px 6px;
   letter-spacing: 0.3px;
 }
 
@@ -95,7 +94,7 @@
   font-size: 13px;
   color: #172b4d;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   text-align: left;
 }
 
@@ -128,7 +127,7 @@
 
 .wq-count-badge {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   background: #dfe1e6;
   color: #172b4d;
   padding: 1px 7px;
@@ -173,7 +172,7 @@
 .wq-view-title {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
 }
 
@@ -261,10 +260,9 @@
   padding: 10px 14px;
   text-align: left;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: #5e6c84;
-  text-transform: uppercase;
-  border-bottom: 1px solid #dfe1e6;
+border-bottom: 1px solid #dfe1e6;
   white-space: nowrap;
 }
 
@@ -282,7 +280,7 @@
 .wq-date-chip {
   color: #ffffff;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 3px 8px;
   border-radius: 12px;
   display: inline-block;

@@ -221,6 +221,7 @@ export default function AttendanceTab({ isAdmin, user }) {
           )}
 
           <div className="att-punch-buttons-group">
+
             {!isPunchedIn && (
               <button
                 type="button"
@@ -263,6 +264,7 @@ export default function AttendanceTab({ isAdmin, user }) {
               </div>
             )}
 
+
             {!isPunchedOut && (
               <button
                 type="button"
@@ -273,50 +275,51 @@ export default function AttendanceTab({ isAdmin, user }) {
                 <FileTextIcon size={14} />
               </button>
             )}
+            {/* AI Attendance Summary & Flagged Review Strip */}
+            <div style={{ margin: '12px 0' }}>
+              {!attAiOpen ? (
+                <button type="button" className="zx-ai-pill-btn" onClick={runAttendanceAi}>
+                  <SparklesIcon size={13} />
+                  <span>{isAdmin ? 'ZORVI' : 'ZORVI'}</span>
+                </button>
+              ) : (
+                <AiInsightBox
+                  title={isAdmin ? 'ZORVI' : 'ZORVI'}
+                  loading={attAiLoading}
+                  error={attAiErr}
+                  uncertainty={attAiData?.uncertainty}
+                  providerMeta={attAiData?.meta}
+                  onRefresh={runAttendanceAi}
+                  onClose={() => setAttAiOpen(false)}
+                >
+                  {attAiData && (
+                    <div>
+                      <p style={{ margin: '0 0 6px' }}>{attAiData.summary}</p>
+                      {attAiData.trends?.length > 0 && (
+                        <ul className="zx-ai-list" style={{ fontSize: '12px' }}>
+                          {attAiData.trends.map((t, i) => <li key={i}>{t}</li>)}
+                        </ul>
+                      )}
+                      {attAiData.flaggedForReview?.length > 0 && (
+                        <div style={{ marginTop: '8px', fontSize: '12px' }}>
+                          <strong>Records Flagged for Review:</strong>
+                          <ul className="zx-ai-list">
+                            {attAiData.flaggedForReview.map((f, i) => (
+                              <li key={i}><strong>{f.employeeName}</strong> ({f.department}): {f.reasons.join('; ')}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </AiInsightBox>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* AI Attendance Summary & Flagged Review Strip */}
-      <div style={{ margin: '12px 0' }}>
-        {!attAiOpen ? (
-          <button type="button" className="zx-ai-pill-btn" onClick={runAttendanceAi}>
-            <SparklesIcon size={13} />
-            <span>{isAdmin ? 'ZORVI Workforce Attendance Summary & Flags' : 'ZORVI Summarize My Attendance'}</span>
-          </button>
-        ) : (
-          <AiInsightBox
-            title={isAdmin ? 'ZORVI Attendance Trends & Review Flags' : 'ZORVI Personal Attendance Summary'}
-            loading={attAiLoading}
-            error={attAiErr}
-            uncertainty={attAiData?.uncertainty}
-            providerMeta={attAiData?.meta}
-            onRefresh={runAttendanceAi}
-            onClose={() => setAttAiOpen(false)}
-          >
-            {attAiData && (
-              <div>
-                <p style={{ margin: '0 0 6px' }}>{attAiData.summary}</p>
-                {attAiData.trends?.length > 0 && (
-                  <ul className="zx-ai-list" style={{ fontSize: '12px' }}>
-                    {attAiData.trends.map((t, i) => <li key={i}>{t}</li>)}
-                  </ul>
-                )}
-                {attAiData.flaggedForReview?.length > 0 && (
-                  <div style={{ marginTop: '8px', fontSize: '12px' }}>
-                    <strong>Records Flagged for Review:</strong>
-                    <ul className="zx-ai-list">
-                      {attAiData.flaggedForReview.map((f, i) => (
-                        <li key={i}><strong>{f.employeeName}</strong> ({f.department}): {f.reasons.join('; ')}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </AiInsightBox>
-        )}
-      </div>
+
 
       {/* Admin Live Overview Cards */}
       {isAdmin && todayData?.orgOverview && (

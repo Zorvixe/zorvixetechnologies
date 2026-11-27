@@ -2,7 +2,7 @@
   --tb-h: 56px;
 }
 
-/* Global header — now truly fixed */
+/* Global header — fixed */
 .topbar--global {
   position: fixed;
   left: 0;
@@ -10,13 +10,12 @@
   top: 0;
   height: var(--tb-h);
   z-index: 1000;
-  /* above sidebar/content */
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 0 var(--space-4);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-hairline);
 }
 
 /* Spacer to offset fixed header; insert right after header in JSX */
@@ -59,36 +58,38 @@
   display: flex;
   align-items: center;
   width: 100%;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 9999px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 0 14px 0 38px;
-  height: 38px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  transition: background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+  padding: 0 var(--space-3) 0 36px;
+  height: 36px;
   box-sizing: border-box;
 }
 
 .tb-search-input-box:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
 }
 
 .tb-search-wrapper:focus-within .tb-search-input-box {
-  background: #ffffff;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: var(--bg-surface);
+  border-color: var(--accent);
+  box-shadow: var(--accent-ring);
 }
 
 .tb-search-icon {
   position: absolute;
-  left: 13px;
-  color: #64748b;
+  left: var(--space-3);
+  color: var(--text-muted);
   pointer-events: none;
-  transition: color 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
 .tb-search-wrapper:focus-within .tb-search-icon {
-  color: #2563eb;
+  color: var(--accent);
 }
 
 .tb-search-input {
@@ -96,15 +97,15 @@
   border: none;
   background: transparent;
   outline: none;
-  font-size: 0.86rem;
-  color: #0f172a;
-  font-weight: 500;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  font-weight: 400;
   padding: 0;
 }
 
 .tb-search-input::placeholder {
-  color: #94a3b8;
-  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 .tb-search-shortcut {
@@ -237,46 +238,46 @@
 }
 
 .tb-category-header {
-  padding: 8px 16px 4px 16px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #94a3b8;
-  letter-spacing: 0.06em;
+  padding: var(--space-2) var(--space-4) var(--space-1) var(--space-4);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff;
+  background: var(--bg-surface);
 }
 
 .tb-category-count {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
   padding: 1px 6px;
-  border-radius: 999px;
-  font-size: 0.66rem;
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .tb-search-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 9px 16px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: background-color var(--dur-fast) var(--ease-out);
   text-decoration: none;
   color: inherit;
 }
 
 .tb-search-item:hover,
 .tb-search-item.is-selected {
-  background: #f8fafc;
+  background: var(--bg-canvas);
 }
 
 .tb-item-icon-wrap {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -284,8 +285,8 @@
 }
 
 .tb-item-icon-wrap svg {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
 }
 
 .tb-item-body {
@@ -296,28 +297,26 @@
 .tb-item-title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .tb-item-title {
-  font-size: 0.86rem;
-  font-weight: 600;
-  color: #0f172a;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .tb-item-badge {
-  font-size: 0.66rem;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 500;
   padding: 1px 6px;
-  border-radius: 4px;
-  letter-spacing: 0.03em;
+  border-radius: var(--radius-xs);
   white-space: nowrap;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
 }
 
 .tb-item-sub {
@@ -519,7 +518,7 @@
   place-items: center;
   background: #e2e8f0;
   color: #0f172a;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 0.85rem;
   position: relative;
 }
@@ -645,7 +644,7 @@
   background: #e2e8f0;
   display: grid;
   place-items: center;
-  font-weight: 700;
+  font-weight: 600;
   color: #0f172a;
 }
 
@@ -762,7 +761,7 @@
 
   .page-title {
     font-size: 1.15rem;
-    font-weight: 700;
+    font-weight: 600;
     color: #0f172a;
   }
 
@@ -879,7 +878,7 @@
   .tb-title {
     max-width: 65vw;
     font-size: 0.95rem;
-    font-weight: 700;
+    font-weight: 600;
     color: #0f172a;
     display: block !important;
     white-space: nowrap;
@@ -961,7 +960,7 @@
   padding: 2px 5px;
   border-radius: 4px;
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* Zoho Quick Create '+' Button & Menu (Matches Photo 4) */
@@ -982,9 +981,9 @@
   align-items: center;
   justify-content: center;
   font-size: 19px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   margin-right: 6px;
   box-shadow: 0 1px 3px rgba(0, 82, 204, 0.3);
 }
@@ -1061,7 +1060,7 @@
 
 .tb-qc-col-title {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
   margin-bottom: 10px;
 }
@@ -1084,7 +1083,7 @@
   color: #172b4d;
   cursor: pointer;
   text-align: left;
-  transition: all 0.12s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .tb-qc-item:hover {
@@ -1134,12 +1133,12 @@
   max-height: calc(100dvh - 72px);
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 8px 30px rgba(9, 30, 66, 0.15);
-  border: 1px solid #dfe1e6;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  border: 1px solid var(--border-hairline);
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   z-index: 10001;
 }
 
@@ -1263,7 +1262,7 @@
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   box-shadow: 0 2px 6px rgba(0, 82, 204, 0.25);
 }
 
@@ -1300,7 +1299,7 @@
 .pm-hero-name {
   margin: 0 0 10px;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
   text-align: center;
 }
@@ -1323,7 +1322,7 @@
   cursor: pointer;
   font-size: 13px;
   color: #172b4d;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .pm-presence-picker-btn:hover {
@@ -1410,7 +1409,7 @@
 
 .pm-check {
   color: #0052cc;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .pm-presence-dnd-row {
@@ -1495,7 +1494,7 @@
 
 .pm-section-heading {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
   margin-bottom: 2px;
 }

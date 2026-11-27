@@ -1,41 +1,41 @@
-/* Shared AI Assistant & Module Insight Styling (Atlassian / Zoho clean look) */
+/* Shared AI Assistant & Module Insight Styling */
 
 .zx-ai-box {
-  background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
-  border: 1px solid #cfe0ff;
-  border-left: 4px solid #0052cc;
-  border-radius: 8px;
-  padding: 12px 14px;
-  margin-bottom: 14px;
-  box-shadow: 0 2px 8px rgba(9, 30, 66, 0.05);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+  box-shadow: var(--shadow-sm);
 }
 
 .zx-ai-box-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 
 .zx-ai-box-title-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 
 
 .zx-ai-box-title {
   font-size: 13px;
-  font-weight: 700;
-  color: #172b4d;
+  font-weight: 500;
+  color: var(--text-primary);
   line-height: 1.25;
 }
 
 .zx-ai-box-sub {
-  font-size: 11px;
-  color: #5e6c84;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .zx-ai-box-actions {
@@ -45,34 +45,35 @@
 }
 
 .zx-ai-mode-pill {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #eae6ff;
-  color: #403294;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-hairline);
+  letter-spacing: 0.01em;
 }
 
 .zx-ai-btn-sm {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: #ffffff;
-  border: 1px solid #dfe1e6;
-  color: #172b4d;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
   font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 5px;
+  font-weight: 500;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 
 .zx-ai-btn-sm:hover:not(:disabled) {
-  background: #deebff;
-  border-color: #b3d4ff;
-  color: #0052cc;
+  background: var(--accent-subtle);
+  border-color: var(--accent-border);
+  color: var(--accent);
 }
 
 .zx-ai-btn-sm:disabled {
@@ -84,18 +85,23 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, #0052cc 0%, #4c3fb6 100%);
-  color: #ffffff;
-  border: none;
+  background: var(--accent);
+  color: var(--text-inverse);
+  border: 1px solid var(--accent);
   font-size: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 6px;
+  font-weight: 500;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .zx-ai-btn-primary:hover:not(:disabled) {
-  filter: brightness(1.06);
+  background: var(--accent-hover);
+}
+
+.zx-ai-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .zx-ai-btn-primary:disabled {
@@ -251,7 +257,7 @@
 }
 
 .zx-ai-executed-check {
-  font-weight: 700;
+  font-weight: 600;
   font-size: 13px;
 }
 
@@ -277,7 +283,7 @@
 
 .zx-ai-confirm-title {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
   margin-bottom: 4px;
 }
@@ -365,18 +371,21 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-1);
   background: transparent;
   border: none;
-  padding: 2px 4px;
-  border-radius: 6px;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.15s ease;
+  transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .zx-ai-inline-assist-btn:hover:not(:disabled) {
-  background: rgba(239, 240, 241, 0.7);
-  transform: scale(1.06);
+  background: var(--bg-subtle);
+}
+
+.zx-ai-inline-assist-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .zx-ai-inline-assist-btn:disabled {
@@ -413,7 +422,7 @@
 .zx-ai-drawer-title h3 {
   margin: 0;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
 }
 
@@ -470,7 +479,7 @@
 .zx-ai-welcome-title {
   margin: 0 0 6px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
 }
 
@@ -549,11 +558,10 @@
 }
 
 .zx-ai-mini-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #5e6c84;
-  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
 }
 
 .zx-ai-ref-chips {
@@ -660,19 +668,20 @@
 .zx-ai-pill-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: linear-gradient(135deg, #f4f7ff 0%, #eae6ff 100%);
-  color: #403294;
-  border: 1px solid #c0b6f2;
-  border-radius: 999px;
-  padding: 5px 11px;
+  gap: 6px;
+  background: var(--bg-surface);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-md);
+  padding: 6px var(--space-3);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
 }
 
 .zx-ai-pill-btn:hover {
-  background: #eae6ff;
+  background: var(--accent-subtle);
 }
 
 .zx-ai-list {

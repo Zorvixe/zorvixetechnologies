@@ -33,20 +33,20 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 4px;
     background: transparent;
     border: none;
     padding: 6px 0;
-    color: #64748b;
+    color: var(--text-muted);
     cursor: pointer;
-    transition: color 0.15s ease, transform 0.15s ease;
+    transition: color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
     height: 100%;
     position: relative;
     min-width: 0;
   }
 
   .mobile-nav-btn:active {
-    transform: scale(0.92);
+    transform: scale(0.96);
   }
 
   .mobile-nav-icon {
@@ -54,34 +54,34 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
   }
 
   .mobile-nav-icon svg {
-    transition: stroke 0.15s ease, transform 0.15s ease;
+    transition: stroke var(--dur-fast) var(--ease-out);
   }
 
-  /* Matching Photo: Blue rounded square '+' Create Button */
+  /* Primary quick-create button */
   .mobile-nav-plus-box {
-    width: 25px;
-    height: 25px;
-    background: #0052cc;
-    color: #ffffff;
-    border-radius: 6px;
+    width: 24px;
+    height: 24px;
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 19px;
-    font-weight: 700;
+    font-size: 18px;
+    font-weight: 500;
     line-height: 1;
-    box-shadow: 0 1px 4px rgba(0, 82, 204, 0.4);
-    transition: transform 0.15s ease, background 0.15s ease;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
   }
 
   .mobile-nav-btn:active .mobile-nav-plus-box {
-    transform: scale(0.9);
-    background: #0747a6;
+    transform: scale(0.96);
+    background: var(--accent-hover);
   }
 
   .mobile-nav-meet-img {
@@ -120,7 +120,7 @@
 
   .mobile-nav-btn.is-active .mobile-nav-label {
     color: #0052cc;
-    font-weight: 700;
+    font-weight: 600;
   }
 
   /* Live Notification & Ticket Badge */
@@ -134,7 +134,7 @@
     min-width: 16px;
     height: 16px;
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -217,7 +217,7 @@
 
   .mobile-nav-sheet-title {
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 600;
     color: #172b4d;
   }
 
@@ -280,10 +280,9 @@
 
   .mobile-nav-qc-section-title {
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     color: #5e6c84;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+letter-spacing: 0.01em;
     margin-bottom: 8px;
   }
 
@@ -319,7 +318,7 @@
 
   .mobile-nav-qc-plus {
     color: #0052cc;
-    font-weight: 700;
+    font-weight: 600;
     font-size: 15px;
   }
 
@@ -398,6 +397,6 @@
   .mobile-nav-meet-arrow {
     color: #0052cc;
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 600;
   }
 }

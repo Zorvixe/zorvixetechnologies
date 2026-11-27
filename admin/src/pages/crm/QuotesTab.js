@@ -19,7 +19,8 @@ import {
   EyeIcon,
   TrashIcon,
   PrinterIcon,
-  FileTextIcon
+  FileTextIcon,
+  MailIcon
 } from '../../components/CrmHrmsIcons';
 import './QuotesTab.css';
 
@@ -648,7 +649,7 @@ export default function QuotesTab() {
                     relatedId: previewQuoteData.quote?.id
                   })}
                 >
-                  ✉️ Email Proposal
+                  <MailIcon size={14} style={{ marginRight: 6 }} /> Email Proposal
                 </button>
                 <button type="button" className="btn-print-quote" onClick={() => window.print()}>
                   <PrinterIcon size={14} style={{ marginRight: '6px' }} />

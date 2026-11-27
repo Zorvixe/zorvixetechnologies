@@ -1,47 +1,50 @@
 /* Sidebar base */
 .sidebar {
-  width: 250px;
-  background: #fff;
+  width: var(--sidebar-w);
+  background: var(--bg-surface);
   display: flex;
   flex-direction: column;
-  padding: 20px 16px 0 16px;
+  padding: var(--space-5) var(--space-3) 0 var(--space-3);
   height: 100vh;
   height: 100dvh;
   position: relative;
   z-index: 10;
   overflow: hidden;
-  transition: width 0.3s ease;
+  transition: width var(--dur-med) var(--ease-out);
   flex-shrink: 0;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid var(--border-hairline);
 }
 
 .sidebar.collapsed {
-  width: 80px;
-  padding: 20px 8px 0 8px;
+  width: var(--sidebar-collapsed-w);
+  padding: var(--space-5) var(--space-2) 0 var(--space-2);
 }
 
 .user {
   margin-top: 50px;
-  margin-bottom: 24px;
-  font-size: 1.05rem;
-  color: #0b0f19;
+  margin-bottom: var(--space-6);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
 }
 
-.badge {
-  background: #1a73e8;
-  padding: 2px 8px;
-  border-radius: 12px;
-  margin-left: 6px;
-  font-size: 0.75rem;
-  color: #fff;
+.sidebar .badge {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-xs);
+  margin-left: var(--space-2);
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -52,28 +55,33 @@
 .navlink {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
-  border-radius: 8px;
+  height: 36px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
   text-decoration: none;
-  color: #111827;
-  transition: background .15s, color .15s;
-  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 400;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  gap: var(--space-3);
   position: relative;
 }
 
 .navlink:hover {
-  background: #f3f6fb;
-  color: #111827;
+  background: var(--bg-subtle);
+  color: var(--text-primary);
 }
 
 .navlink.active {
-  background: #e8f0fe;
-  color: #1a73e8;
-  font-weight: 600;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: 500;
 }
 
 .navlink svg {
   flex-shrink: 0;
+  width: 16px;
+  height: 16px;
 }
 
 .sidebar-footer {
@@ -208,9 +216,10 @@
   }
 
   .navlink {
-    padding: 12px 14px;
-    border-radius: 10px;
-    font-size: 0.95rem;
+    padding: 0 var(--space-3);
+    height: 40px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
     font-weight: 500;
   }
 
@@ -219,15 +228,14 @@
   }
 
   .navlink.active {
-    background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
-    color: #1d4ed8;
-    font-weight: 600;
-    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+    background: var(--accent-subtle);
+    color: var(--accent);
+    font-weight: 500;
   }
 
   .sidebar-footer {
-    padding-top: 12px;
-    border-top: 1px solid #f1f5f9;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-hairline);
   }
 
   .sidebar-mobile-only {
@@ -241,14 +249,15 @@
   .sidebar-divider-mobile.sidebar-mobile-only {
     display: block !important;
     height: 1px;
-    background: #f1f5f9;
-    margin: 8px 4px;
+    background: var(--border-hairline);
+    margin: var(--space-2) var(--space-1);
   }
 
   .logout-btn {
-    border-radius: 10px;
-    padding: 11px 14px;
-    font-size: 0.92rem;
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    font-size: 14px;
+    font-weight: 500;
   }
 }
 
@@ -262,11 +271,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.36);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 9999;
-  animation: overlayFadeIn 0.2s ease-out;
+  animation: overlayFadeIn var(--dur-med) var(--ease-out);
 }
 
 @keyframes overlayFadeIn {
@@ -280,7 +289,7 @@
 }
 
 .avatar_button_sidebar {
-  margin: 50px 0px 25px 0px;
+  margin: 50px 0 var(--space-6) 0;
 }
 
 .avatar-btn {
@@ -293,11 +302,12 @@
 .avatar {
   height: 28px;
   width: 28px;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   display: grid;
   place-items: center;
-  background: #e2e8f0;
-  color: #0f172a;
-  font-weight: 700;
-  font-size: 0.85rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 12px;
 }

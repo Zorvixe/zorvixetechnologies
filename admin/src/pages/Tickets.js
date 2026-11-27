@@ -645,7 +645,7 @@ export default function Tickets() {
 
         <input
           type="text"
-          placeholder="Search tickets (title, description, creator, assignee, status, priority)..."
+          placeholder="Search tickets"
           value={filters.search}
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           className="comment-input"

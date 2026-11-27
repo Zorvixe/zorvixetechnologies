@@ -19,6 +19,7 @@ import {
 
 import Notification from "../pages/Notification";
 import UserTicket from "../pages/UserTicket";
+import { UserIcon, BellOffIcon, ClockIcon, CheckIcon } from "./CrmHrmsIcons";
 
 import "./Topbar.css";
 
@@ -531,7 +532,7 @@ export default function Topbar({
                   ref={searchInputRef}
                   type="text"
                   className="tb-search-input"
-                  placeholder="Search tickets, projects, clients, contacts, team..."
+                  placeholder="Search workspace"
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -574,7 +575,7 @@ export default function Topbar({
                   {isSearching && searchResults.length === 0 ? (
                     <div className="tb-search-loading">
                       <span className="tb-search-spinner" />
-                      <span>Searching across workspace...</span>
+                      <span>Searching workspace</span>
                     </div>
                   ) : searchResults.length === 0 ? (
                     <div className="tb-search-empty">
@@ -929,7 +930,7 @@ export default function Topbar({
                   {/* Card Top Title Bar (Images 1 & 2) */}
                   <div className="pm-card-topbar">
                     <div className="pm-card-top-user">
-                      <span className="pm-card-top-icon">👤</span>
+                      <span className="pm-card-top-icon"><UserIcon size={14} /></span>
                       <span className="pm-card-top-name">{user?.name || user?.email || "User"}</span>
                       <span className="pm-card-top-sep">•</span>
                       <span className="pm-card-top-status">{presenceStatus}</span>
@@ -989,7 +990,7 @@ export default function Topbar({
                                 <span className="status-dot available"></span>
                                 <span>Available</span>
                               </div>
-                              {presenceStatus === 'Available' && <span className="pm-check">✓</span>}
+                              {presenceStatus === 'Available' && <span className="pm-check"><CheckIcon size={13} /></span>}
                             </button>
 
                             <button
@@ -1001,7 +1002,7 @@ export default function Topbar({
                                 <span className="status-dot away"></span>
                                 <span>Away</span>
                               </div>
-                              {presenceStatus === 'Away' && <span className="pm-check">✓</span>}
+                              {presenceStatus === 'Away' && <span className="pm-check"><CheckIcon size={13} /></span>}
                             </button>
 
                             <button
@@ -1013,7 +1014,7 @@ export default function Topbar({
                                 <span className="status-dot busy"></span>
                                 <span>Busy</span>
                               </div>
-                              {presenceStatus === 'Busy' && <span className="pm-check">✓</span>}
+                              {presenceStatus === 'Busy' && <span className="pm-check"><CheckIcon size={13} /></span>}
                             </button>
 
                             <button
@@ -1025,7 +1026,7 @@ export default function Topbar({
                                 <span className="status-dot invisible"></span>
                                 <span>Invisible</span>
                               </div>
-                              {presenceStatus === 'Invisible' && <span className="pm-check">✓</span>}
+                              {presenceStatus === 'Invisible' && <span className="pm-check"><CheckIcon size={13} /></span>}
                             </button>
 
                             <div className="pm-presence-dnd-row">
@@ -1035,10 +1036,10 @@ export default function Topbar({
                                 onClick={() => handleSetPresence('Do not disturb')}
                               >
                                 <div className="pm-opt-left">
-                                  <span className="status-dot dnd">🔕</span>
+                                  <span className="status-dot dnd"><BellOffIcon size={13} /></span>
                                   <span>Do not disturb</span>
                                 </div>
-                                {presenceStatus === 'Do not disturb' && <span className="pm-check">✓</span>}
+                                {presenceStatus === 'Do not disturb' && <span className="pm-check"><CheckIcon size={13} /></span>}
                               </button>
                               <select
                                 className="pm-dnd-select"
@@ -1061,7 +1062,7 @@ export default function Topbar({
                     {/* Feed History (Image 2) */}
                     <div className="pm-card-section">
                       <button type="button" className="pm-card-row-btn" onClick={handleLeave}>
-                        <span className="pm-row-icon">🕒</span>
+                        <span className="pm-row-icon"><ClockIcon size={14} /></span>
                         <span>Feed History</span>
                       </button>
                     </div>

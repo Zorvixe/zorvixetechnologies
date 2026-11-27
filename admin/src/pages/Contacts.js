@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Topbar from '../components/Topbar'
 import { apiListContacts, apiUpdateContact, apiDeleteContact, apiExportContactsCsv, apiCreateDeal, apiAiContactAssist } from '../api'
 import AiInsightBox from '../components/AiInsightBox'
+import RichTextEditor from '../components/RichTextEditor'
 import { SparklesIcon } from '../components/CrmHrmsIcons'
 import { useAuth } from '../auth'
 
@@ -91,7 +92,7 @@ export default function Contacts() {
   }
 
   return (
-    <div>
+    <div className="contacts-page">
       <Topbar title="Contacts">
         <div className='contacts_topbar'>
 
@@ -142,12 +143,14 @@ export default function Contacts() {
                 )}
                 {contactAiData.draftReply && (
                   <div style={{ marginTop: '8px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#42526e', marginBottom: 4 }}>Suggested Draft Reply (Copy / Review Before Sending):</div>
-                    <textarea
+                    <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 4 }}>Suggested Draft Reply (Copy / Review Before Sending):</div>
+                    <RichTextEditor
                       readOnly
-                      rows={5}
+                      compact
+                      disableAiAssist
+                      minHeight="100px"
+                      maxHeight="200px"
                       value={contactAiData.draftReply}
-                      style={{ width: '100%', padding: 8, fontSize: 12, borderRadius: 6, border: '1px solid #dfe1e6', background: '#ffffff' }}
                     />
                   </div>
                 )}

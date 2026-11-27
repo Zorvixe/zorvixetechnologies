@@ -12,6 +12,9 @@ import {
   apiGetChatUnreadCount,
 } from "../api";
 import { playNotificationSound } from "../utils/notificationSound";
+import RichTextEditor from "./RichTextEditor";
+import { renderSafeHtml, stripHtmlText } from "../utils/safeHtml";
+import { MessageSquareIcon, CheckIcon, CheckCheckIcon } from "./CrmHrmsIcons";
 import "./LinkedInChatWidget.css";
 
 // Helper: generate consistent avatar color from string
@@ -74,28 +77,15 @@ const formatMessageTimestamp = (dateString) => {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 };
 
-// Helper: check if message links to URL
+// Helper: safely render formatted chat messages
 const renderMessageWithLinks = (text) => {
   if (!text) return "";
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlRegex);
-  return parts.map((part, i) => {
-    if (part.match(urlRegex)) {
-      return (
-        <a
-          key={i}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="chat-link"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {part}
-        </a>
-      );
-    }
-    return part;
-  });
+  return (
+    <div
+      className="chat-rich-body"
+      dangerouslySetInnerHTML={{ __html: renderSafeHtml(text) }}
+    />
+  );
 };
 
 export default function LinkedInChatWidget() {
@@ -400,15 +390,16 @@ export default function LinkedInChatWidget() {
   const handleCopyMessage = (text) => {
     setActiveMenuMsgId(null);
     if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(text);
+      navigator.clipboard.writeText(stripHtmlText(text) || text);
     }
   };
 
   // Send message
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
+    const plain = stripHtmlText(inputMessage);
     const text = inputMessage.trim();
-    if (!text || !activeColleague || sending) return;
+    if (!plain || !text || !activeColleague || sending) return;
 
     if (editingMessage) {
       const targetId = editingMessage.id;
@@ -604,9 +595,9 @@ export default function LinkedInChatWidget() {
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="chat-empty-state">
-                    <div className="chat-empty-icon">💬</div>
+                    <div className="chat-empty-icon"><MessageSquareIcon size={28} /></div>
                     <p>No messages yet.</p>
-                    <span>Say hello to {activeColleague.name}!</span>
+                    <span>Say hello to {activeColleague.name}</span>
                   </div>
                 ) : (
                   messages.map((msg, idx) => {
@@ -718,8 +709,8 @@ export default function LinkedInChatWidget() {
                               <span className="chat-edited-label">• edited</span>
                             )}
                             {isMe && !isDeleted && (
-                              <span className="chat-read-tick" title={msg.is_read ? "Read" : "Sent"}>
-                                {msg.is_read ? "✓✓" : "✓"}
+                              <span className="chat-read-tick" title={msg.is_read ? "Read" : "Sent"} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                {msg.is_read ? <CheckCheckIcon size={12} /> : <CheckIcon size={12} />}
                               </span>
                             )}
                           </div>
@@ -742,7 +733,7 @@ export default function LinkedInChatWidget() {
                       </svg>
                       <div className="chat-widget-edit-text">
                         <span className="chat-widget-edit-title">Editing</span>
-                        <span className="chat-widget-edit-snippet">{editingMessage.message_text}</span>
+                        <span className="chat-widget-edit-snippet">{stripHtmlText(editingMessage.message_text)}</span>
                       </div>
                     </div>
                     <button
@@ -756,19 +747,23 @@ export default function LinkedInChatWidget() {
                   </div>
                 )}
                 <form className="chat-composer" onSubmit={handleSendMessage}>
-                  <textarea
-                    ref={chatInputRef}
-                    className="chat-composer-input"
-                    placeholder={editingMessage ? "Edit message..." : `Message ${activeColleague.name.split(" ")[0]}...`}
-                    rows={1}
+                  <RichTextEditor
+                    compact
+                    inputRef={chatInputRef}
+                    minHeight="40px"
+                    maxHeight="96px"
+                    aiFieldLabel="Quick Chat Message"
+                    aiContext={{ recipient: activeColleague?.name }}
+                    placeholder={editingMessage ? "Edit message" : `Message ${activeColleague.name.split(" ")[0]}`}
                     value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
+                    onChange={(content) => setInputMessage(content)}
                     onKeyDown={handleKeyDown}
+                    style={{ flex: 1, minWidth: 0 }}
                   />
                   <button
                     type="submit"
-                    className={`chat-send-btn ${inputMessage.trim() ? "active" : ""}`}
-                    disabled={!inputMessage.trim() || sending}
+                    className={`chat-send-btn ${stripHtmlText(inputMessage) ? "active" : ""}`}
+                    disabled={!stripHtmlText(inputMessage) || sending}
                     title={editingMessage ? "Save edit (Enter)" : "Send (Enter)"}
                     aria-label={editingMessage ? "Save edit" : "Send message"}
                   >
@@ -947,7 +942,7 @@ export default function LinkedInChatWidget() {
                             <span className="cliq-opt-title">Available</span>
                           </div>
                         </div>
-                        {presenceStatus === 'Available' && <span className="cliq-checkmark">✓</span>}
+                        {presenceStatus === 'Available' && <span className="cliq-checkmark"><CheckIcon size={13} /></span>}
                       </button>
 
                       <button
@@ -962,7 +957,7 @@ export default function LinkedInChatWidget() {
                             <span className="cliq-opt-sub">Let others know you are on a break</span>
                           </div>
                         </div>
-                        {presenceStatus === 'Away' && <span className="cliq-checkmark">✓</span>}
+                        {presenceStatus === 'Away' && <span className="cliq-checkmark"><CheckIcon size={13} /></span>}
                       </button>
 
                       <button
@@ -977,7 +972,7 @@ export default function LinkedInChatWidget() {
                             <span className="cliq-opt-sub">All notification sounds will be turned off</span>
                           </div>
                         </div>
-                        {presenceStatus === 'Busy' && <span className="cliq-checkmark">✓</span>}
+                        {presenceStatus === 'Busy' && <span className="cliq-checkmark"><CheckIcon size={13} /></span>}
                       </button>
 
                       <button
@@ -992,7 +987,7 @@ export default function LinkedInChatWidget() {
                             <span className="cliq-opt-sub">You'll appear offline</span>
                           </div>
                         </div>
-                        {presenceStatus === 'Invisible' && <span className="cliq-checkmark">✓</span>}
+                        {presenceStatus === 'Invisible' && <span className="cliq-checkmark"><CheckIcon size={13} /></span>}
                       </button>
 
                       <div className={`cliq-status-option dnd-row ${presenceStatus === 'Do not disturb' ? 'selected' : ''}`}>
@@ -1277,7 +1272,7 @@ export default function LinkedInChatWidget() {
                               {colleague.last_message ? (
                                 <>
                                   {isSentByMe && <span className="snippet-you">You: </span>}
-                                  {colleague.last_message}
+                                  {stripHtmlText(colleague.last_message)}
                                 </>
                               ) : (
                                 <span className="snippet-new">Start conversation</span>

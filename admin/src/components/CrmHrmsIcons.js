@@ -2,7 +2,7 @@ import React from 'react';
 import ZorviAiLogoImg from '../assets/zorvi_ai_logo.png';
 
 // Common SVG Wrapper matching Sidebar.js SVG specifications
-const createIcon = (paths) => ({ size = 16, color = 'currentColor', strokeWidth = 2, className = '', style = {}, ...props }) => (
+const createIcon = (paths) => ({ size = 16, color = 'currentColor', strokeWidth = 1.5, className = '', style = {}, ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}
@@ -367,6 +367,80 @@ export const XIcon = createIcon(
   <>
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
+  </>
+);
+
+export const MailIcon = createIcon(
+  <>
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <path d="M22 6l-10 7L2 6" />
+  </>
+);
+
+export const EditIcon = createIcon(
+  <>
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </>
+);
+
+export const MessageSquareIcon = createIcon(
+  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+);
+
+export const PaletteIcon = createIcon(
+  <>
+    <circle cx="13.5" cy="6.5" r="1" />
+    <circle cx="17.5" cy="10.5" r="1" />
+    <circle cx="8.5" cy="7.5" r="1" />
+    <circle cx="6.5" cy="12.5" r="1" />
+    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+  </>
+);
+
+export const BellOffIcon = createIcon(
+  <>
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    <path d="M18.63 13A17.89 17.89 0 0 1 18 8" />
+    <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14" />
+    <path d="M18 8a6 6 0 0 0-9.33-5" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </>
+);
+
+export const SendIcon = createIcon(
+  <>
+    <line x1="22" y1="2" x2="11" y2="13" />
+    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+  </>
+);
+
+export const CheckCheckIcon = createIcon(
+  <>
+    <path d="M18 6L7 17l-5-5" />
+    <path d="M22 10l-7.5 7.5L13 16" />
+  </>
+);
+
+export const AlertTriangleIcon = createIcon(
+  <>
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </>
+);
+
+export const MapPinIcon = createIcon(
+  <>
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </>
+);
+
+export const LinkIcon = createIcon(
+  <>
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
   </>
 );
 

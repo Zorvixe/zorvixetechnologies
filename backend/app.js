@@ -996,6 +996,10 @@ ADD COLUMN IF NOT EXISTS casual_used_this_month INTEGER NOT NULL DEFAULT 0;
       ['assigned_to', 'assigned_to BIGINT REFERENCES admin_users(id) ON DELETE SET NULL'],
     ]);
 
+    await ensureColumns(client, 'crm_deals', [
+      ['crm_contact_id', 'crm_contact_id BIGINT REFERENCES crm_contacts(id) ON DELETE SET NULL'],
+    ]);
+
     // Seed default Phase 2 Email Templates if table is empty
     await client.query(`
       INSERT INTO crm_email_templates (name, category, subject, body, is_system)
@@ -7937,26 +7941,84 @@ app.get('/api/hrms/compliance', requireAuth, async (req, res) => {
   }
 });
 
-// Update compliance status
+// Create new compliance requirement
+app.post('/api/hrms/compliance', requireAdmin, async (req, res) => {
+  try {
+    const { title, category, frequency, due_date, status, notes, document_ref } = req.body || {};
+    if (!title || !String(title).trim()) {
+      return res.status(400).json({ success: false, message: 'Compliance title is required' });
+    }
+
+    const q = `
+      INSERT INTO hrms_compliance_records (title, category, frequency, due_date, status, notes, document_ref)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `;
+    const { rows } = await pool.query(q, [
+      String(title).trim(),
+      category || 'Labour_Law',
+      frequency || 'monthly',
+      due_date || null,
+      status || 'pending',
+      notes || null,
+      document_ref || null
+    ]);
+
+    res.status(201).json({ success: true, message: 'Compliance record created', record: rows[0] });
+  } catch (error) {
+    console.error('Create compliance error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create compliance record' });
+  }
+});
+
+// Update compliance record / status
 app.patch('/api/hrms/compliance/:id', requireAdmin, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const { status, due_date, notes } = req.body || {};
+    const { title, category, frequency, status, due_date, notes, document_ref } = req.body || {};
 
     const q = `
       UPDATE hrms_compliance_records
-      SET status = COALESCE($1, status),
-          due_date = COALESCE($2, due_date),
-          notes = COALESCE($3, notes),
+      SET title = COALESCE($1, title),
+          category = COALESCE($2, category),
+          frequency = COALESCE($3, frequency),
+          status = COALESCE($4, status),
+          due_date = COALESCE($5, due_date),
+          notes = COALESCE($6, notes),
+          document_ref = COALESCE($7, document_ref),
           updated_at = NOW()
-      WHERE id = $4
+      WHERE id = $8
       RETURNING *
     `;
-    const { rows } = await pool.query(q, [status || null, due_date || null, notes || null, id]);
+    const { rows } = await pool.query(q, [
+      title !== undefined ? (String(title).trim() || null) : null,
+      category !== undefined ? (category || null) : null,
+      frequency !== undefined ? (frequency || null) : null,
+      status !== undefined ? (status || null) : null,
+      due_date !== undefined ? (due_date || null) : null,
+      notes !== undefined ? notes : null,
+      document_ref !== undefined ? document_ref : null,
+      id
+    ]);
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: 'Compliance record not found' });
+    }
     res.json({ success: true, message: 'Compliance record updated', record: rows[0] });
   } catch (error) {
     console.error('Update compliance error:', error);
     res.status(500).json({ success: false, message: 'Failed to update compliance record' });
+  }
+});
+
+// Delete compliance record
+app.delete('/api/hrms/compliance/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await pool.query(`DELETE FROM hrms_compliance_records WHERE id = $1`, [id]);
+    res.json({ success: true, message: 'Compliance record deleted' });
+  } catch (error) {
+    console.error('Delete compliance error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete compliance record' });
   }
 });
 
@@ -8620,11 +8682,13 @@ app.get('/api/crm/deals', requireAuth, async (req, res) => {
       SELECT 
         d.*,
         c.name AS client_name,
-        co.name AS contact_name,
+        COALESCE(cco.email, c.email, co.email) AS client_email,
+        COALESCE(cco.name, co.name) AS contact_name,
         u.name AS assigned_user_name
       FROM crm_deals d
       LEFT JOIN clients c ON c.id = d.client_id
       LEFT JOIN contacts co ON co.id = d.contact_id
+      LEFT JOIN crm_contacts cco ON cco.id = d.crm_contact_id
       LEFT JOIN admin_users u ON u.id = d.assigned_to
       ${whereStr}
       ORDER BY d.created_at DESC
@@ -8657,18 +8721,19 @@ app.get('/api/crm/deals', requireAuth, async (req, res) => {
 // Create Deal
 app.post('/api/crm/deals', requireAuth, async (req, res) => {
   try {
-    const { title, client_id, contact_id, value, stage, probability, expected_close_date, assigned_to, description } = req.body || {};
+    const { title, client_id, contact_id, crm_contact_id, value, stage, probability, expected_close_date, assigned_to, description } = req.body || {};
     if (!title) return res.status(400).json({ success: false, message: 'Deal title is required' });
 
     const q = `
-      INSERT INTO crm_deals (title, client_id, contact_id, value, stage, probability, expected_close_date, assigned_to, description)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO crm_deals (title, client_id, contact_id, crm_contact_id, value, stage, probability, expected_close_date, assigned_to, description)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
     const { rows } = await pool.query(q, [
       title,
       client_id || null,
       contact_id || null,
+      crm_contact_id || null,
       value || 0,
       stage || 'lead',
       probability !== undefined ? probability : 50,
@@ -9078,7 +9143,7 @@ app.post('/api/crm/leads/:id/convert', requireAuth, async (req, res) => {
       const dClose = expected_close_date || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
 
       const dealRes = await clientConn.query(
-        `INSERT INTO crm_deals (title, client_id, contact_id, value, stage, probability, expected_close_date, assigned_to, description)
+        `INSERT INTO crm_deals (title, client_id, crm_contact_id, value, stage, probability, expected_close_date, assigned_to, description)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
         [dTitle, clientId, contactId, dAmount, dStage, 60, dClose, req.user.sub, `Converted from lead #${lead.id}: ${lead.description || ''}`]
       );

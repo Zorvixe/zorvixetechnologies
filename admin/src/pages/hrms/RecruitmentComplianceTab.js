@@ -8,7 +8,9 @@ import {
   apiUpdateCandidateStage,
   apiHireCandidate,
   apiListCompliance,
+  apiCreateCompliance,
   apiUpdateCompliance,
+  apiDeleteCompliance,
   downloadCandidatePdf,
   apiAiCompareCandidate
 } from '../../api';
@@ -27,7 +29,18 @@ import {
   ShieldIcon,
   PhoneIcon,
   UsersIcon,
-  SparklesIcon
+  SparklesIcon,
+  GlobeIcon,
+  MapPinIcon,
+  MailIcon,
+  FileTextIcon,
+  ZapIcon,
+  CheckIcon,
+  AlertTriangleIcon,
+  LinkIcon,
+  PlusIcon,
+  EditIcon,
+  TrashIcon
 } from '../../components/CrmHrmsIcons';
 import './RecruitmentComplianceTab.css';
 
@@ -97,6 +110,22 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
   // Compliance
   const [complianceList, setComplianceList] = useState([]);
   const [complianceLoading, setComplianceLoading] = useState(false);
+  const [compSearch, setCompSearch] = useState('');
+  const [compCategoryFilter, setCompCategoryFilter] = useState('');
+  const [compStatusFilter, setCompStatusFilter] = useState('');
+  const [showCompModal, setShowCompModal] = useState(false);
+  const [editingCompId, setEditingCompId] = useState(null);
+  const defaultCompForm = {
+    title: '',
+    category: 'PF_ESI',
+    frequency: 'monthly',
+    due_date: new Date().toISOString().slice(0, 10),
+    status: 'pending',
+    document_ref: '',
+    notes: ''
+  };
+  const [compForm, setCompForm] = useState(defaultCompForm);
+  const [savingComp, setSavingComp] = useState(false);
 
   const fetchJobs = useCallback(async () => {
     setJobsLoading(true);
@@ -281,6 +310,58 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
     }
   };
 
+  const openCreateCompModal = () => {
+    setEditingCompId(null);
+    setCompForm({
+      ...defaultCompForm,
+      due_date: new Date().toISOString().slice(0, 10)
+    });
+    setShowCompModal(true);
+  };
+
+  const openEditCompModal = (rec) => {
+    setEditingCompId(rec.id);
+    setCompForm({
+      title: rec.title || '',
+      category: rec.category || 'Labour_Law',
+      frequency: rec.frequency || 'monthly',
+      due_date: rec.due_date ? String(rec.due_date).slice(0, 10) : '',
+      status: rec.status || 'pending',
+      document_ref: rec.document_ref || '',
+      notes: rec.notes || ''
+    });
+    setShowCompModal(true);
+  };
+
+  const handleSaveCompliance = async (e) => {
+    e.preventDefault();
+    if (!compForm.title.trim()) return alert('Compliance requirement title is required');
+    setSavingComp(true);
+    try {
+      if (editingCompId) {
+        await apiUpdateCompliance(editingCompId, compForm);
+      } else {
+        await apiCreateCompliance(compForm);
+      }
+      setShowCompModal(false);
+      fetchCompliance();
+    } catch (err) {
+      alert(err.message || 'Failed to save compliance record');
+    } finally {
+      setSavingComp(false);
+    }
+  };
+
+  const handleDeleteCompliance = async (rec) => {
+    if (!window.confirm(`Delete compliance requirement "${rec.title}"?`)) return;
+    try {
+      await apiDeleteCompliance(rec.id);
+      fetchCompliance();
+    } catch (err) {
+      alert(err.message || 'Failed to delete compliance record');
+    }
+  };
+
   const stagesList = [
     { key: 'applied', label: 'Applied', color: '#64748b', icon: LeadsIcon },
     { key: 'screening', label: 'Screening', color: '#0284c7', icon: SearchIcon },
@@ -354,7 +435,7 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                         candidatesInStage.map((cand) => (
                           <div className="candidate-card" key={cand.id}>
                             {cand.source === 'careers_portal' && (
-                              <span className="cand-source-badge">🌐 Careers Portal</span>
+                              <span className="cand-source-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><GlobeIcon size={11} /> Careers Portal</span>
                             )}
                             <div className="cand-top-row">
                               <h5 className="cand-name">{cand.name}</h5>
@@ -367,11 +448,11 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                               <div className="cand-meta-chips">
                                 {cand.experience_years && <span className="cand-meta-chip">Exp: {cand.experience_years}</span>}
                                 {cand.expected_salary && <span className="cand-meta-chip">CTC: {cand.expected_salary}</span>}
-                                {cand.current_location && <span className="cand-meta-chip">📍 {cand.current_location}</span>}
+                                {cand.current_location && <span className="cand-meta-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><MapPinIcon size={11} /> {cand.current_location}</span>}
                               </div>
                             )}
                             <div className="cand-contact-info">
-                              <span>✉️ {cand.email}</span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><MailIcon size={12} /> {cand.email}</span>
                               <span><PhoneIcon size={12} style={{ marginRight: '4px' }} /> {cand.phone}</span>
                             </div>
 
@@ -437,7 +518,7 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                                   onClick={() => handleDownloadResume(cand)}
                                   title={`Download ${cand.resume_file_name}`}
                                 >
-                                  📄 Resume
+                                  <FileTextIcon size={12} style={{ marginRight: 4 }} /> Resume
                                 </button>
                               )}
                               {(cand.stage === 'offer' || cand.stage === 'interview' || cand.stage === 'hired') && (
@@ -446,7 +527,7 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                                   onClick={() => handleHireCandidate(cand.id)}
                                   disabled={hiringId === cand.id}
                                 >
-                                  {hiringId === cand.id ? 'Hiring...' : '⚡ Hire as Employee'}
+                                  {hiringId === cand.id ? 'Hiring...' : <><ZapIcon size={12} style={{ marginRight: 4 }} /> Hire</>}
                                 </button>
                               )}
                             </div>
@@ -542,72 +623,235 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
       )}
 
       {/* VIEW 3: STATUTORY & LABOUR COMPLIANCE */}
-      {subTab === 'compliance' && (
-        <div className="compliance-section">
-          <div className="section-header-row">
-            <div>
-              <h3 className="section-title">Statutory, Labour & Legal Compliance Tracker</h3>
-              <p className="section-sub">EPF, ESIC, Professional Tax, TDS 24Q, and Internal Policy audit readiness</p>
-            </div>
-          </div>
+      {subTab === 'compliance' && (() => {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
 
-          <div className="compliance-table-wrap">
-            <table className="payroll-table">
-              <thead>
-                <tr>
-                  <th>Compliance Standard / Requirement</th>
-                  <th>Category</th>
-                  <th>Frequency</th>
-                  <th>Next Due Date</th>
-                  <th>Status</th>
-                  <th>Description & Notes</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {complianceLoading ? (
-                  <tr><div> <div className="loader_container">
-                    <p className="loader_spinner"></p>
-                    <p>Loading Please Wait...</p>
-                  </div>
-                  </div></tr>
-                ) : (
-                  complianceList.map((rec) => (
-                    <tr key={rec.id}>
-                      <td>
-                        <strong>{rec.title}</strong>
-                      </td>
-                      <td>
-                        <span className="comp-category-tag">{rec.category}</span>
-                      </td>
-                      <td className="capitalize">{rec.frequency}</td>
-                      <td>
-                        <strong>{rec.due_date ? new Date(rec.due_date).toLocaleDateString() : 'N/A'}</strong>
-                      </td>
-                      <td>
-                        <span className={`comp-status-badge status-${rec.status}`}>
-                          {rec.status === 'compliant' ? '✓ Compliant' : '⚠️ Pending'}
-                        </span>
-                      </td>
-                      <td className="note-cell">{rec.notes || '-'}</td>
-                      <td>
-                        {isAdmin && (
-                          <button
-                            className="btn-comp-toggle"
-                            onClick={() => handleToggleCompliance(rec.id, rec.status)}
-                          >
-                            {rec.status === 'compliant' ? 'Mark Pending' : 'Mark Complied'}
-                          </button>
-                        )}
+        const isOverdueRec = (rec) =>
+          rec.status !== 'compliant' && rec.due_date && new Date(rec.due_date) < todayStart;
+
+        const totalComp = complianceList.length;
+        const compliantCount = complianceList.filter((r) => r.status === 'compliant').length;
+        const pendingCount = complianceList.filter((r) => r.status !== 'compliant').length;
+        const overdueCount = complianceList.filter(isOverdueRec).length;
+
+        const categoryOptions = Array.from(
+          new Set(['PF_ESI', 'Tax_TDS', 'Labour_Law', 'Policy_Audit', ...complianceList.map((r) => r.category).filter(Boolean)])
+        );
+
+        const filteredCompliance = complianceList.filter((rec) => {
+          if (compCategoryFilter && rec.category !== compCategoryFilter) return false;
+          if (compStatusFilter === 'overdue' && !isOverdueRec(rec)) return false;
+          if (compStatusFilter === 'compliant' && rec.status !== 'compliant') return false;
+          if (compStatusFilter === 'pending' && rec.status === 'compliant') return false;
+          if (compSearch.trim()) {
+            const q = compSearch.toLowerCase();
+            const text = `${rec.title || ''} ${rec.category || ''} ${rec.document_ref || ''} ${rec.notes || ''}`.toLowerCase();
+            if (!text.includes(q)) return false;
+          }
+          return true;
+        });
+
+        return (
+          <div className="compliance-section">
+            <div className="section-header-row">
+              <div>
+                <h3 className="section-title">Statutory, Labour &amp; Legal Compliance Tracker</h3>
+                <p className="section-sub">
+                  Manage recurring EPF, ESIC, Professional Tax, TDS 24Q, Labour Welfare, and internal HR audit deadlines
+                </p>
+              </div>
+              {isAdmin && (
+                <button type="button" className="btn-post-job comp-add-btn" onClick={openCreateCompModal}>
+                  <PlusIcon size={14} />
+                  <span>Add Compliance Standard</span>
+                </button>
+              )}
+            </div>
+
+            {/* Summary KPI Cards */}
+            <div className="comp-kpi-grid">
+              <button
+                type="button"
+                className={`comp-kpi-card ${compStatusFilter === '' ? 'active' : ''}`}
+                onClick={() => setCompStatusFilter('')}
+              >
+                <span className="comp-kpi-label">Total standards</span>
+                <strong className="comp-kpi-val tabular-nums">{totalComp}</strong>
+              </button>
+              <button
+                type="button"
+                className={`comp-kpi-card ${compStatusFilter === 'compliant' ? 'active' : ''}`}
+                onClick={() => setCompStatusFilter((v) => (v === 'compliant' ? '' : 'compliant'))}
+              >
+                <span className="comp-kpi-label">Compliant</span>
+                <strong className="comp-kpi-val comp-val-pos tabular-nums">{compliantCount}</strong>
+              </button>
+              <button
+                type="button"
+                className={`comp-kpi-card ${compStatusFilter === 'pending' ? 'active' : ''}`}
+                onClick={() => setCompStatusFilter((v) => (v === 'pending' ? '' : 'pending'))}
+              >
+                <span className="comp-kpi-label">Pending filings</span>
+                <strong className="comp-kpi-val comp-val-warn tabular-nums">{pendingCount}</strong>
+              </button>
+              <button
+                type="button"
+                className={`comp-kpi-card ${compStatusFilter === 'overdue' ? 'active' : ''}`}
+                onClick={() => setCompStatusFilter((v) => (v === 'overdue' ? '' : 'overdue'))}
+              >
+                <span className="comp-kpi-label">Overdue</span>
+                <strong className="comp-kpi-val comp-val-neg tabular-nums">{overdueCount}</strong>
+              </button>
+            </div>
+
+            {/* Filter Toolbar */}
+            <div className="comp-toolbar">
+              <div className="comp-search-wrap">
+                <SearchIcon size={14} className="comp-search-icon" />
+                <input
+                  type="text"
+                  className="comp-search-input"
+                  placeholder="Search filings, forms (e.g. Form 24Q, EPF), or notes..."
+                  value={compSearch}
+                  onChange={(e) => setCompSearch(e.target.value)}
+                />
+              </div>
+              <select
+                className="comp-filter-select"
+                value={compCategoryFilter}
+                onChange={(e) => setCompCategoryFilter(e.target.value)}
+              >
+                <option value="">All Categories</option>
+                {categoryOptions.map((cat) => (
+                  <option key={cat} value={cat}>{cat.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
+              <select
+                className="comp-filter-select"
+                value={compStatusFilter}
+                onChange={(e) => setCompStatusFilter(e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                <option value="compliant">Compliant</option>
+                <option value="pending">Pending</option>
+                <option value="overdue">Overdue</option>
+              </select>
+            </div>
+
+            <div className="compliance-table-wrap">
+              <table className="compliance-table">
+                <thead>
+                  <tr>
+                    <th>Compliance Standard / Requirement</th>
+                    <th>Category</th>
+                    <th>Frequency</th>
+                    <th>Next Due Date</th>
+                    <th>Status</th>
+                    <th>Filing Notes &amp; Reference</th>
+                    {isAdmin && <th>Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {complianceLoading ? (
+                    <tr>
+                      <td colSpan={isAdmin ? 7 : 6}>
+                        <div className="loader_container">
+                          <p className="loader_spinner"></p>
+                          <p>Loading compliance records...</p>
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : filteredCompliance.length === 0 ? (
+                    <tr>
+                      <td colSpan={isAdmin ? 7 : 6} className="comp-empty-cell">
+                        No compliance records match your current filters.
+                        {isAdmin && ' Click "+ Add Compliance Standard" to register one.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredCompliance.map((rec) => {
+                      const overdue = isOverdueRec(rec);
+                      return (
+                        <tr key={rec.id} className={overdue ? 'comp-row-overdue' : ''}>
+                          <td>
+                            <div className="comp-title-cell">
+                              <strong>{rec.title}</strong>
+                              {rec.document_ref && (
+                                <span className="comp-doc-ref">Ref: {rec.document_ref}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <span className="comp-category-tag">{(rec.category || 'General').replace(/_/g, ' ')}</span>
+                          </td>
+                          <td className="comp-freq-cell">{(rec.frequency || 'monthly').replace(/_/g, ' ')}</td>
+                          <td className="tabular-nums">
+                            <div className="comp-due-wrap">
+                              <strong>{rec.due_date ? new Date(rec.due_date).toLocaleDateString() : 'N/A'}</strong>
+                              {overdue && <span className="comp-overdue-pill">Overdue</span>}
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`comp-status-badge status-${rec.status === 'compliant' ? 'compliant' : overdue ? 'overdue' : 'pending'}`}>
+                              {rec.status === 'compliant' ? (
+                                <><CheckIcon size={12} /> Compliant</>
+                              ) : overdue ? (
+                                <><AlertTriangleIcon size={12} /> Overdue</>
+                              ) : (
+                                <><AlertTriangleIcon size={12} /> Pending</>
+                              )}
+                            </span>
+                          </td>
+                          <td className="comp-note-cell">
+                            {rec.notes ? (
+                              <div
+                                className="comp-note-html"
+                                dangerouslySetInnerHTML={{ __html: renderSafeHtml(rec.notes) }}
+                              />
+                            ) : (
+                              <span className="comp-note-empty">--</span>
+                            )}
+                          </td>
+                          {isAdmin && (
+                            <td>
+                              <div className="comp-actions-group">
+                                <button
+                                  type="button"
+                                  className={`btn-comp-toggle ${rec.status === 'compliant' ? 'is-compliant' : ''}`}
+                                  onClick={() => handleToggleCompliance(rec.id, rec.status)}
+                                >
+                                  {rec.status === 'compliant' ? 'Mark Pending' : 'Mark Complied'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-comp-icon"
+                                  onClick={() => openEditCompModal(rec)}
+                                  title="Edit Compliance Record"
+                                >
+                                  <EditIcon size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-comp-icon danger"
+                                  onClick={() => handleDeleteCompliance(rec)}
+                                  title="Delete Compliance Record"
+                                >
+                                  <TrashIcon size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* POST / EDIT JOB MODAL */}
       {showJobModal && (
@@ -745,43 +989,8 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
               <button type="button" className="rc-modal-close-btn" onClick={() => setSelectedCandidate(null)}>×</button>
             </div>
             <form onSubmit={handleUpdateCandidate} className="rc-modal-form">
-              {(selectedCandidate.source === 'careers_portal' || selectedCandidate.resume_file_name || selectedCandidate.cover_letter || selectedCandidate.linkedin_url || selectedCandidate.portfolio_url) && (
-                <div className="cand-application-summary">
-                  <div>
-                    <strong>Applied For:</strong> {selectedCandidate.job_title || selectedCandidate.position || 'Applicant'}
-                    {selectedCandidate.experience_years && <> • <strong>Exp:</strong> {selectedCandidate.experience_years}</>}
-                    {selectedCandidate.notice_period && <> • <strong>Notice:</strong> {selectedCandidate.notice_period}</>}
-                  </div>
-                  {selectedCandidate.current_location && (
-                    <div><strong>Location:</strong> {selectedCandidate.current_location}</div>
-                  )}
-                  <div className="cand-app-links">
-                    {selectedCandidate.resume_file_name && (
-                      <button type="button" className="btn-cand-resume" onClick={() => handleDownloadResume(selectedCandidate)}>
-                        📄 Download Resume ({selectedCandidate.resume_file_name})
-                      </button>
-                    )}
-                    {selectedCandidate.linkedin_url && (
-                      <a href={selectedCandidate.linkedin_url} target="_blank" rel="noopener noreferrer" className="cand-app-link">
-                        🔗 LinkedIn Profile
-                      </a>
-                    )}
-                    {selectedCandidate.portfolio_url && (
-                      <a href={selectedCandidate.portfolio_url} target="_blank" rel="noopener noreferrer" className="cand-app-link">
-                        🌐 Portfolio / GitHub
-                      </a>
-                    )}
-                  </div>
-                  {selectedCandidate.cover_letter && (
-                    <div style={{ color: '#42526e', fontStyle: 'italic' }}>
-                      <strong>Applicant Note:</strong> "{selectedCandidate.cover_letter}"
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Advisory AI Resume vs Job Comparison */}
-              <div style={{ marginBottom: '12px' }}>
+              <div className='zorvi-btn-candidate-detail'>
                 {!candAiOpen ? (
                   <button
                     type="button"
@@ -789,12 +998,12 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                     onClick={() => runCandidateAiCompare(selectedCandidate.id)}
                   >
                     <SparklesIcon size={13} />
-                    <span>ZORVI Compare Resume vs Job Requirements</span>
+                    <span>ZORVI</span>
                   </button>
                 ) : (
                   <AiInsightBox
                     title="ZORVI Candidate vs Job Fit (Advisory Only)"
-                    subtitle="Helps screen resumes faster — hiring & stage changes remain strictly human."
+                    subtitle="Helps screen resumes faster — hiring & stage."
                     loading={candAiLoading}
                     error={candAiErr}
                     uncertainty={candAiData?.uncertainty}
@@ -833,6 +1042,40 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                   </AiInsightBox>
                 )}
               </div>
+              {(selectedCandidate.source === 'careers_portal' || selectedCandidate.resume_file_name || selectedCandidate.cover_letter || selectedCandidate.linkedin_url || selectedCandidate.portfolio_url) && (
+                <div className="cand-application-summary">
+                  <div>
+                    <strong>Applied For:</strong> {selectedCandidate.job_title || selectedCandidate.position || 'Applicant'}
+                    {selectedCandidate.experience_years && <> • <strong>Exp:</strong> {selectedCandidate.experience_years}</>}
+                    {selectedCandidate.notice_period && <> • <strong>Notice:</strong> {selectedCandidate.notice_period}</>}
+                  </div>
+                  {selectedCandidate.current_location && (
+                    <div><strong>Location:</strong> {selectedCandidate.current_location}</div>
+                  )}
+                  <div className="cand-app-links">
+                    {selectedCandidate.resume_file_name && (
+                      <button type="button" className="btn-cand-resume" onClick={() => handleDownloadResume(selectedCandidate)}>
+                        <FileTextIcon size={13} style={{ marginRight: 5 }} /> Download Resume ({selectedCandidate.resume_file_name})
+                      </button>
+                    )}
+                    {selectedCandidate.linkedin_url && (
+                      <a href={selectedCandidate.linkedin_url} target="_blank" rel="noopener noreferrer" className="cand-app-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <LinkIcon size={13} /> LinkedIn Profile
+                      </a>
+                    )}
+                    {selectedCandidate.portfolio_url && (
+                      <a href={selectedCandidate.portfolio_url} target="_blank" rel="noopener noreferrer" className="cand-app-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <GlobeIcon size={13} /> Portfolio / GitHub
+                      </a>
+                    )}
+                  </div>
+                  {selectedCandidate.cover_letter && (
+                    <div style={{ color: '#42526e', fontStyle: 'italic' }}>
+                      <strong>Applicant Note:</strong> "{selectedCandidate.cover_letter}"
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="rc-form-group form-group">
                 <label className="rc-form-label">Pipeline Stage</label>
                 <select
@@ -893,6 +1136,118 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
                 <button type="button" className="rc-btn-cancel" onClick={() => setSelectedCandidate(null)}>Cancel</button>
                 <button type="submit" className="rc-btn-save" disabled={updatingCandidate}>
                   {updatingCandidate ? 'Saving...' : 'Save Feedback'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADD / EDIT STATUTORY COMPLIANCE MODAL */}
+      {showCompModal && (
+        <div className="rc-modal-backdrop" onClick={() => setShowCompModal(false)}>
+          <div className="rc-modal-card rc-modal-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="rc-modal-header">
+              <h4 className="rc-modal-title">
+                {editingCompId ? 'Edit Compliance Requirement' : 'Add Statutory / Labour Compliance Requirement'}
+              </h4>
+              <button type="button" className="rc-modal-close-btn" onClick={() => setShowCompModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleSaveCompliance} className="rc-modal-form">
+              <div className="rc-form-group">
+                <label className="rc-form-label">Compliance Standard / Requirement Title *</label>
+                <input
+                  type="text"
+                  className="rc-form-input"
+                  placeholder="e.g. POSH Annual Internal Committee Report / EPF Monthly ECR"
+                  value={compForm.title}
+                  onChange={(e) => setCompForm({ ...compForm, title: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="rc-form-row">
+                <div className="rc-form-group">
+                  <label className="rc-form-label">Category</label>
+                  <select
+                    className="rc-form-select"
+                    value={compForm.category}
+                    onChange={(e) => setCompForm({ ...compForm, category: e.target.value })}
+                  >
+                    <option value="PF_ESI">PF / ESI (EPFO &amp; ESIC)</option>
+                    <option value="Tax_TDS">Tax &amp; TDS (Form 24Q / PT)</option>
+                    <option value="Labour_Law">Labour Law (LWF / Bonus / Shops Act)</option>
+                    <option value="Policy_Audit">Internal HR Policy &amp; POSH Audit</option>
+                    <option value="Other">Other Statutory Requirement</option>
+                  </select>
+                </div>
+                <div className="rc-form-group">
+                  <label className="rc-form-label">Filing Frequency</label>
+                  <select
+                    className="rc-form-select"
+                    value={compForm.frequency}
+                    onChange={(e) => setCompForm({ ...compForm, frequency: e.target.value })}
+                  >
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="half_yearly">Half-Yearly</option>
+                    <option value="annual">Annual</option>
+                    <option value="one_time">One-Time</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="rc-form-row">
+                <div className="rc-form-group">
+                  <label className="rc-form-label">Next Due Date</label>
+                  <input
+                    type="date"
+                    className="rc-form-input"
+                    value={compForm.due_date}
+                    onChange={(e) => setCompForm({ ...compForm, due_date: e.target.value })}
+                  />
+                </div>
+                <div className="rc-form-group">
+                  <label className="rc-form-label">Compliance Status</label>
+                  <select
+                    className="rc-form-select"
+                    value={compForm.status}
+                    onChange={(e) => setCompForm({ ...compForm, status: e.target.value })}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="compliant">Compliant</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="rc-form-group">
+                <label className="rc-form-label">Act / Form Reference / Challan Code</label>
+                <input
+                  type="text"
+                  className="rc-form-input"
+                  placeholder="e.g. Form 24Q / EPF ECR Sec 7A / Shops & Establishments Act"
+                  value={compForm.document_ref}
+                  onChange={(e) => setCompForm({ ...compForm, document_ref: e.target.value })}
+                />
+              </div>
+
+              <div className="rc-form-group">
+                <label className="rc-form-label">Filing Instructions &amp; Notes</label>
+                <RichTextEditor
+                  value={compForm.notes}
+                  minHeight="100px"
+                  maxHeight="200px"
+                  aiFieldLabel="Statutory Compliance Filing Notes"
+                  aiContext={{ title: compForm.title, category: compForm.category, frequency: compForm.frequency }}
+                  placeholder="Describe statutory applicability, challan steps, or audit checklist..."
+                  onChange={(val) => setCompForm((prev) => ({ ...prev, notes: val }))}
+                />
+              </div>
+
+              <div className="rc-modal-actions">
+                <button type="button" className="rc-btn-cancel" onClick={() => setShowCompModal(false)}>Cancel</button>
+                <button type="submit" className="rc-btn-save" disabled={savingComp}>
+                  {savingComp ? 'Saving...' : editingCompId ? 'Save Changes' : 'Create Standard'}
                 </button>
               </div>
             </form>

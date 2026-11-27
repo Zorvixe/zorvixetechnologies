@@ -4,28 +4,27 @@
 
 .jira-hrms-container {
   width: 100%;
-  max-width: 1400px;
+  max-width: var(--page-max-w);
   margin: 0 auto;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-  color: #172b4d;
+  gap: var(--space-4);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
 }
 
-/* Jira Project Header */
+/* Header */
 .jira-page-header {
-  background: #ffffff;
-  border-radius: 6px;
-  padding: 16px 20px 0 20px;
-  border: 1px solid #dfe1e6;
-  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5) 0 var(--space-5);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 1rem;
-
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 /* Breadcrumbs */
@@ -34,17 +33,17 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #5e6c84;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
 .jira-bc-sep {
-  color: #8993a4;
+  color: var(--border-strong);
 }
 
 .jira-bc-current {
-  color: #172b4d;
-  font-weight: 600;
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 /* Title Row */
@@ -52,47 +51,45 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
 .jira-title-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .jira-project-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-inverse);
   flex-shrink: 0;
-  box-shadow: 0 1px 2px rgba(9, 30, 66, 0.2);
 }
 
 .jira-avatar-hrms {
-  background: linear-gradient(135deg, #0052cc 0%, #0747a6 100%);
+  background: var(--accent);
 }
 
 .jira-project-title {
   font-size: 20px;
-  font-weight: 600;
-  color: #172b4d;
+  font-weight: 500;
+  color: var(--text-primary);
   margin: 0;
   line-height: 1.25;
-  letter-spacing: -0.01em;
 }
 
 .jira-project-key {
   font-size: 12px;
-  color: #5e6c84;
-  font-weight: 500;
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 /* Jira Iconic Underline Tabs Navigation Bar */

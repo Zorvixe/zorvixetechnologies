@@ -1,23 +1,23 @@
 /* Rich Text Editor Styles */
 .rich-text-editor {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #fff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .rich-text-editor:focus-within {
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+  border-color: var(--accent);
+  box-shadow: var(--accent-ring);
 }
 
 .editor-toolbar {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  border-bottom: 1px solid #e9ecef;
-  border-radius: 8px 8px 0 0;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
   flex-wrap: wrap;
 }
 
@@ -30,8 +30,8 @@
 .toolbar-divider {
   width: 1px;
   height: 20px;
-  background: #dee2e6;
-  margin: 0 4px;
+  background: var(--border-subtle);
+  margin: 0 var(--space-1);
 }
 
 .toolbar-btn {
@@ -42,15 +42,15 @@
   height: 100%;
   border: none;
   background: transparent;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
-  color: #495057;
-  transition: all 0.2s;
+  color: var(--text-secondary);
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 
 .toolbar-btn:hover:not(:disabled) {
-  background: #e9ecef;
-  color: #212529;
+  background: var(--bg-subtle);
+  color: var(--text-primary);
 }
 
 .toolbar-btn:active:not(:disabled) {
@@ -71,9 +71,34 @@
   line-height: 1.5;
   font-family: inherit;
   font-size: 14px;
-  color: #495057;
+  color: var(--text-primary);
   word-wrap: break-word;
+  white-space: pre-wrap;
   border-radius: 0 0 8px 8px;
+}
+
+.rich-text-editor.compact .editor-toolbar {
+  padding: 4px 8px;
+  gap: 2px;
+}
+
+.rich-text-editor.compact .editor-content {
+  padding: 8px 12px;
+  min-height: 44px;
+  font-size: 13.5px;
+}
+
+.rich-text-editor.compact .editor-footer {
+  padding: 2px 8px 6px;
+}
+
+.rich-text-editor.is-readonly {
+  background: var(--bg-canvas);
+}
+
+.rich-text-editor.is-readonly .editor-content {
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
 }
 
 .editor-content:empty::before {

@@ -5,6 +5,7 @@ import { useAuth } from "../auth";
 import { apiStatsTickets, apiMarkTicketActivityRead } from "../api";
 import "./Notifications.css";
 import { buildDeepLink } from "../deeplink/resourceRegistry";
+import { UserIcon, CalendarIcon } from "../components/CrmHrmsIcons";
 
 /** ---- Local date helpers ---- */
 const localYMD = (d = new Date()) => d.toLocaleDateString("en-CA");
@@ -389,7 +390,7 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
                             {ticket.is_new && <span className="notif-dot" />}
                           </div>
                           {ticket.creator && (
-                            <div className="notification-assigned">👤 {ticket.creator}</div>
+                            <div className="notification-assigned"><UserIcon size={13} /> {ticket.creator}</div>
                           )}
                         </div>
 
@@ -481,7 +482,7 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
                   </svg>
                   <input
                     type="text"
-                    placeholder="Search Tickets..."
+                    placeholder="Search tickets"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -535,7 +536,7 @@ export default function UserTicket({ isOpen, onClose, lastChecked, onNewActiviti
                   }
                 }}
               >
-                <span>📅</span>
+                <CalendarIcon size={13} />
                 <span>
                   {selectedDate
                     ? new Date(selectedDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })

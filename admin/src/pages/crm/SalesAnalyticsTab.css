@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-family: var(--font-sans);
   color: #172b4d;
 }
 
@@ -46,18 +46,16 @@
 
 .kpi-label {
   font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #5e6c84;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+color: #5e6c84;
+  letter-spacing: 0.01em;
 }
 
 .kpi-pill {
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .pill-blue { background: #deebff; color: #0747a6; }
@@ -67,7 +65,7 @@
 
 .kpi-main-val {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
   letter-spacing: -0.01em;
   margin-bottom: 3px;
@@ -134,7 +132,7 @@
   font-size: 12px;
   font-weight: 600;
   text-align: center;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   border: 1px solid rgba(9, 30, 66, 0.08);
 }
 
@@ -163,7 +161,7 @@
 
 .rep-rank {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 500;
   color: #0052cc;
   background: #deebff;
   width: 28px;
@@ -223,7 +221,7 @@
 .loss-reason-val {
   font-size: 15px;
   color: #bf2600;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .loss-amount {

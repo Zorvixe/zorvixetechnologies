@@ -264,7 +264,7 @@ export default function Stats() {
                 day: "numeric",
               })}
             </div>
-            <h2 className="stats-banner-greeting">Hello, {user?.name || "User"}</h2>
+            <h2 className="stats-banner-greeting">Workspace Overview</h2>
           </div>
 
           <div className="stats-home-banner-buttons">
@@ -302,7 +302,7 @@ export default function Stats() {
               ref={searchInputRef}
               type="text"
               className="stats-search-input"
-              placeholder="Search tickets, projects, clients, contacts, team..."
+              placeholder="Search workspace"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -341,7 +341,7 @@ export default function Stats() {
               {isSearching && searchResults.length === 0 ? (
                 <div className="stats-search-loading">
                   <span className="stats-search-spinner" />
-                  <span>Searching across workspace...</span>
+                  <span>Searching workspace</span>
                 </div>
               ) : searchResults.length === 0 ? (
                 <div className="stats-search-empty">

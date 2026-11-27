@@ -6,35 +6,31 @@
 .linkedin-chat-container {
   position: fixed;
   bottom: 0;
-  right: 24px;
+  right: var(--space-6);
   display: flex;
   align-items: flex-end;
-  gap: 16px;
+  gap: var(--space-4);
   z-index: 9999;
   pointer-events: none;
-  /* children enable pointer events */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
 }
 
 .linkedin-chat-container * {
   box-sizing: border-box;
 }
 
-/* --------------------------------------------------------------------------
-   1. MAIN MESSAGING DOCK (Rightmost)
-   -------------------------------------------------------------------------- */
 .linkedin-messaging-dock {
   pointer-events: auto;
   width: 320px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
   border-bottom: none;
-  border-radius: 10px 10px 0 0;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-float);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: height var(--dur-med) var(--ease-out);
   touch-action: pan-y;
 }
 
@@ -78,7 +74,7 @@
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   position: relative;
   flex-shrink: 0;
 }
@@ -105,7 +101,7 @@
   background: #ef4444;
   color: #ffffff;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 1px 7px;
   border-radius: 12px;
   line-height: 1.4;
@@ -198,7 +194,7 @@
   border: 1px solid transparent;
   border-radius: 6px;
   outline: none;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .messaging-search-input:focus {
@@ -244,7 +240,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .filter-tab-btn:hover {
@@ -261,7 +257,7 @@
   background: #ef4444;
   color: #ffffff;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 1px 5px;
   border-radius: 8px;
 }
@@ -329,7 +325,7 @@
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   position: relative;
   flex-shrink: 0;
 }
@@ -428,7 +424,7 @@
   background-color: #0a66c2;
   color: #ffffff;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   min-width: 18px;
   height: 18px;
   border-radius: 9px;
@@ -453,7 +449,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   height: 480px;
 }
 
@@ -489,7 +485,7 @@
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   position: relative;
   flex-shrink: 0;
 }
@@ -596,13 +592,13 @@
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 8px;
 }
 
 .chat-intro-name {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: #0f172a;
   margin: 0 0 2px 0;
 }
@@ -675,7 +671,7 @@
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   align-self: flex-end;
   flex-shrink: 0;
   margin-bottom: 14px;
@@ -752,7 +748,7 @@
   color: #64748b;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   z-index: 5;
 }
 
@@ -860,11 +856,21 @@
   word-break: break-all;
 }
 
-.bubble-outgoing .chat-link {
+.bubble-outgoing .chat-link,
+.bubble-outgoing .chat-rich-body a {
   color: #bae6fd;
 }
 
-.bubble-incoming .chat-link {
+.chat-rich-body p {
+  margin: 0;
+}
+
+.chat-rich-body p + p {
+  margin-top: 4px;
+}
+
+.bubble-incoming .chat-link,
+.bubble-incoming .chat-rich-body a {
   color: #0284c7;
 }
 
@@ -890,7 +896,7 @@
 .chat-read-tick {
   font-size: 11px;
   color: #0a66c2;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
 }
 
@@ -941,10 +947,9 @@
 }
 
 .chat-widget-edit-title {
-  font-weight: 700;
+  font-weight: 600;
   font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+letter-spacing: 0.5px;
   color: #166534;
 }
 
@@ -993,7 +998,7 @@
   resize: none;
   outline: none;
   max-height: 90px;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   font-family: inherit;
 }
 
@@ -1014,7 +1019,7 @@
   align-items: center;
   justify-content: center;
   cursor: not-allowed;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   flex-shrink: 0;
 }
 
@@ -1134,7 +1139,7 @@
 }
 
 .cliq-top-bar-name {
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
 }
 
@@ -1189,7 +1194,7 @@
   background: #deebff;
   color: #0052cc;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1223,7 +1228,7 @@
 
 .cliq-user-name {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
   margin: 0;
 }
@@ -1247,7 +1252,7 @@
   font-size: 13px;
   font-weight: 600;
   color: #172b4d;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .cliq-status-select-btn:hover {
@@ -1326,7 +1331,7 @@
 
 .cliq-checkmark {
   color: #0052cc;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 14px;
 }
 
@@ -1488,7 +1493,7 @@
   color: #5e6c84;
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .cliq-tabs .filter-tab-btn.active {
@@ -1544,7 +1549,7 @@
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 82, 204, 0.4);
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   z-index: 10;
 }
 
@@ -1576,7 +1581,7 @@
   font-size: 11px;
   font-weight: 500;
   color: #5e6c84;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .cliq-footer-tab:hover {
@@ -1585,7 +1590,7 @@
 
 .cliq-footer-tab.active {
   color: #0052cc;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .cliq-footer-tab svg {
@@ -1662,7 +1667,7 @@
 .cliq-tucked-arrow {
   color: #0052cc;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   animation: bounceLeftArrow 1.5s infinite ease-in-out;
 }
 
@@ -1679,7 +1684,7 @@
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   position: relative;
   flex-shrink: 0;
 }
@@ -1691,7 +1696,7 @@
   background: #de350b;
   color: #ffffff;
   font-size: 9px;
-  font-weight: 800;
+  font-weight: 500;
   padding: 1px 4px;
   border-radius: 8px;
   border: 1.5px solid #ffffff;
@@ -1700,7 +1705,7 @@
 
 .cliq-tucked-label {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
   letter-spacing: -0.01em;
 }
@@ -1715,7 +1720,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .dock-swipe-hide-btn:hover {

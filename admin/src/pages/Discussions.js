@@ -12,7 +12,9 @@ import {
   apiGetChatUnreadCount,
 } from "../api";
 import { playNotificationSound } from "../utils/notificationSound";
-import AiTextareaWrap from "../components/AiTextareaWrap";
+import RichTextEditor from "../components/RichTextEditor";
+import { renderSafeHtml, stripHtmlText } from "../utils/safeHtml";
+import { CheckIcon, CheckCheckIcon, MessageSquareIcon } from "../components/CrmHrmsIcons";
 import "./Discussions.css";
 
 const getAvatarColor = (str = "") => {
@@ -73,25 +75,12 @@ const formatMessageTimestamp = (dateString) => {
 
 const renderMessageWithLinks = (text) => {
   if (!text) return "";
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlRegex);
-  return parts.map((part, i) => {
-    if (part.match(urlRegex)) {
-      return (
-        <a
-          key={i}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="disc-link"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {part}
-        </a>
-      );
-    }
-    return part;
-  });
+  return (
+    <div
+      className="disc-rich-body"
+      dangerouslySetInnerHTML={{ __html: renderSafeHtml(text) }}
+    />
+  );
 };
 
 export default function Discussions() {
@@ -287,14 +276,15 @@ export default function Discussions() {
   const handleCopyMessage = (text) => {
     setActiveMenuMsgId(null);
     if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(text);
+      navigator.clipboard.writeText(stripHtmlText(text) || text);
     }
   };
 
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
+    const plain = stripHtmlText(inputMessage);
     const text = inputMessage.trim();
-    if (!text || !activeColleague || sending) return;
+    if (!plain || !text || !activeColleague || sending) return;
 
     // Handle editing message
     if (editingMessage) {
@@ -425,7 +415,7 @@ export default function Discussions() {
                   </svg>
                   <input
                     type="text"
-                    placeholder="Search colleagues..."
+                    placeholder="Search colleagues"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -512,7 +502,7 @@ export default function Discussions() {
                           {colleague.last_message ? (
                             <>
                               {isSentByMe && <span className="disc-you">You: </span>}
-                              {colleague.last_message}
+                              {stripHtmlText(colleague.last_message)}
                             </>
                           ) : (
                             <span className="disc-new-prompt">Start conversation</span>
@@ -579,7 +569,7 @@ export default function Discussions() {
                   <div className="disc-msg-loading">Loading...</div>
                 ) : messages.length === 0 ? (
                   <div className="disc-msg-empty">
-                    <span>No messages yet. Send a message below to start chatting!</span>
+                    <span>No messages yet. Send a message below to start chatting.</span>
                   </div>
                 ) : (
                   messages.map((msg, i) => {
@@ -688,8 +678,8 @@ export default function Discussions() {
                               <span className="disc-edited-label">• edited</span>
                             )}
                             {isMe && !isDeleted && (
-                              <span className="disc-read-status">
-                                {msg.is_read ? " ✓✓" : " ✓"}
+                              <span className="disc-read-status" style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 4 }}>
+                                {msg.is_read ? <CheckCheckIcon size={12} /> : <CheckIcon size={12} />}
                               </span>
                             )}
                           </div>
@@ -712,7 +702,7 @@ export default function Discussions() {
                       </svg>
                       <div className="disc-edit-bar-text">
                         <span className="disc-edit-bar-title">Editing Message</span>
-                        <span className="disc-edit-bar-snippet">{editingMessage.message_text}</span>
+                        <span className="disc-edit-bar-snippet">{stripHtmlText(editingMessage.message_text)}</span>
                       </div>
                     </div>
                     <button
@@ -727,27 +717,23 @@ export default function Discussions() {
                 )}
 
                 <form className="disc-composer" onSubmit={handleSendMessage}>
-                  <AiTextareaWrap
-                    fieldLabel="Direct Message"
+                  <RichTextEditor
+                    compact
+                    inputRef={textareaRef}
+                    minHeight="44px"
+                    maxHeight="120px"
+                    aiFieldLabel="Direct Message"
                     aiContext={{ recipient: activeColleague?.name }}
+                    placeholder={editingMessage ? "Edit message" : `Message ${activeColleague.name.split(" ")[0]}`}
                     value={inputMessage}
-                    onAiApply={(text) => setInputMessage(text)}
-                    style={{ flex: 1 }}
-                  >
-                    <textarea
-                      ref={textareaRef}
-                      className="disc-input"
-                      placeholder={editingMessage ? "Edit message..." : `Message ${activeColleague.name.split(" ")[0]}...`}
-                      rows={2}
-                      value={inputMessage}
-                      onChange={(e) => setInputMessage(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                    />
-                  </AiTextareaWrap>
+                    onChange={(content) => setInputMessage(content)}
+                    onKeyDown={handleKeyDown}
+                    style={{ flex: 1, minWidth: 0 }}
+                  />
                   <button
                     type="submit"
-                    className={`disc-send-btn ${inputMessage.trim() ? "active" : ""}`}
-                    disabled={!inputMessage.trim() || sending}
+                    className={`disc-send-btn ${stripHtmlText(inputMessage) ? "active" : ""}`}
+                    disabled={!stripHtmlText(inputMessage) || sending}
                     title={editingMessage ? "Save edit (Enter)" : "Send message (Enter)"}
                   >
                     {editingMessage ? (
@@ -772,7 +758,7 @@ export default function Discussions() {
             </>
           ) : (
             <div className="disc-no-selection">
-              <div className="disc-no-selection-icon">💬</div>
+              <div className="disc-no-selection-icon"><MessageSquareIcon size={32} /></div>
               <h3>Select a colleague to start chatting</h3>
               <p>Communicate easily with admins, employees, and team members in real-time.</p>
             </div>

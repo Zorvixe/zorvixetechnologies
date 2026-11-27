@@ -73,7 +73,7 @@
 
 .disc-header-title h2 {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   color: #0f172a;
   margin: 0;
 }
@@ -82,7 +82,7 @@
   background: #ef4444;
   color: #ffffff;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 2px 8px;
   border-radius: 12px;
 }
@@ -108,7 +108,7 @@
   border-radius: 8px;
   background: #f8fafc;
   outline: none;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .disc-search-box input:focus {
@@ -142,7 +142,7 @@
   color: #64748b;
   border-radius: 14px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .disc-filter-tab:hover {
@@ -210,7 +210,7 @@
   align-items: center;
   justify-content: center;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   position: relative;
   flex-shrink: 0;
 }
@@ -305,7 +305,7 @@
   background: #0a66c2;
   color: #ffffff;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 1px 6px;
   border-radius: 10px;
 }
@@ -341,14 +341,14 @@
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   position: relative;
   flex-shrink: 0;
 }
 
 .disc-main-header-info h3 {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   color: #0f172a;
   margin: 0;
 }
@@ -402,13 +402,13 @@
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 10px;
 }
 
 .disc-banner h4 {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   color: #0f172a;
   margin: 0 0 4px 0;
 }
@@ -456,7 +456,7 @@
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   align-self: flex-end;
   flex-shrink: 0;
   margin-bottom: 16px;
@@ -547,7 +547,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   margin: 0 4px;
 }
 
@@ -612,7 +612,7 @@
   cursor: pointer;
   width: 100%;
   text-align: left;
-  transition: all 0.12s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .disc-context-item:hover {
@@ -653,7 +653,7 @@
 
 .disc-read-status {
   color: #0a66c2;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* Composer Container & Editing Banner */
@@ -703,9 +703,8 @@
 
 .disc-edit-bar-title {
   font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  font-weight: 600;
+letter-spacing: 0.4px;
   color: #0a66c2;
 }
 
@@ -742,6 +741,14 @@
   background: #ffffff;
 }
 
+.disc-rich-body p {
+  margin: 0;
+}
+
+.disc-rich-body p + p {
+  margin-top: 4px;
+}
+
 .disc-input {
   flex: 1;
   padding: 10px 14px;
@@ -755,7 +762,7 @@
   outline: none;
   max-height: 120px;
   font-family: inherit;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .disc-input:focus {
@@ -776,7 +783,7 @@
   background: #e2e8f0;
   color: #94a3b8;
   cursor: not-allowed;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   flex-shrink: 0;
 }
 
@@ -811,7 +818,7 @@
 
 .disc-no-selection h3 {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   color: #0f172a;
   margin: 0 0 6px 0;
 }
@@ -955,7 +962,7 @@
 
   .disc-main-header-info h3 {
     font-size: 14.5px !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     color: #0f172a !important;
   }
 

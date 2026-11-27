@@ -516,13 +516,13 @@ export default function Projects() {
 
           <div className="prj-toolbar-right">
             <div className="prj-search-wrap">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               <input
                 type="text"
-                placeholder="Search projects..."
+                placeholder="Search projects"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -1079,7 +1079,7 @@ export default function Projects() {
                 <label>Description &amp; Scope</label>
                 <RichTextEditor
                   value={projForm.description}
-                  placeholder="Describe deliverables, scope, and milestones..."
+                  placeholder="Describe deliverables, scope, and milestones"
                   minHeight="110px"
                   aiFieldLabel="Project Description"
                   aiContext={{ projectName: projForm.name, type: projForm.type }}

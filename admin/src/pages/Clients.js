@@ -23,7 +23,7 @@ import {
   apiAiProjectSummary,
 } from "../api"
 import AiInsightBox from "../components/AiInsightBox"
-import { SparklesIcon } from "../components/CrmHrmsIcons"
+import { SparklesIcon, CheckIcon, XIcon } from "../components/CrmHrmsIcons"
 
 import ProjectComments from "../components/ProjectComments"
 
@@ -384,7 +384,7 @@ export default function Clients() {
   if (error) return <div className="center error">{error}</div>
 
   return (
-    <div>
+    <div className="clients-page">
       {!selected ? (
         <>
           <Topbar title="Clients">
@@ -471,8 +471,8 @@ export default function Clients() {
                         <td className="row-actions">
                           {editingId === c.id ? (
                             <>
-                              <button className="buttontick" onClick={() => saveEdit(c.id)}>✓</button>
-                              <button className="buttondanger" onClick={() => setEditingId(null)}>✕</button>
+                              <button className="buttontick" onClick={() => saveEdit(c.id)} title="Save"><CheckIcon size={15} /></button>
+                              <button className="buttondanger" onClick={() => setEditingId(null)} title="Cancel"><XIcon size={15} /></button>
                             </>
                           ) : (
                             <>
@@ -616,8 +616,8 @@ export default function Clients() {
                         <td className="row-actions">
                           {projEditId === p.id ? (
                             <>
-                              <button className="buttontick" onClick={() => saveProjectInline(p)}>✓</button>
-                              <button className="buttondanger" onClick={() => setProjEditId(null)}>✕</button>
+                              <button className="buttontick" onClick={() => saveProjectInline(p)} title="Save"><CheckIcon size={15} /></button>
+                              <button className="buttondanger" onClick={() => setProjEditId(null)} title="Cancel"><XIcon size={15} /></button>
                             </>
                           ) : (
                             <>

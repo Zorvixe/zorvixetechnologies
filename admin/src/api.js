@@ -419,7 +419,9 @@ export const apiRecruitmentPipeline = () => request("/api/hrms/recruitment/pipel
 export const apiUpdateCandidateStage = (id, body) => request(`/api/hrms/recruitment/candidate/${id}`, { method: "PATCH", body });
 export const apiHireCandidate = (id) => request(`/api/hrms/recruitment/hire/${id}`, { method: "POST" });
 export const apiListCompliance = (params) => request("/api/hrms/compliance", { params });
+export const apiCreateCompliance = (body) => request("/api/hrms/compliance", { method: "POST", body });
 export const apiUpdateCompliance = (id, body) => request(`/api/hrms/compliance/${id}`, { method: "PATCH", body });
+export const apiDeleteCompliance = (id) => request(`/api/hrms/compliance/${id}`, { method: "DELETE" });
 
 /* --------------------------- Workforce Insights --------------------------- */
 export const apiWorkforceInsights = () => request("/api/hrms/insights");

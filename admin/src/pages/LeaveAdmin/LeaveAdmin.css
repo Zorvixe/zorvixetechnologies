@@ -19,7 +19,7 @@
 
 .page-title {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 600;
   color: #1a202c;
   margin: 0 0 8px 0;
   line-height: 1.2;
@@ -48,12 +48,11 @@
   border-radius: 12px;
   padding: 12px;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .stat-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .stat-item.total {
@@ -115,7 +114,7 @@
   padding: 10px 20px;
   font-weight: 600;
   border-radius: 8px;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   font-size: 14px;
 }
 
@@ -182,7 +181,7 @@
   border-radius: 6px;
   background: white;
   font-size: 14px;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   color: #2d3748;
 }
 
@@ -275,8 +274,7 @@
   color: #4a5568;
   border-bottom: 1px solid #e2e8f0;
   font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+letter-spacing: 0.5px;
 }
 
 
@@ -434,7 +432,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .btn-approve:hover {
@@ -455,7 +453,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .btn-reject:hover {
@@ -491,7 +489,7 @@
   gap: 6px;
   font-size: 14px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .pagination-btn:hover:not(:disabled) {
@@ -519,7 +517,7 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .pagination-page:hover {
@@ -535,11 +533,11 @@
 
 /* Bootstrap Modal Overrides */
 .modal {
-  z-index: 10000;
+  z-index: 10200;
 }
 
 .modal-backdrop {
-  z-index: 9999;
+  z-index: 10190;
 }
 
 /* Responsive Design */

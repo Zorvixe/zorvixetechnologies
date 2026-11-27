@@ -4,89 +4,88 @@
 
 .jira-crm-container {
   width: 100%;
-  max-width: 1400px;
+  max-width: var(--page-max-w);
   margin: 0 auto;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-  color: #172b4d;
-
+  gap: var(--space-4);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
 }
 
 /* Jira Project Header */
 .jira-crm-header {
-  background: #ffffff;
-  border-radius: 6px;
-  padding: 16px 20px 0 20px;
-  border: 1px solid #dfe1e6;
-  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5) 0 var(--space-5);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
 .jira-title-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
 .jira-title-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .jira-avatar-crm {
-  background: linear-gradient(135deg, #0052cc 0%, #2684ff 100%);
+  background: var(--accent);
 }
 
 .jira-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
-/* Jira Standard Buttons */
+/* Standard Action Buttons */
 .jira-btn {
-  height: 32px;
-  border-radius: 3px;
+  height: 34px;
+  border-radius: var(--radius-md);
   font-weight: 500;
   font-size: 13.5px;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
   font-family: inherit;
 }
 
 .jira-btn-primary {
-  background: #0052cc;
-  color: #ffffff;
+  background: var(--accent);
+  color: var(--text-inverse);
   border: none;
 }
 
 .jira-btn-primary:hover:not(:disabled) {
-  background: #0065ff;
+  background: var(--accent-hover);
 }
 
 .jira-btn-secondary {
-  background: rgba(9, 30, 66, 0.04);
-  color: #172b4d;
-  border: 1px solid #dfe1e6;
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  border: 1px solid var(--border-hairline);
 }
 
 .jira-btn-secondary:hover:not(:disabled) {
-  background: rgba(9, 30, 66, 0.08);
-  color: #0052cc;
+  background: var(--bg-muted);
+  color: var(--accent);
 }
 
 .jira-btn-subtle {
@@ -188,7 +187,7 @@
   font-weight: 500;
   padding: 0 10px;
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   font-family: inherit;
 }
 
@@ -222,7 +221,7 @@
 
 .jira-pipeline-stat-lozenge .stat-val {
   color: #172b4d;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .jira-pipeline-stat-lozenge .stat-val.won {
@@ -288,8 +287,7 @@
   font-size: 12px;
   font-weight: 600;
   color: #5e6c84;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
 }
 
 .jira-col-count {
@@ -298,7 +296,7 @@
   border-radius: 10px;
   font-size: 11px;
   padding: 1px 7px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .jira-col-val {
@@ -336,14 +334,19 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: all 0.15s ease;
-  cursor: grab;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  cursor: pointer;
 }
 
 .jira-card:hover {
   background: #fafbfc;
   border-color: #4c9aff;
   box-shadow: 0 1px 3px rgba(9, 30, 66, 0.25);
+}
+
+.jira-card.deal-selected {
+  border-color: var(--accent);
+  box-shadow: var(--accent-ring);
 }
 
 .jira-card-top-row {
@@ -418,9 +421,8 @@
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-weight: 600;
+letter-spacing: 0.01em;
   line-height: 1.2;
 }
 
@@ -454,7 +456,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .jira-deal-email-btn:hover {
@@ -505,13 +507,13 @@
   border: 1px solid #dfe1e6;
   border-radius: 3px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: #42526e;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.12s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   flex-shrink: 0;
 }
 
@@ -715,15 +717,15 @@
 
 .jira-kpi-tile .kpi-label {
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   color: #5e6c84;
   margin-bottom: 4px;
 }
 
 .jira-kpi-tile .kpi-val {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
   letter-spacing: -0.01em;
 }
@@ -758,21 +760,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 10200;
   padding: 16px;
 }
 
 .jira-modal-dialog {
   background: #ffffff;
-  border-radius: 4px;
+  border-radius: var(--radius-lg);
   width: 100%;
-  max-width: 540px;
-  box-shadow: 0 8px 30px rgba(9, 30, 66, 0.25);
-  border: 1px solid #dfe1e6;
+  max-width: 580px;
+  box-shadow: var(--shadow-float);
+  border: 1px solid var(--border-hairline);
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
 }
 
 .jira-modal-header {
@@ -781,6 +783,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .jira-modal-header h3 {
@@ -808,6 +811,10 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .jira-form-group {
@@ -832,7 +839,7 @@
   color: #172b4d;
   background: #fafbfc;
   outline: none;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   font-family: inherit;
 }
 

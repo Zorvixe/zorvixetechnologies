@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import { apiGetMyAccount, apiUpdateMyAccount, apiChangePassword } from "../api";
+import { CheckIcon, AlertTriangleIcon } from "../components/CrmHrmsIcons";
 import "./Account.css";
 
 // Helper: generate consistent avatar color
@@ -363,9 +364,9 @@ export default function Account() {
               </div>
 
               {profileFeedback.message && (
-                <div className={`account-alert ${profileFeedback.type}`}>
-                  {profileFeedback.type === "success" ? "✓ " : "⚠ "}
-                  {profileFeedback.message}
+                <div className={`account-alert ${profileFeedback.type}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {profileFeedback.type === "success" ? <CheckIcon size={15} /> : <AlertTriangleIcon size={15} />}
+                  <span>{profileFeedback.message}</span>
                 </div>
               )}
 
@@ -469,9 +470,9 @@ export default function Account() {
               </div>
 
               {passwordFeedback.message && (
-                <div className={`account-alert ${passwordFeedback.type}`}>
-                  {passwordFeedback.type === "success" ? "✓ " : "⚠ "}
-                  {passwordFeedback.message}
+                <div className={`account-alert ${passwordFeedback.type}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {passwordFeedback.type === "success" ? <CheckIcon size={15} /> : <AlertTriangleIcon size={15} />}
+                  <span>{passwordFeedback.message}</span>
                 </div>
               )}
 

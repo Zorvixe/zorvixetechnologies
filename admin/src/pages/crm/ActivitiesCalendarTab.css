@@ -38,7 +38,7 @@
 
 .cal-sidebar-title {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   color: #ffffff;
   margin: 0;
   display: flex;
@@ -95,7 +95,7 @@
 
 .mini-cal-month-title {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: #ffffff;
 }
 
@@ -159,13 +159,13 @@
 .mini-cal-cell.today {
   border: 1px solid #38bdf8;
   color: #38bdf8;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .mini-cal-cell.selected {
   background: #0052cc !important;
   color: #ffffff !important;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* Activity Filters in Sidebar */
@@ -228,7 +228,7 @@
 .cal-header-title {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
 }
 
@@ -258,7 +258,7 @@
 
 .cal-current-label {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
   display: flex;
   align-items: center;
@@ -299,7 +299,7 @@
   font-weight: 600;
   color: #42526e;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .cal-view-pill-btn.active {
@@ -414,7 +414,7 @@
   background: #f4f5f7;
   padding: 8px 12px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: #5e6c84;
   text-align: center;
   border-right: 1px solid #dfe1e6;
@@ -454,7 +454,7 @@
 
 .cal-cell-day-num {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: #42526e;
   margin-bottom: 2px;
 }
@@ -546,7 +546,7 @@
   padding: 10px 8px;
   text-align: center;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: #42526e;
   border-right: 1px solid #dfe1e6;
 }
@@ -568,7 +568,7 @@
 .cal-allday-label-box {
   padding: 8px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: #006644;
   border-right: 1px solid #dfe1e6;
   display: flex;
@@ -633,7 +633,7 @@
   border-radius: 4px;
   padding: 8px 12px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: #bf2600;
   display: flex;
   align-items: center;
@@ -696,7 +696,7 @@
   background: #de350b;
   color: #ffffff;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 1px 6px;
   border-radius: 4px;
   margin-left: 20px;
@@ -712,7 +712,7 @@
   font-size: 12px;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(9, 30, 66, 0.08);
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .cal-day-card.call {
@@ -739,7 +739,7 @@
 }
 
 .cal-day-card-title {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .cal-day-card-time {

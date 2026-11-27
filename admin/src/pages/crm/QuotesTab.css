@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-family: var(--font-sans);
   color: #172b4d;
 }
 
@@ -53,7 +53,7 @@
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .btn-manage-products:hover {
@@ -98,10 +98,9 @@
 .quotes-table th {
   background: #f4f5f7;
   color: #5e6c84;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+letter-spacing: 0.01em;
   padding: 10px 12px;
   border-bottom: 1px solid #dfe1e6;
   white-space: nowrap;
@@ -120,7 +119,7 @@
 
 .quote-number-tag {
   font-family: monospace;
-  font-weight: 700;
+  font-weight: 600;
   color: #0052cc;
   background: #deebff;
   padding: 2px 6px;
@@ -157,9 +156,8 @@
   padding: 0 8px;
   border-radius: 3px;
   font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  border: 1px solid #dfe1e6;
+  font-weight: 600;
+border: 1px solid #dfe1e6;
   cursor: pointer;
   outline: none;
 }
@@ -231,9 +229,8 @@
 
 .line-items-header h5 {
   font-size: 12.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #5e6c84;
+  font-weight: 600;
+color: #5e6c84;
   margin: 0;
 }
 
@@ -260,8 +257,7 @@
 
 .line-items-table th {
   font-size: 11px;
-  text-transform: uppercase;
-  color: #5e6c84;
+color: #5e6c84;
   padding: 6px 8px;
   border-bottom: 1px solid #dfe1e6;
 }
@@ -318,7 +314,7 @@
 
 .grand-total-row {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   border-top: 1px solid #ebecf0;
   padding-top: 4px;
 }
@@ -381,8 +377,7 @@
   background: #f4f5f7;
   padding: 8px 10px;
   font-size: 11px;
-  text-transform: uppercase;
-  color: #5e6c84;
+color: #5e6c84;
   border-bottom: 1px solid #dfe1e6;
 }
 
@@ -426,8 +421,10 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  max-height: calc(90vh - 80px);
+  -webkit-overflow-scrolling: touch;
 }
 
 .quote-doc-header {
@@ -439,7 +436,7 @@
 
 .company-branding {
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 500;
   color: #0052cc;
   margin: 0 0 4px 0;
 }
@@ -460,10 +457,10 @@
 
 .doc-type-title {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   color: #172b4d;
   margin: 0 0 6px 0;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.01em;
 }
 
 .meta-line {
@@ -480,7 +477,7 @@
   color: #006644;
   padding: 1px 6px;
   border-radius: 3px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .bill-to-block {
@@ -492,8 +489,7 @@
 
 .bill-to-block h5 {
   font-size: 11px;
-  text-transform: uppercase;
-  color: #5e6c84;
+color: #5e6c84;
   margin: 0 0 4px 0;
 }
 
@@ -521,8 +517,7 @@
   border-top: 1px solid #dfe1e6;
   border-bottom: 1px solid #dfe1e6;
   font-size: 11px;
-  text-transform: uppercase;
-  color: #5e6c84;
+color: #5e6c84;
 }
 
 .doc-items-table td {
@@ -548,7 +543,7 @@
   border-top: 2px solid #0052cc;
   padding-top: 6px;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   color: #0052cc;
 }
 

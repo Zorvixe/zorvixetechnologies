@@ -17,7 +17,7 @@
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
-  z-index: 1050;
+  z-index: 10200;
   padding-top: 60px;
   padding-right: 16px;
 }
@@ -307,7 +307,7 @@
 .content>.li-page-container,
 .li-page-container {
   min-height: calc(100vh - 56px);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   margin: 0 auto;
   width: 100%;
 }
@@ -378,7 +378,7 @@
   border-radius: 20px;
   background: #f8fafc;
   outline: none;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   color: #0f172a;
   box-sizing: border-box;
 }
@@ -425,7 +425,7 @@
 
 .li-unread-badge {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   background: var(--li-blue);
   color: #ffffff;
   padding: 2px 8px;
@@ -448,7 +448,7 @@
   cursor: pointer;
   padding: 5px 10px;
   border-radius: 4px;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   white-space: nowrap;
 }
 
@@ -508,7 +508,7 @@
   color: var(--li-text-secondary);
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   user-select: none;
   line-height: 1.4;
 }
@@ -576,7 +576,7 @@
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
   color: inherit;
   cursor: pointer;
@@ -630,7 +630,7 @@
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: #ffffff;
   letter-spacing: 0.5px;
   user-select: none;
@@ -771,7 +771,7 @@
 .li-chevron-icon {
   color: var(--li-text-subtle);
   opacity: 0.5;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .li-item:hover .li-chevron-icon {
@@ -928,10 +928,10 @@
   .notification-modal {
     width: 100%;
     max-width: 480px;
-    max-height: 86vh;
-    border-radius: 14px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-    margin-top: 200px;
+    max-height: calc(100dvh - 32px);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-float);
+    margin-top: 0;
   }
 
   .li-header {

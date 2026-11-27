@@ -14,8 +14,12 @@ import {
   AwardIcon,
   ShieldIcon,
   ClockIcon,
-  TargetIcon
+  TargetIcon,
+  ZapIcon,
+  CheckIcon
 } from '../../components/CrmHrmsIcons';
+import RichTextEditor from '../../components/RichTextEditor';
+import { stripHtmlText } from '../../utils/safeHtml';
 import './AutomationTab.css';
 
 export default function AutomationTab() {
@@ -87,7 +91,7 @@ export default function AutomationTab() {
 
   const handleSaveTemplate = async (e) => {
     e.preventDefault();
-    if (!templateForm.name.trim() || !templateForm.subject.trim() || !templateForm.body.trim()) {
+    if (!templateForm.name.trim() || !templateForm.subject.trim() || !stripHtmlText(templateForm.body)) {
       alert('Template Name, Subject, and Body are required.');
       return;
     }
@@ -334,7 +338,7 @@ async function handleZorvixeLeadSubmit(e) {
                   </div>
                   <div className="template-card-footer">
                     <span>Merge tags enabled</span>
-                    <span className="footer-tag">⚡ Fast Dispatch</span>
+                    <span className="footer-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ZapIcon size={12} /> Fast Dispatch</span>
                   </div>
                 </div>
               ))}
@@ -358,7 +362,12 @@ async function handleZorvixeLeadSubmit(e) {
               className={`crm-btn ${copiedSnippet ? 'crm-btn-success' : 'crm-btn-primary'}`}
               onClick={copyToClipboard}
             >
-              {copiedSnippet ? '✓ Code Copied to Clipboard!' : (
+              {copiedSnippet ? (
+                <>
+                  <CheckIcon size={14} style={{ marginRight: 6 }} />
+                  Code Copied to Clipboard
+                </>
+              ) : (
                 <>
                   <CheckSquareIcon size={14} style={{ marginRight: '6px' }} />
                   Copy Embed HTML Code
@@ -462,7 +471,14 @@ async function handleZorvixeLeadSubmit(e) {
                     </select>
                   )}
                   {webformConfig.includeMessage && (
-                    <textarea rows="3" placeholder="Project Scope & Objectives..." disabled></textarea>
+                    <RichTextEditor
+                      disabled
+                      compact
+                      disableAiAssist
+                      minHeight="72px"
+                      maxHeight="120px"
+                      placeholder="Project Scope & Objectives"
+                    />
                   )}
                   <button type="button" className="preview-submit-btn" style={{ background: webformConfig.themeColor }} disabled>
                     {webformConfig.buttonText}
@@ -629,12 +645,14 @@ async function handleZorvixeLeadSubmit(e) {
 
               <div className="template-form-group">
                 <label>Email Body *</label>
-                <textarea
-                  rows={9}
+                <RichTextEditor
                   value={templateForm.body}
-                  onChange={e => setTemplateForm({ ...templateForm, body: e.target.value })}
-                  placeholder="Dear {Name}, thank you for your interest..."
-                  required
+                  minHeight="140px"
+                  maxHeight="260px"
+                  aiFieldLabel="Email Template Body"
+                  aiContext={{ name: templateForm.name, subject: templateForm.subject, category: templateForm.category }}
+                  placeholder="Dear {Name}, thank you for your interest"
+                  onChange={(content) => setTemplateForm((prev) => ({ ...prev, body: content }))}
                 />
               </div>
 

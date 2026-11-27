@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiListEmployees, apiGetEmployee, apiUpdateEmployee } from '../../api';
-import { UserIcon, BuildingIcon, BankIcon } from '../../components/CrmHrmsIcons';
+import { UserIcon, BuildingIcon, BankIcon, EditIcon } from '../../components/CrmHrmsIcons';
 import './EmployeesTab.css';
 
 export default function EmployeesTab({ isAdmin, user }) {
@@ -222,7 +222,7 @@ export default function EmployeesTab({ isAdmin, user }) {
               <div className="header-modal-actions">
                 {isAdmin && !isEditing && (
                   <button type="button" className="btn-edit-mode" onClick={() => setIsEditing(true)}>
-                    ✏️ Edit Profile
+                    <EditIcon size={13} style={{ marginRight: 5 }} /> Edit Profile
                   </button>
                 )}
                 {isEditing && (

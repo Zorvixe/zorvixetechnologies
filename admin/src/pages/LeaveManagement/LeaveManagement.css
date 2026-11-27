@@ -8,47 +8,47 @@
 }
 
 .main-content-LeaveManagement {
-  background: #ffffff;
-  border-radius: 4px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   height: 100%;
   width: 100%;
-  border: 1px solid #dfe1e6;
-  box-shadow: 0 1px 1px rgba(9, 30, 66, 0.08);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-sm);
 }
 
 .tabs-LeaveManagement {
   display: flex;
   justify-content: space-between;
-  background: #fafbfc;
-  border-bottom: 1px solid #dfe1e6;
+  background: var(--bg-canvas);
+  border-bottom: 1px solid var(--border-hairline);
   overflow-x: auto;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
 }
 
 .tab-btn-LeaveManagement {
-  padding: 10px 16px;
+  padding: 10px var(--space-4);
   border: none;
   background: none;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  color: #5e6c84;
+  color: var(--text-muted);
   white-space: nowrap;
   border-bottom: 2px solid transparent;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
   font-family: inherit;
 }
 
 .tab-btn-LeaveManagement:hover {
-  color: #172b4d;
-  background: rgba(9, 30, 66, 0.04);
+  color: var(--text-primary);
+  background: var(--bg-subtle);
 }
 
 .tab-btn-LeaveManagement.active {
-  color: #0052cc;
-  border-bottom: 2px solid #0052cc;
-  font-weight: 600;
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+  font-weight: 500;
   background: transparent;
 }
 

@@ -247,7 +247,7 @@ export default function ProjectComments({ projectId, isAdmin, currentUser }) {
           <RichTextEditor
             value={newComment}
             onChange={(content) => setNewComment(content)}
-            placeholder="Add a comment..."
+            placeholder="Add a comment"
             rows="3"
             className=""
           />
@@ -261,7 +261,7 @@ export default function ProjectComments({ projectId, isAdmin, currentUser }) {
       <div className="comments-list">
         {comments.length === 0 ? (
           <div className="no-comments">
-            <p>No comments yet. Be the first to comment!</p>
+            <p>No comments yet. Start the thread above.</p>
           </div>
         ) : (
           comments.map((comment) => (

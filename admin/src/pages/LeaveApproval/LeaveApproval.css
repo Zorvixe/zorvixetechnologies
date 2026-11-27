@@ -19,7 +19,7 @@
 
 .page-title {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 600;
   color: #1a202c;
   margin: 0 0 8px 0;
   line-height: 1.2;
@@ -73,7 +73,7 @@
   border-radius: 6px;
   background: white;
   font-size: 14px;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   color: #2d3748;
 }
 
@@ -166,8 +166,7 @@
   color: #4a5568;
   border-bottom: 1px solid #e2e8f0;
   font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+letter-spacing: 0.5px;
 }
 
 .leaves-table td {
@@ -259,7 +258,7 @@
 
 .days-count {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   color: #2d3748;
 }
 
@@ -348,7 +347,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .btn-approve:hover {
@@ -369,7 +368,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .btn-reject:hover {
@@ -405,7 +404,7 @@
   gap: 6px;
   font-size: 14px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .pagination-btn:hover:not(:disabled) {
@@ -433,7 +432,7 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .pagination-page:hover {
@@ -449,11 +448,11 @@
 
 /* Bootstrap Modal Overrides */
 .modal {
-  z-index: 10000;
+  z-index: 10200;
 }
 
 .modal-backdrop {
-  z-index: 9999;
+  z-index: 10190;
 }
 
 /* Responsive Design */
@@ -540,7 +539,7 @@
 
 /* Animation for table rows */
 .leave-row {
-  transition: all 0.2s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 /* Focus states for accessibility */

@@ -1,0 +1,83 @@
+/* ==========================================================================
+   Zorvixe Operations Suite — Design System Tokens
+   Light Ink-Graphite Surface Ramp + Single Cobalt Accent (#0052CC)
+   4px spacing grid · Nested radii · Tabular figures · Single ease-out curve
+   ========================================================================== */
+
+:root {
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Light Ink-Tinted Neutral Ramp */
+  --bg-canvas: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F1F5F9;
+  --bg-muted: #E2E8F0;
+
+  /* Hairlines & Borders */
+  --border-hairline: rgba(15, 23, 42, 0.08);
+  --border-subtle: #E2E8F0;
+  --border-strong: rgba(15, 23, 42, 0.16);
+
+  /* Text Roles */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  --text-inverse: #FFFFFF;
+
+  /* Single Primary Accent (Cobalt) */
+  --accent: #0052CC;
+  --accent-hover: #0747A6;
+  --accent-subtle: rgba(0, 82, 204, 0.08);
+  --accent-border: rgba(0, 82, 204, 0.24);
+  --accent-ring: 0 0 0 3px rgba(0, 82, 204, 0.14);
+
+  /* Semantic Status Colors */
+  --positive: #16A34A;
+  --positive-bg: #F0FDF4;
+  --positive-border: rgba(22, 163, 74, 0.22);
+
+  --warning: #D97706;
+  --warning-bg: #FFFBEB;
+  --warning-border: rgba(217, 119, 6, 0.24);
+
+  --negative: #DC2626;
+  --negative-bg: #FEF2F2;
+  --negative-border: rgba(220, 38, 38, 0.22);
+
+  /* 4px Spacing Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Nested Border Radius Scale */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Surface Depth */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-float: 0 8px 24px rgba(15, 23, 42, 0.08);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 150ms;
+  --dur-med: 200ms;
+  --dur-slow: 300ms;
+
+  /* Layout Dimensions */
+  --tb-h: 56px;
+  --sidebar-w: 248px;
+  --sidebar-collapsed-w: 72px;
+  --page-max-w: 1440px;
+}

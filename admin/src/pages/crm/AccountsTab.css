@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-family: var(--font-sans);
   color: #172b4d;
 }
 
@@ -36,7 +36,7 @@
   flex: 1;
   min-width: 240px;
   max-width: 380px;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .accounts-search-box:focus-within {
@@ -99,10 +99,9 @@
 .accounts-table th {
   background: #f4f5f7;
   color: #5e6c84;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+letter-spacing: 0.01em;
   padding: 10px 12px;
   border-bottom: 1px solid #dfe1e6;
   white-space: nowrap;
@@ -132,13 +131,13 @@
 .account-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 4px;
-  background: linear-gradient(135deg, #0052cc 0%, #0747a6 100%);
-  color: #ffffff;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--text-inverse);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 500;
   font-size: 12px;
   flex-shrink: 0;
 }
@@ -211,7 +210,7 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .btn-view-360:hover {
@@ -234,6 +233,7 @@
   align-items: center;
   justify-content: space-between;
   background: #fafbfc;
+  flex-shrink: 0;
 }
 
 .drawer-title-box {
@@ -252,7 +252,7 @@
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   flex-shrink: 0;
 }
 
@@ -278,8 +278,10 @@
 .drawer-body {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  max-height: calc(90vh - 80px);
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Ribbon */
@@ -306,8 +308,7 @@
   font-size: 11px;
   font-weight: 600;
   color: #5e6c84;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+letter-spacing: 0.01em;
 }
 
 .ribbon-item strong {
@@ -333,7 +334,7 @@
   font-weight: 500;
   color: #5e6c84;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   font-family: inherit;
 }
 
@@ -368,8 +369,7 @@
   font-weight: 600;
   color: #172b4d;
   margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+letter-spacing: 0.01em;
 }
 
 .btn-add-mini {
@@ -472,7 +472,7 @@
   padding: 1px 5px;
   border-radius: 2px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .stage-won { background: #e3fcef; color: #006644; }

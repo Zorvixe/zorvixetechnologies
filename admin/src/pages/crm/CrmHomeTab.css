@@ -58,7 +58,7 @@
   font-weight: 600;
   color: #172b4d;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .btn-cockpit-action:hover {
@@ -99,8 +99,7 @@
 }
 
 .crm-kpi-card:hover {
-  transform: translateY(-2px);
-  border-color: #4c9aff;
+border-color: #4c9aff;
   box-shadow: 0 4px 12px rgba(9, 30, 66, 0.08);
 }
 
@@ -108,13 +107,12 @@
   font-size: 12px;
   font-weight: 600;
   color: #5e6c84;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+letter-spacing: 0.3px;
 }
 
 .kpi-value {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 600;
   margin: 6px 0 2px 0;
   line-height: 1.1;
 }
@@ -201,10 +199,9 @@
   padding: 10px 16px;
   text-align: left;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: #5e6c84;
-  text-transform: uppercase;
-  border-bottom: 1px solid #ebecf0;
+border-bottom: 1px solid #ebecf0;
 }
 
 .board-table td {
@@ -252,7 +249,7 @@
 
 .task-status-tag {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 2px 6px;
   border-radius: 10px;
 }

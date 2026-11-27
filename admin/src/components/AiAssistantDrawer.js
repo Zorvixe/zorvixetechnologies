@@ -11,6 +11,7 @@ import {
 } from '../api';
 import ZorviAiLogo from '../assets/zorvi_ai_logo.png';
 import { XIcon, AlertCircleIcon, ChevronRightIcon } from './CrmHrmsIcons';
+import RichTextEditor from './RichTextEditor';
 import './AiAssistantDrawer.css';
 
 const SESSION_STORAGE_KEY = 'zorvixe_copilot_session_id';
@@ -496,16 +497,20 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
                                 }
                               />
                             </label>
-                            <label>
-                              Body
-                              <textarea
-                                rows={4}
+                            <div style={{ marginTop: 4 }}>
+                              <span style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 4 }}>Body</span>
+                              <RichTextEditor
+                                compact
+                                disableAiAssist
+                                minHeight="90px"
+                                maxHeight="180px"
                                 value={draftOverrides.body}
-                                onChange={(e) =>
-                                  setDraftOverrides((prev) => ({ ...prev, body: e.target.value }))
+                                placeholder="Email body"
+                                onChange={(val) =>
+                                  setDraftOverrides((prev) => ({ ...prev, body: val }))
                                 }
                               />
-                            </label>
+                            </div>
                           </div>
                         )}
 
