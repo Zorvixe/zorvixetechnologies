@@ -320,6 +320,13 @@ async function runInitDbAttempt() {
     await client.query(`
   CREATE INDEX IF NOT EXISTS idx_projects_client ON projects(client_id);
 `)
+    await ensureColumns(client, 'projects', [
+      ['priority', "priority VARCHAR(20) DEFAULT 'normal'"],
+      ['due_date', 'due_date DATE'],
+      ['progress', 'progress INTEGER DEFAULT 0'],
+      ['tasks_total', 'tasks_total INTEGER DEFAULT 0'],
+      ['tasks_done', 'tasks_done INTEGER DEFAULT 0'],
+    ])
     await client.query(`
   DROP TRIGGER IF EXISTS trg_projects_updated_at ON projects;
   CREATE TRIGGER trg_projects_updated_at
@@ -3165,19 +3172,137 @@ app.get('/api/admin/clients/:id/projects', requireAuth, async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }) }
 })
 
+// List ALL accessible projects across clients (Admin sees all; employees see member projects)
+app.get('/api/admin/projects', requireAuth, async (req, res) => {
+  try {
+    const admin = isAdmin(req)
+    const params = []
+    let sql = `
+      SELECT p.*,
+             c.name AS client_name,
+             c.company AS client_company,
+             au.name AS updated_by_name,
+             COALESCE(cc.comment_count, 0)::int AS comment_count
+      FROM projects p
+      LEFT JOIN clients c ON c.id = p.client_id
+      LEFT JOIN admin_users au ON au.id = p.updated_by
+      LEFT JOIN (
+        SELECT project_id, COUNT(*)::int AS comment_count
+        FROM project_comments
+        GROUP BY project_id
+      ) cc ON cc.project_id = p.id
+      ORDER BY p.updated_at DESC, p.created_at DESC
+    `
+
+    if (!admin) {
+      params.push(req.user.sub)
+      sql = `
+        SELECT p.*,
+               c.name AS client_name,
+               c.company AS client_company,
+               au.name AS updated_by_name,
+               COALESCE(cc.comment_count, 0)::int AS comment_count
+        FROM projects p
+        JOIN project_members m ON m.project_id = p.id AND m.user_id = $1
+        LEFT JOIN clients c ON c.id = p.client_id
+        LEFT JOIN admin_users au ON au.id = p.updated_by
+        LEFT JOIN (
+          SELECT project_id, COUNT(*)::int AS comment_count
+          FROM project_comments
+          GROUP BY project_id
+        ) cc ON cc.project_id = p.id
+        ORDER BY p.updated_at DESC, p.created_at DESC
+      `
+    }
+
+    const { rows } = await pool.query(sql, params)
+    const ids = rows.map((r) => r.id)
+
+    const membersByProject = {}
+    const myPerms = {}
+    if (ids.length > 0) {
+      const mq = await pool.query(
+        `SELECT pm.project_id, pm.user_id, pm.can_edit, pm.can_manage_payments, u.name, u.email
+         FROM project_members pm
+         JOIN admin_users u ON u.id = pm.user_id
+         WHERE pm.project_id = ANY($1::bigint[])
+         ORDER BY pm.created_at ASC`,
+        [ids]
+      )
+      for (const m of mq.rows) {
+        if (!membersByProject[m.project_id]) membersByProject[m.project_id] = []
+        membersByProject[m.project_id].push({
+          user_id: m.user_id,
+          name: m.name,
+          email: m.email,
+          can_edit: m.can_edit,
+          can_manage_payments: m.can_manage_payments,
+        })
+        if (!admin && Number(m.user_id) === Number(req.user.sub)) {
+          myPerms[m.project_id] = { can_edit: m.can_edit, can_manage_payments: m.can_manage_payments }
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      projects: rows.map((r) => ({
+        ...r,
+        members: membersByProject[r.id] || [],
+        my_perms: admin
+          ? { can_edit: true, can_manage_payments: true }
+          : (myPerms[r.id] || { can_edit: false, can_manage_payments: false }),
+      })),
+    })
+  } catch (e) {
+    console.error('List all projects error:', e)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
 // Create project (admin only by default)
 app.post('/api/admin/projects', requireAdmin, async (req, res) => {
   try {
-    const { client_id, name = '', description = '', type = '', other_type = '' } = req.body || {}
+    const {
+      client_id,
+      name = '',
+      description = '',
+      type = 'web_development',
+      other_type = '',
+      status = 'new',
+      priority = 'normal',
+      due_date = null,
+      progress = 0,
+      tasks_total = 0,
+      tasks_done = 0,
+    } = req.body || {}
     if (!client_id || !name || !type) return res.status(400).json({ message: 'client_id, name, type required' })
     const code = genProjectCode()
     const zorvixe_id = genZorvixeId(code)
 
     const { rows } = await pool.query(`
-      INSERT INTO projects (client_id, code, zorvixe_id, name, description, type, other_type, updated_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      INSERT INTO projects (
+        client_id, code, zorvixe_id, name, description, type, other_type,
+        status, priority, due_date, progress, tasks_total, tasks_done, updated_by
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       RETURNING *
-    `, [client_id, code, zorvixe_id, name, description, type, type === 'other' ? other_type : null, req.user.sub])
+    `, [
+      client_id,
+      code,
+      zorvixe_id,
+      name,
+      description,
+      type,
+      type === 'other' ? other_type : null,
+      status || 'new',
+      priority || 'normal',
+      due_date || null,
+      Math.max(0, Math.min(100, Number(progress || 0))),
+      Math.max(0, Number(tasks_total || 0)),
+      Math.max(0, Number(tasks_done || 0)),
+      req.user.sub,
+    ])
 
     res.status(201).json({ success: true, project: rows[0] })
   } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }) }
@@ -3210,13 +3335,18 @@ app.patch('/api/admin/projects/:id', requireAuth, requireProjectEdit(), async (r
     const id = Number(req.params.id)
     const fields = []
     const params = []
-    const { name, description, status, type, other_type } = req.body || {}
+    const { name, description, status, type, other_type, priority, due_date, progress, tasks_total, tasks_done } = req.body || {}
 
     if (typeof name === 'string') { params.push(name); fields.push(`name=$${params.length}`) }
     if (typeof description === 'string') { params.push(description); fields.push(`description=$${params.length}`) }
     if (typeof status === 'string') { params.push(status); fields.push(`status=$${params.length}`) }
     if (typeof type === 'string') { params.push(type); fields.push(`type=$${params.length}`) }
     if (typeof other_type === 'string') { params.push(other_type || null); fields.push(`other_type=$${params.length}`) }
+    if (typeof priority === 'string') { params.push(priority); fields.push(`priority=$${params.length}`) }
+    if (due_date !== undefined) { params.push(due_date || null); fields.push(`due_date=$${params.length}`) }
+    if (progress !== undefined && Number.isFinite(Number(progress))) { params.push(Math.max(0, Math.min(100, Number(progress)))); fields.push(`progress=$${params.length}`) }
+    if (tasks_total !== undefined && Number.isFinite(Number(tasks_total))) { params.push(Math.max(0, Number(tasks_total))); fields.push(`tasks_total=$${params.length}`) }
+    if (tasks_done !== undefined && Number.isFinite(Number(tasks_done))) { params.push(Math.max(0, Number(tasks_done))); fields.push(`tasks_done=$${params.length}`) }
     // who edited
     params.push(req.user.sub); fields.push(`updated_by=$${params.length}`)
 

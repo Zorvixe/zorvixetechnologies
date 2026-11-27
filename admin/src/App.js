@@ -13,6 +13,7 @@ import Users from './pages/Users';
 import Stats from './pages/Stats';
 import Candidates from './pages/Candidates';
 import Clients from './pages/Clients';
+import Projects from './pages/Projects';
 import Payments from './pages/Payments';
 import Tickets from './pages/Tickets';
 import LoginHistory from './pages/LoginHistory';
@@ -86,6 +87,7 @@ function Shell() {
     stats: 'Stats',
     users: 'Users',
     candidates: 'Onboarding',
+    projects: 'Projects',
     clients: 'Clients',
     payments: 'Payments',
     tickets: 'Tickets',
@@ -155,9 +157,10 @@ function Shell() {
           <Route path="/tickets" element={<Tickets />} />
           <Route path="/tickets/:id" element={<Tickets />} />
 
-          {/* Project detail remains as separate page */}
+          {/* Projects Board & Detail Route */}
+          <Route path="/projects" element={<Projects />} />
+          <Route path="/projects/:id" element={<Projects />} />
           <Route path="/clients" element={<Clients />} />
-          <Route path="/projects/:id" element={<Clients />} />
 
           <Route path="/discussions" element={<Discussions />} />
           <Route path="/chat" element={<Navigate to="/discussions" replace />} />

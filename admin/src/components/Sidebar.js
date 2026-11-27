@@ -1,11 +1,10 @@
 import { useAuth } from '../auth'
 import { usePresence } from '../context/PresenceContext'
 import ActivityRemindersDrawer from './ActivityRemindersDrawer'
-import ZorviAiLogo from '../assets/zorvi_ai_logo.png'
 import "./Sidebar.css"
 
 const VALID_VIEWS = new Set([
-  'stats', 'clients', 'payments', 'users', 'candidates', 'tickets', 'contacts', 'account', 'discussions', 'leaves', 'login-history', 'notifications', 'user-tickets',
+  'stats', 'projects', 'clients', 'payments', 'users', 'candidates', 'tickets', 'contacts', 'account', 'discussions', 'leaves', 'login-history', 'notifications', 'user-tickets',
   'hrms', 'attendance', 'payroll', 'employees', 'recruitment', 'workforce-insights', 'crm',
   'leads', 'accounts', 'quotes', 'deals', 'automation', 'workqueue', 'crm-home'
 ]);
@@ -54,6 +53,11 @@ export default function Sidebar({ current, onNavigate, collapsed, onClose }) {
         <a href="#stats" className={`navlink ${current === 'stats' ? 'active' : ''}`} onClick={goto('stats')} title="Stats">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
           {!collapsed && <span>Stats</span>}
+        </a>
+
+        <a href="#projects" className={`navlink ${current === 'projects' || current.startsWith('projects/') ? 'active' : ''}`} onClick={goto('projects')} title="Projects">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
+          {!collapsed && <span>Projects</span>}
         </a>
 
         <a href="#clients" className={`navlink ${current === 'clients' ? 'active' : ''}`} onClick={goto('clients')} title="Clients">

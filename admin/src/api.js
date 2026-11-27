@@ -141,6 +141,7 @@ export const apiPatchClient = (id, body) => request(`/api/admin/clients/${id}`, 
 export const apiDeleteClient = (id) => request(`/api/admin/clients/${id}`, { method: "DELETE" })
 
 /* --------------------------- Projects --------------------------- */
+export const apiListAllProjects = (params) => request("/api/admin/projects", { params })
 export const apiListClientProjects = (clientId) => request(`/api/admin/clients/${clientId}/projects`)
 export const apiCreateProject = (body) => request("/api/admin/projects", { method: "POST", body })
 export const apiGetProject = (id) => request(`/api/admin/projects/${id}`)
