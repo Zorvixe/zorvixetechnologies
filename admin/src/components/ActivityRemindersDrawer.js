@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiListCrmActivities, apiUpdateCrmActivity } from '../api';
 import { AlarmClockIcon } from './CrmHrmsIcons';
+import { showToast } from '../utils/toast';
 import './ActivityRemindersDrawer.css';
 
 export default function ActivityRemindersDrawer({ collapsed = false }) {
@@ -154,7 +155,7 @@ export default function ActivityRemindersDrawer({ collapsed = false }) {
               </button>
 
               {/* Help Button */}
-              <button type="button" className="dock-help-btn" title="Help & Support" onClick={() => alert('Zorvixe Technologies Help & Knowledgebase')}>
+              <button type="button" className="dock-help-btn" title="Help & Support" onClick={() => showToast('Zorvixe Technologies Help & Knowledgebase — press Ctrl+J for ZORVI AI support.', 'info', 'Help')}>
                 <span>?</span> Help
               </button>
             </>
@@ -177,7 +178,7 @@ export default function ActivityRemindersDrawer({ collapsed = false }) {
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
               </button>
 
-              <button type="button" className="dock-utility-btn" title="Help" onClick={() => alert('Zorvixe Help')}>
+              <button type="button" className="dock-utility-btn" title="Help" onClick={() => showToast('Zorvixe Technologies Help & Knowledgebase — press Ctrl+J for ZORVI AI support.', 'info', 'Help')}>
                 <span style={{ fontSize: '12px', fontWeight: 'bold' }}>?</span>
               </button>
             </>

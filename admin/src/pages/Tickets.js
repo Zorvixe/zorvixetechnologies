@@ -18,7 +18,6 @@ import {
   apiRecordTicketView,
   apiGetTicketViewers,
   apiAiAnalyzeTicket,
-  apiAiDraftTicketReply,
   apiAiRecommendTicketAssignments,
   apiAiConfirmTicketAssignment,
 } from "../api";
@@ -1098,11 +1097,6 @@ export default function Tickets() {
                     <ul className="zx-ai-list" style={{ fontSize: "12px", color: "#42526e" }}>
                       {(rec.reasons || []).map((r, i) => <li key={i}>{r}</li>)}
                     </ul>
-                    {rec.uncertainty && (
-                      <div style={{ fontSize: "11px", color: "#6b778c", marginTop: "4px" }}>
-                        Note: {rec.uncertainty}
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -1139,11 +1133,10 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
   const [showAllViewers, setShowAllViewers] = useState(false);
   const viewersRef = useRef(null);
 
-  // Ticket AI Insights & Reply Draft
+  // Ticket AI Insights & Reply Draft Note
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiAnalyzeErr, setAiAnalyzeErr] = useState("");
-  const [draftLoading, setDraftLoading] = useState(false);
   const [draftNote, setDraftNote] = useState("");
 
 
@@ -1193,23 +1186,6 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
       setAiAnalyzeErr(err.message || "AI analysis failed");
     } finally {
       setAiAnalyzing(false);
-    }
-  };
-
-  const handleDraftTicketReply = async () => {
-    if (!ticket?.id) return;
-    setDraftLoading(true);
-    setDraftNote("");
-    try {
-      const res = await apiAiDraftTicketReply(ticket.id, { tone: "professional" });
-      if (res?.draftReply) {
-        setNewComment(res.draftReply.replace(/\n/g, "<br/>"));
-        setDraftNote(res.uncertainty || "Review and edit this draft before clicking Update Ticket.");
-      }
-    } catch (err) {
-      setDraftNote(err.message || "Failed to generate reply draft.");
-    } finally {
-      setDraftLoading(false);
     }
   };
 
@@ -1534,19 +1510,18 @@ function ViewTicketModal({ open, onClose, ticket, canManage, openEdit, onDelete 
               onChange={(content) => setNewComment(content)}
               placeholder="Reply a Ticket..."
               className="comment-input-tiket"
+              aiFieldLabel="Ticket Reply"
+              aiContext={{
+                ticketId: ticket?.id,
+                title: ticket?.title,
+                priority: ticket?.priority,
+                status: ticket?.status,
+              }}
               footerContent={
                 <div className="ticket-reply-footer">
                   {draftNote && <span className="ticket-reply-draft-note">{draftNote}</span>}
                   <div className="ticket-reply-footer-actions">
-                    <button
-                      type="button"
-                      className="ticket-ai-header-btn"
-                      onClick={handleDraftTicketReply}
-                      disabled={draftLoading}
-                    >
-                      <SparklesIcon size={25} />
-                      <span>{draftLoading ? "..." : ""}</span>
-                    </button>
+
                     <button type="submit" className="btn btn-primary btn-sm">
                       Update Ticket
                     </button>

@@ -73,9 +73,9 @@ export default function AiInsightBox({
         <div className="zx-ai-box-body">{children}</div>
       )}
 
-      {!loading && !error && uncertainty && (
+      {!loading && !error && (uncertainty || children) && (
         <div className="zx-ai-uncertainty">
-          <strong>Uncertainty & Scope:</strong> {uncertainty}
+          ZORVI can make mistakes. Check important info.
         </div>
       )}
     </div>

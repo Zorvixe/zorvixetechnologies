@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiListCrmContacts, apiCreateCrmContact, apiDeleteCrmContact, apiListAccounts } from '../../api';
 import { GlobeIcon, TrashIcon } from '../../components/CrmHrmsIcons';
 import RichTextEditor from '../../components/RichTextEditor';
+import { showToast } from '../../utils/toast';
 import './ContactsTab.css';
 
 export default function ContactsTab() {
@@ -54,11 +55,14 @@ export default function ContactsTab() {
 
   const handleCreateContact = async (e) => {
     e.preventDefault();
-    if (!contactForm.name) return alert('Contact name is required');
+    if (!contactForm.name) {
+      showToast('Contact name is required', 'error');
+      return;
+    }
     setSaving(true);
     try {
       await apiCreateCrmContact(contactForm);
-      alert('Contact created successfully!');
+      showToast('Contact created successfully!', 'success');
       setShowCreateModal(false);
       setContactForm({
         client_id: '',
@@ -73,7 +77,7 @@ export default function ContactsTab() {
       });
       fetchContacts();
     } catch (err) {
-      alert(err.message || 'Failed to create contact');
+      showToast(err.message || 'Failed to create contact', 'error');
     } finally {
       setSaving(false);
     }
@@ -85,7 +89,7 @@ export default function ContactsTab() {
       await apiDeleteCrmContact(id);
       fetchContacts();
     } catch (err) {
-      alert(err.message || 'Failed to delete contact');
+      showToast(err.message || 'Failed to delete contact', 'error');
     }
   };
 

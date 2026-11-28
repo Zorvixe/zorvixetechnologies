@@ -152,7 +152,7 @@ const RichTextEditor = ({
     }
   };
 
-  const showAutoAiFooter = !footerContent && !disableAiAssist && !isLocked;
+  const showAutoAiFooter = !disableAiAssist && !isLocked;
 
   return (
     <div ref={containerRef} className={`rich-text-editor ${isExpanded ? 'expanded' : ''} ${compact ? 'compact' : ''} ${readOnly ? 'is-readonly' : ''} ${className}`.trim()} style={style}>
@@ -308,16 +308,19 @@ const RichTextEditor = ({
         suppressContentEditableWarning={true}
       />
       {(footerContent || showAutoAiFooter) && (
-        <div className="editor-footer">
-          {footerContent || (
-            <>
-              {aiErr && <span className="zx-ai-field-err" style={{ marginRight: 'auto' }}>{aiErr}</span>}
-              <ZorviAiInlineButton
-                loading={aiLoading}
-                disabled={isLocked}
-                onClick={handleDefaultAiAssist}
-              />
-            </>
+        <div className={`editor-footer${footerContent ? ' has-custom-footer' : ''}`}>
+          {aiErr && showAutoAiFooter && (
+            <span className="zx-ai-field-err" style={{ marginRight: 'auto' }}>{aiErr}</span>
+          )}
+          {showAutoAiFooter && (
+            <ZorviAiInlineButton
+              loading={aiLoading}
+              disabled={isLocked}
+              onClick={handleDefaultAiAssist}
+            />
+          )}
+          {footerContent && (
+            <div className="editor-footer-custom">{footerContent}</div>
           )}
         </div>
       )}

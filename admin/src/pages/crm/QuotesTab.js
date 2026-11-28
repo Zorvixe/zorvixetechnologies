@@ -13,6 +13,7 @@ import {
 import SendEmailModal from './SendEmailModal';
 import RichTextEditor from '../../components/RichTextEditor';
 import { renderSafeHtml } from '../../utils/safeHtml';
+import { showToast } from '../../utils/toast';
 import {
   PackageIcon,
   BriefcaseIcon,
@@ -104,11 +105,14 @@ export default function QuotesTab() {
 
   const handleCreateProduct = async (e) => {
     e.preventDefault();
-    if (!newProductForm.code || !newProductForm.name) return alert('Code and Name are required');
+    if (!newProductForm.code || !newProductForm.name) {
+      showToast('Code and Name are required', 'error');
+      return;
+    }
     setSavingProduct(true);
     try {
       await apiCreateProduct(newProductForm);
-      alert('Product added to catalog!');
+      showToast('Product added to catalog!', 'success');
       setNewProductForm({
         code: '',
         name: '',
@@ -119,7 +123,7 @@ export default function QuotesTab() {
       });
       fetchDropdownData();
     } catch (err) {
-      alert(err.message || 'Failed to add product');
+      showToast(err.message || 'Failed to add product', 'error');
     } finally {
       setSavingProduct(false);
     }
@@ -180,11 +184,14 @@ export default function QuotesTab() {
 
   const handleCreateQuote = async (e) => {
     e.preventDefault();
-    if (!quoteForm.subject || !quoteForm.client_id) return alert('Subject and Client are required');
+    if (!quoteForm.subject || !quoteForm.client_id) {
+      showToast('Subject and Client are required', 'error');
+      return;
+    }
     setSavingQuote(true);
     try {
       await apiCreateQuote(quoteForm);
-      alert('Quotation generated successfully!');
+      showToast('Quotation generated successfully!', 'success');
       setShowCreateModal(false);
       setQuoteForm({
         subject: '',
@@ -200,7 +207,7 @@ export default function QuotesTab() {
       });
       fetchQuotes();
     } catch (err) {
-      alert(err.message || 'Failed to create quote');
+      showToast(err.message || 'Failed to create quote', 'error');
     } finally {
       setSavingQuote(false);
     }
@@ -211,7 +218,7 @@ export default function QuotesTab() {
       await apiUpdateQuoteStatus(id, status);
       fetchQuotes();
     } catch (err) {
-      alert(err.message || 'Failed to update quote status');
+      showToast(err.message || 'Failed to update quote status', 'error');
     }
   };
 
@@ -221,7 +228,7 @@ export default function QuotesTab() {
       await apiDeleteQuote(id);
       fetchQuotes();
     } catch (err) {
-      alert(err.message || 'Failed to delete quote');
+      showToast(err.message || 'Failed to delete quote', 'error');
     }
   };
 
@@ -231,7 +238,7 @@ export default function QuotesTab() {
       const res = await apiGetQuote(id);
       setPreviewQuoteData(res);
     } catch (err) {
-      alert(err.message || 'Failed to load quote details');
+      showToast(err.message || 'Failed to load quote details', 'error');
     }
   };
 

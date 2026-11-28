@@ -14,7 +14,8 @@ import {
 import { playNotificationSound } from "../utils/notificationSound";
 import RichTextEditor from "../components/RichTextEditor";
 import { renderSafeHtml, stripHtmlText } from "../utils/safeHtml";
-import { CheckIcon, CheckCheckIcon, MessageSquareIcon } from "../components/CrmHrmsIcons";
+import { CheckIcon, CheckCheckIcon, MessageSquareIcon, UserIcon } from "../components/CrmHrmsIcons";
+import { showToast } from "../utils/toast";
 import "./Discussions.css";
 
 const getAvatarColor = (str = "") => {
@@ -117,6 +118,9 @@ export default function Discussions() {
   const lastUnreadTotalRef = useRef(null);
 
   const currentUserId = user?.sub || user?.id;
+  const currentUserDisplayName = user?.name || user?.email || "You";
+  const currentUserInitials = getInitials(user?.name || user?.email);
+  const currentUserColor = getAvatarColor(user?.email || user?.name || "Z");
 
   // Close context menu on outside click
   useEffect(() => {
@@ -266,7 +270,7 @@ export default function Discussions() {
       fetchChatUsers();
     } catch (err) {
       console.error("Failed to delete message:", err);
-      alert("Failed to delete message.");
+      showToast("Failed to delete message.", "error");
       if (activeColleague) {
         fetchActiveMessages(activeColleague.id, true);
       }
@@ -312,7 +316,7 @@ export default function Discussions() {
         fetchChatUsers();
       } catch (err) {
         console.error("Failed to edit message:", err);
-        alert("Failed to edit message.");
+        showToast("Failed to edit message.", "error");
         fetchActiveMessages(activeColleague.id, true);
       } finally {
         setSending(false);
@@ -357,7 +361,7 @@ export default function Discussions() {
     } catch (err) {
       console.error("Failed to send message:", err);
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      alert("Failed to send message.");
+      showToast("Failed to send message.", "error");
       setInputMessage(text);
     } finally {
       setSending(false);
@@ -471,7 +475,7 @@ export default function Discussions() {
                     className={`disc-user-item ${isSelected ? "selected" : ""} ${hasUnread ? "has-unread" : ""}`}
                     onClick={() => handleSelectColleague(colleague)}
                   >
-                      <div
+                    <div
                       className="disc-avatar"
                       style={{ backgroundColor: color.bg, color: color.text }}
                     >
@@ -566,10 +570,12 @@ export default function Discussions() {
 
 
                 {loadingMessages && messages.length === 0 ? (
-                  <div className="disc-msg-loading">Loading...</div>
+                  <div className="loader_container">
+                    <p className="loader_spinner"></p>
+                  </div>
                 ) : messages.length === 0 ? (
                   <div className="disc-msg-empty">
-                    <span>No messages yet. Send a message below to start chatting.</span>
+                    <span>No messages yet.</span>
                   </div>
                 ) : (
                   messages.map((msg, i) => {
@@ -684,6 +690,18 @@ export default function Discussions() {
                             )}
                           </div>
                         </div>
+                        {isMe && (
+                          <div
+                            className="disc-msg-avatar disc-msg-avatar-self"
+                            style={{
+                              backgroundColor: currentUserColor.bg,
+                              color: currentUserColor.text,
+                            }}
+                            title={currentUserDisplayName}
+                          >
+                            {currentUserInitials !== "?" ? currentUserInitials : <UserIcon size={14} />}
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -719,40 +737,46 @@ export default function Discussions() {
                 <form className="disc-composer" onSubmit={handleSendMessage}>
                   <RichTextEditor
                     compact
+                    className="disc-composer-editor"
                     inputRef={textareaRef}
                     minHeight="44px"
-                    maxHeight="120px"
+                    maxHeight="130px"
                     aiFieldLabel="Direct Message"
                     aiContext={{ recipient: activeColleague?.name }}
                     placeholder={editingMessage ? "Edit message" : `Message ${activeColleague.name.split(" ")[0]}`}
                     value={inputMessage}
                     onChange={(content) => setInputMessage(content)}
                     onKeyDown={handleKeyDown}
-                    style={{ flex: 1, minWidth: 0 }}
+                    style={{ width: "100%", minWidth: 0 }}
+                    footerContent={
+                      <div className="disc-editor-footer">
+
+                        <button
+                          type="submit"
+                          className={`disc-send-btn ${stripHtmlText(inputMessage) ? "active" : ""}`}
+                          disabled={!stripHtmlText(inputMessage) || sending}
+                          title={editingMessage ? "Save edit (Enter)" : "Send message (Enter)"}
+                        >
+                          {editingMessage ? (
+                            <>
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                              <span>Save</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13" />
+                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                              </svg>
+                              <span>Send</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    }
                   />
-                  <button
-                    type="submit"
-                    className={`disc-send-btn ${stripHtmlText(inputMessage) ? "active" : ""}`}
-                    disabled={!stripHtmlText(inputMessage) || sending}
-                    title={editingMessage ? "Save edit (Enter)" : "Send message (Enter)"}
-                  >
-                    {editingMessage ? (
-                      <>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span>Save</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="22" y1="2" x2="11" y2="13" />
-                          <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                        </svg>
-                        <span>Send</span>
-                      </>
-                    )}
-                  </button>
                 </form>
               </div>
             </>

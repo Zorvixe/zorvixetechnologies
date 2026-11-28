@@ -7,6 +7,7 @@ import {
 } from '../../api';
 import RichTextEditor from '../../components/RichTextEditor';
 import { renderSafeHtml, stripHtmlText } from '../../utils/safeHtml';
+import { showToast } from '../../utils/toast';
 import {
   CalendarIcon,
   PhoneIcon,
@@ -589,7 +590,7 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                     className="cal-menu-item"
                     onClick={() => {
                       setCreateDropdownOpen(false);
-                      alert('Marked as unavailable for this timeslot.');
+                      showToast('Marked as unavailable for this timeslot.', 'info');
                     }}
                   >
                     <BanIcon size={14} color="#de350b" />
@@ -616,19 +617,19 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
 
               {optionsDropdownOpen && (
                 <div className="cal-popup-menu">
-                  <button type="button" className="cal-menu-item" onClick={() => { setOptionsDropdownOpen(false); alert('Import calendar events'); }}>
+                  <button type="button" className="cal-menu-item" onClick={() => { setOptionsDropdownOpen(false); showToast('Import calendar events', 'info'); }}>
                     <UploadIcon size={14} />
                     <span>Import</span>
                   </button>
-                  <button type="button" className="cal-menu-item" onClick={() => { setOptionsDropdownOpen(false); alert('Export calendar to .ics file'); }}>
+                  <button type="button" className="cal-menu-item" onClick={() => { setOptionsDropdownOpen(false); showToast('Export calendar to .ics file', 'info'); }}>
                     <DownloadIcon size={14} />
                     <span>Export</span>
                   </button>
-                  <button type="button" className="cal-menu-item" onClick={() => { setOptionsDropdownOpen(false); alert('Calendar Preferences'); }}>
+                  <button type="button" className="cal-menu-item" onClick={() => { setOptionsDropdownOpen(false); showToast('Calendar Preferences', 'info'); }}>
                     <SettingsIcon size={14} />
                     <span>Preferences</span>
                   </button>
-                  <button type="button" className="cal-menu-item" onClick={() => { setOptionsDropdownOpen(false); alert('Calendar Booking Links configured'); }}>
+                  <button type="button" className="cal-menu-item" onClick={() => { setOptionsDropdownOpen(false); showToast('Calendar Booking Links configured', 'success'); }}>
                     <CalendarIcon size={14} />
                     <span>Calendar Booking</span>
                   </button>
@@ -714,7 +715,7 @@ export default function ActivitiesCalendarTab({ onSelectActivity }) {
                       className="cal-menu-item"
                       onClick={() => {
                         setCellQuickPopup(null);
-                        alert(`Marked as unavailable on ${c.dateStr}`);
+                        showToast(`Marked as unavailable on ${c.dateStr}`, 'info');
                       }}
                     >
                       <BanIcon size={14} color="#de350b" />

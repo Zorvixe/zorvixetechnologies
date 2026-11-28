@@ -6,6 +6,7 @@ import AiInsightBox from '../components/AiInsightBox'
 import RichTextEditor from '../components/RichTextEditor'
 import { SparklesIcon } from '../components/CrmHrmsIcons'
 import { useAuth } from '../auth'
+import { showToast } from '../utils/toast'
 
 import "./Contacts.css"
 
@@ -68,10 +69,10 @@ export default function Contacts() {
         stage: 'lead',
         description: `Inquiry from ${contact.name} (${contact.email}, ${contact.phone}): ${contact.message}`
       });
-      alert('Contact inquiry converted to a CRM Deal!');
+      showToast('Contact inquiry converted to a CRM Deal!', 'success');
       navigate('/crm');
     } catch (err) {
-      alert(err.message || 'Failed to create deal');
+      showToast(err.message || 'Failed to create deal', 'error');
     }
   }
 
@@ -87,7 +88,7 @@ export default function Contacts() {
       a.remove()
       URL.revokeObjectURL(url)
     } catch (e) {
-      window.alert(e.message || 'Export failed')
+      showToast(e.message || 'Export failed', 'error')
     }
   }
 

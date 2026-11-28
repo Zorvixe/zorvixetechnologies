@@ -680,6 +680,7 @@
 .chat-bubble-wrapper {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .chat-bubble-row.outgoing .chat-bubble-wrapper {
@@ -979,10 +980,27 @@ letter-spacing: 0.5px;
 /* Chat Composer Footer */
 .chat-composer {
   display: flex;
-  align-items: center;
-  padding: 8px 10px;
+  flex-direction: column;
+  padding: 8px 10px 10px;
   background: #ffffff;
   border-top: none;
+}
+
+.chat-composer-editor {
+  width: 100%;
+  border-radius: var(--radius-lg) !important;
+  overflow: hidden;
+}
+
+.chat-composer-editor .editor-footer {
+  padding: 5px 8px 7px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.chat-editor-footer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -1009,29 +1027,33 @@ letter-spacing: 0.5px;
 }
 
 .chat-send-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
+  height: 30px;
+  border-radius: 20px;
   border: none;
-  background: #e2e8f0;
-  color: #94a3b8;
-  display: flex;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
+  margin-left: auto;
   cursor: not-allowed;
-  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   flex-shrink: 0;
 }
 
 .chat-send-btn.active {
-  background: #0a66c2;
+  background: var(--accent);
   color: #ffffff;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(10, 102, 194, 0.35);
+  box-shadow: 0 1px 4px rgba(10, 102, 194, 0.25);
 }
 
 .chat-send-btn.active:hover {
-  background: #004182;
+  background: var(--accent-hover);
 }
 
 /* Common Spinner */

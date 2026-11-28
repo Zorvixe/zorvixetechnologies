@@ -1,664 +1,1099 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import Topbar from "../components/Topbar"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   apiListClients,
   apiListClientProjects,
   apiListPaymentLinks,
   apiDeletePaymentLink,
-  apiTogglePaymentLink, // project-wide enable/disable (kept)
+  apiTogglePaymentLink,
   apiMe,
   apiUpdatePaymentLinkMeta,
   apiRegeneratePaymentLink,
   apiListLinkSubmissions,
   apiCreatePaymentLinkWithMeta,
   downloadPaymentReceipt,
+} from "../api";
+import {
+  PlusIcon,
+  SearchIcon,
+  RefreshIcon,
+  EyeIcon,
+  TrashIcon,
+  XIcon,
+  ChevronRightIcon,
+  FolderIcon,
+  BuildingIcon,
+  LinkIcon,
+  CheckIcon,
+  DownloadIcon,
+  DollarIcon,
+  ClockIcon,
+} from "../components/CrmHrmsIcons";
 
-} from "../api"
-
-
-import "./Payments.css"
+import "./Payments.css";
 
 // ---- Helpers ----
 function maskUrl(url = "") {
   try {
-    const u = new URL(url)
-    const host = u.host
-    let path = (u.pathname || "/").replace(/\/+$/, "") || "/"
-    if (path.length <= 10) return `${host}${path}`
-    const start = path.slice(0, 6)
-    const end = path.slice(-6)
-    return `${host}${start}…${end}`
+    const u = new URL(url);
+    const host = u.host;
+    const path = (u.pathname || "/").replace(/\/+$/, "") || "/";
+    if (path.length <= 12) return `${host}${path}`;
+    return `${host}${path.slice(0, 6)}…${path.slice(-6)}`;
   } catch {
-    return url.length > 24 ? `${url.slice(0, 12)}…${url.slice(-8)}` : url
+    return url.length > 26 ? `${url.slice(0, 12)}…${url.slice(-8)}` : url;
   }
 }
 
 function toInputDateTime(value) {
-  if (!value) return ""
-  const d = new Date(value)
-  const pad = (n) => String(n).padStart(2, "0")
-  const yyyy = d.getFullYear()
-  const mm = pad(d.getMonth() + 1)
-  const dd = pad(d.getDate())
-  const hh = pad(d.getHours())
-  const mi = pad(d.getMinutes())
-  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function getInitials(name = "") {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "CL";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function normalizeLinks(links = []) {
+  const byKind = { project: [], registration: [] };
+  links.forEach((item) => {
+    const norm = {
+      id: item.id,
+      url: item.url || item.link,
+      token: item.token,
+      active: !!item.active,
+      kind: (item.payment_kind || item.kind || "project").toLowerCase(),
+      created_at: item.created_at,
+      expires_at: item.expires_at,
+      amount: item.amount ?? null,
+      status: item.status || null,
+    };
+    byKind[norm.kind === "registration" ? "registration" : "project"].push(norm);
+  });
+  return byKind;
+}
+
+function isLinkActiveNow(link) {
+  if (!link?.active) return false;
+  if (link.expires_at && new Date(link.expires_at) < new Date()) return false;
+  return true;
+}
+
+function getLinkStatus(link) {
+  if (!link?.active) return "Disabled";
+  if (link.expires_at && new Date(link.expires_at) < new Date()) return "Expired";
+  return "Active";
+}
+
+function CopyIcon({ size = 14 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
 }
 
 export default function Payments() {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [loading, setLoading] = useState(true);
+  const [refreshingAll, setRefreshingAll] = useState(false);
+  const [error, setError] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Clients cache for the create modal
-  const [clients, setClients] = useState([])
+  // Clients cache for the create drawer
+  const [clients, setClients] = useState([]);
 
   // Projects with links
-  const [rows, setRows] = useState([]) // [{ client, project, linksByKind }]
-  const [linksLoadingId, setLinksLoadingId] = useState(null)
+  const [rows, setRows] = useState([]); // [{ client, project, linksByKind }]
+  const [linksLoadingId, setLinksLoadingId] = useState(null);
 
-  // Project links modal
-  const [view, setView] = useState(null) // { client, project, linksByKind }
-  const modalTimer = useRef(null)
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterKind, setFilterKind] = useState("all"); // 'all' | 'active' | 'project_links' | 'registration_links'
 
-  // Link details modal (submissions)
-  const [linkDetails, setLinkDetails] = useState(null) // { link, submissions, loading }
+  // Project links slide-over drawer
+  const [view, setView] = useState(null); // { client, project, linksByKind }
 
-  // Create-link modal
-  const [createOpen, setCreateOpen] = useState(false)
-  const [createLoading, setCreateLoading] = useState(false)
-  const [createProjects, setCreateProjects] = useState([])
-  const [createProjectMeta, setCreateProjectMeta] = useState(null)
+  // Link details slide-over drawer (submissions & receipts)
+  const [linkDetails, setLinkDetails] = useState(null); // { link, submissions, loading }
+
+  // Create-link slide-over drawer
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createProjects, setCreateProjects] = useState([]);
+  const [createProjectMeta, setCreateProjectMeta] = useState(null);
   const [createForm, setCreateForm] = useState({
     clientId: "",
     projectId: "",
     kind: "project",
     amount: "",
     expires_at: "",
-  })
+  });
 
   // Toast
-  const toastTimer = useRef(null)
-  const [toast, setToast] = useState({ open: false, type: "success", message: "" })
-  const showToast = (message, type = "success") => {
-    setToast({ open: true, type, message })
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, open: false })), 3000)
-  }
+  const toastTimer = useRef(null);
+  const [toast, setToast] = useState({ open: false, type: "success", message: "" });
+  const showToast = useCallback((message, type = "success") => {
+    setToast({ open: true, type, message });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, open: false })), 3000);
+  }, []);
 
-  useEffect(() => {
-    ; (async () => {
-      try {
-        const me = await apiMe()
-        const role = (me.me?.role || me.user?.role || "").toLowerCase()
-        setIsAdmin(role === "admin")
+  const fetchAllPaymentsData = useCallback(async (isInitial = false) => {
+    if (isInitial) setLoading(true);
+    else setRefreshingAll(true);
+    setError("");
+    try {
+      const me = await apiMe();
+      const role = (me.me?.role || me.user?.role || "").toLowerCase();
+      const adminFlag = role === "admin";
+      setIsAdmin(adminFlag);
 
-        const cRes = await apiListClients()
-        const clientList = cRes.clients || []
-        setClients(clientList)
+      const cRes = await apiListClients();
+      const clientList = cRes.clients || [];
+      setClients(clientList);
 
-        const rowsAcc = []
-        for (const c of clientList) {
-          const pRes = await apiListClientProjects(c.id)
-          const projects = pRes.projects || []
-          for (const p of projects) {
-            const allowed = role === "admin" || p?.my_perms?.can_manage_payments
-            if (!allowed) continue
+      const projectLists = await Promise.all(
+        clientList.map(async (c) => {
+          try {
+            const pRes = await apiListClientProjects(c.id);
+            return { client: c, projects: pRes.projects || [] };
+          } catch {
+            return { client: c, projects: [] };
+          }
+        })
+      );
 
-            const linksRes = await apiListPaymentLinks(p.id)
-            const links = linksRes.links || []
-
-            const byKind = { project: [], registration: [] }
-            links.forEach((item) => {
-              const norm = {
-                id: item.id,
-                url: item.url || item.link,
-                token: item.token,
-                active: !!item.active,
-                kind: (item.payment_kind || item.kind || "project").toLowerCase(),
-                created_at: item.created_at,
-                expires_at: item.expires_at,
-                amount: item.amount ?? null,
-                status: item.status || null,
-              }
-              byKind[norm.kind === "registration" ? "registration" : "project"].push(norm)
-            })
-
-            rowsAcc.push({ client: c, project: p, linksByKind: byKind })
+      const authorizedTargets = [];
+      for (const { client, projects } of projectLists) {
+        for (const p of projects) {
+          const allowed = adminFlag || p?.my_perms?.can_manage_payments;
+          if (allowed) {
+            authorizedTargets.push({ client, project: p });
           }
         }
-        setRows(rowsAcc)
-      } catch (e) {
-        setError(e.message)
-      } finally {
-        setLoading(false)
       }
-    })()
-    return () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current)
-      if (modalTimer.current) clearTimeout(modalTimer.current)
+
+      const rowsAcc = await Promise.all(
+        authorizedTargets.map(async ({ client, project }) => {
+          try {
+            const linksRes = await apiListPaymentLinks(project.id);
+            return {
+              client,
+              project,
+              linksByKind: normalizeLinks(linksRes.links || []),
+            };
+          } catch {
+            return {
+              client,
+              project,
+              linksByKind: { project: [], registration: [] },
+            };
+          }
+        })
+      );
+
+      setRows(rowsAcc);
+      setView((prev) => {
+        if (!prev) return null;
+        const fresh = rowsAcc.find((r) => r.project.id === prev.project.id);
+        return fresh || prev;
+      });
+    } catch (e) {
+      setError(e.message || "Failed to load payments.");
+    } finally {
+      if (isInitial) setLoading(false);
+      else setRefreshingAll(false);
     }
-  }, [])
+  }, []);
+
+  useEffect(() => {
+    fetchAllPaymentsData(true);
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, [fetchAllPaymentsData]);
+
+  // Escape key closes topmost drawer
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      if (linkDetails) setLinkDetails(null);
+      else if (createOpen) setCreateOpen(false);
+      else if (view) setView(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [linkDetails, createOpen, view]);
+
+  const kpiStats = useMemo(() => {
+    let activeLinks = 0;
+    let projectLinks = 0;
+    let registrationLinks = 0;
+    rows.forEach((r) => {
+      const pLinks = r.linksByKind?.project || [];
+      const regLinks = r.linksByKind?.registration || [];
+      projectLinks += pLinks.length;
+      registrationLinks += regLinks.length;
+      activeLinks += [...pLinks, ...regLinks].filter(isLinkActiveNow).length;
+    });
+    return {
+      totalProjects: rows.length,
+      activeLinks,
+      projectLinks,
+      registrationLinks,
+    };
+  }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return rows.filter((r) => {
+      const allLinks = [...(r.linksByKind?.project || []), ...(r.linksByKind?.registration || [])];
+      if (filterKind === "active" && !allLinks.some(isLinkActiveNow)) return false;
+      if (filterKind === "project_links" && (r.linksByKind?.project || []).length === 0) return false;
+      if (filterKind === "registration_links" && (r.linksByKind?.registration || []).length === 0) return false;
+      if (!q) return true;
+      return (
+        String(r.client?.name || "").toLowerCase().includes(q) ||
+        String(r.client?.email || "").toLowerCase().includes(q) ||
+        String(r.client?.company || "").toLowerCase().includes(q) ||
+        String(r.project?.name || "").toLowerCase().includes(q) ||
+        String(r.project?.code || "").toLowerCase().includes(q) ||
+        allLinks.some((l) => String(l.id).includes(q))
+      );
+    });
+  }, [rows, searchQuery, filterKind]);
 
   const grouped = useMemo(() => {
-    const map = new Map()
-    for (const row of rows) {
-      const key = row.client.id
-      if (!map.has(key)) map.set(key, { client: row.client, projects: [] })
-      map.get(key).projects.push(row)
+    const map = new Map();
+    for (const row of filteredRows) {
+      const key = row.client.id;
+      if (!map.has(key)) map.set(key, { client: row.client, projects: [] });
+      map.get(key).projects.push(row);
     }
-    return Array.from(map.values())
-  }, [rows])
+    return Array.from(map.values());
+  }, [filteredRows]);
 
   async function refreshProjectLinks(targetRow) {
-    if (!targetRow) return
+    if (!targetRow) return;
     try {
-      setLinksLoadingId(targetRow.project.id)
-      const linksRes = await apiListPaymentLinks(targetRow.project.id)
-      const links = linksRes.links || []
-      const byKind = { project: [], registration: [] }
-      links.forEach((item) => {
-        const norm = {
-          id: item.id,
-          url: item.url || item.link,
-          token: item.token,
-          active: !!item.active,
-          kind: (item.payment_kind || item.kind || "project").toLowerCase(),
-          created_at: item.created_at,
-          expires_at: item.expires_at,
-          amount: item.amount ?? null,
-          status: item.status || null,
-        }
-        byKind[norm.kind === "registration" ? "registration" : "project"].push(norm)
-      })
+      setLinksLoadingId(targetRow.project.id);
+      const linksRes = await apiListPaymentLinks(targetRow.project.id);
+      const byKind = normalizeLinks(linksRes.links || []);
 
       setRows((prev) =>
         prev.map((r) =>
           r.project.id === targetRow.project.id ? { ...r, linksByKind: byKind } : r
         )
-      )
-      setView((prev) => (prev && prev.project.id === targetRow.project.id ? { ...prev, linksByKind: byKind } : prev))
+      );
+      setView((prev) =>
+        prev && prev.project.id === targetRow.project.id ? { ...prev, linksByKind: byKind } : prev
+      );
     } catch (e) {
-      showToast(e.message, "error")
+      showToast(e.message, "error");
     } finally {
-      setLinksLoadingId(null)
+      setLinksLoadingId(null);
     }
   }
 
   async function handleDownloadReceipt(id) {
     try {
-      const { blob, filename } = await downloadPaymentReceipt(id); // <-- use filename from API
+      const { blob, filename } = await downloadPaymentReceipt(id);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = filename || `payment-receipt-${id}`; // no hardcoded .pdf
+      a.download = filename || `payment-receipt-${id}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      alert(err.message);
+      showToast(err.message || "Failed to download receipt", "error");
     }
   }
-
-
 
   async function createLink(project, kind) {
-    // legacy quick-create (no modal)
     try {
-      await apiCreatePaymentLinkWithMeta(project.id, { kind, amount: null })
-      showToast("Payment link created", "success")
-      await refreshProjectLinks({ project })
+      await apiCreatePaymentLinkWithMeta(project.id, { kind, amount: null });
+      showToast("Payment link created", "success");
+      await refreshProjectLinks({ project });
     } catch (e) {
-      showToast(e.message, "error")
+      showToast(e.message, "error");
     }
   }
 
-  // Per-link enable/disable
   async function toggleOneLink(link, active) {
     try {
-      await apiUpdatePaymentLinkMeta(link.id, { active })
-      showToast(active ? "Link enabled" : "Link disabled", "success")
-      if (view) await refreshProjectLinks(view)
+      await apiUpdatePaymentLinkMeta(link.id, { active });
+      showToast(active ? "Link enabled" : "Link disabled", "success");
+      if (view) await refreshProjectLinks(view);
     } catch (e) {
-      showToast(e.message, "error")
+      showToast(e.message, "error");
     }
   }
 
-  // Per-link save amount/expiry
   async function saveMeta(link, edited) {
     try {
-      const patch = {}
-      if (edited.amount !== undefined) patch.amount = Number(edited.amount) || 0
+      const patch = {};
+      if (edited.amount !== undefined) patch.amount = Number(edited.amount) || 0;
       if (edited.expires_at !== undefined && edited.expires_at) {
-        patch.expires_at = new Date(edited.expires_at).toISOString()
+        patch.expires_at = new Date(edited.expires_at).toISOString();
       }
-      await apiUpdatePaymentLinkMeta(link.id, patch)
-      showToast("Link updated", "success")
-      if (view) await refreshProjectLinks(view)
+      await apiUpdatePaymentLinkMeta(link.id, patch);
+      showToast("Link updated", "success");
+      if (view) await refreshProjectLinks(view);
     } catch (e) {
-      showToast(e.message, "error")
+      showToast(e.message, "error");
     }
   }
 
-  // Regenerate (reactivate + new expiry)
   async function regenerate(link) {
     try {
-      await apiRegeneratePaymentLink(link.id)
-      showToast("Link regenerated", "success")
-      if (view) await refreshProjectLinks(view)
+      await apiRegeneratePaymentLink(link.id);
+      showToast("Link regenerated", "success");
+      if (view) await refreshProjectLinks(view);
     } catch (e) {
-      showToast(e.message, "error")
+      showToast(e.message, "error");
     }
   }
 
-  // Open link details (submissions & files)
   async function openLinkDetails(link) {
     try {
-      setLinkDetails({ link, submissions: [], loading: true })
-      const data = await apiListLinkSubmissions(link.id)
-      setLinkDetails({ link, submissions: data.submissions || [], loading: false })
+      setLinkDetails({ link, submissions: [], loading: true });
+      const data = await apiListLinkSubmissions(link.id);
+      setLinkDetails({ link, submissions: data.submissions || [], loading: false });
     } catch (e) {
-      setLinkDetails({ link, submissions: [], loading: false })
-      showToast(e.message, "error")
+      setLinkDetails({ link, submissions: [], loading: false });
+      showToast(e.message, "error");
     }
   }
 
-  // ---------- Create-link modal helpers ----------
   async function loadCreateProjects(clientId) {
-    setCreateProjects([])
-    setCreateProjectMeta(null)
-    setCreateForm((f) => ({ ...f, projectId: "" }))
-    if (!clientId) return
+    setCreateProjects([]);
+    setCreateProjectMeta(null);
+    setCreateForm((f) => ({ ...f, projectId: "" }));
+    if (!clientId) return;
     try {
-      const res = await apiListClientProjects(clientId)
+      const res = await apiListClientProjects(clientId);
       const projects = (res.projects || []).filter(
         (p) => isAdmin || p?.my_perms?.can_manage_payments
-      )
-      setCreateProjects(projects)
+      );
+      setCreateProjects(projects);
     } catch (e) {
-      showToast(e.message, "error")
+      showToast(e.message, "error");
     }
   }
 
   function onChangeCreate(field, value) {
-    setCreateForm((f) => ({ ...f, [field]: value }))
+    setCreateForm((f) => ({ ...f, [field]: value }));
     if (field === "clientId") {
-      loadCreateProjects(Number(value))
+      loadCreateProjects(Number(value));
     }
     if (field === "projectId") {
-      const p = createProjects.find((x) => String(x.id) === String(value))
+      const p = createProjects.find((x) => String(x.id) === String(value));
       if (p) {
         setCreateProjectMeta({
           projectName: p.name,
           projectCode: p.code,
           projectType: p.type === "other" && p.other_type ? `other / ${p.other_type}` : p.type,
-        })
+        });
       } else {
-        setCreateProjectMeta(null)
+        setCreateProjectMeta(null);
       }
     }
   }
 
   async function submitCreate() {
-    const { clientId, projectId, kind, amount, expires_at } = createForm
-    if (!clientId || !projectId || !kind) return showToast("Please select client, project and kind", "error")
-    const amt = Number(amount)
-    if (!(amt > 0)) return showToast("Enter a valid amount (> 0)", "error")
-    if (!expires_at) return showToast("Please select an expiry", "error")
+    const { clientId, projectId, kind, amount, expires_at } = createForm;
+    if (!clientId || !projectId || !kind) {
+      return showToast("Please select client, project and kind", "error");
+    }
+    const amt = Number(amount);
+    if (!(amt > 0)) return showToast("Enter a valid amount (> 0)", "error");
+    if (!expires_at) return showToast("Please select an expiry date and time", "error");
 
     try {
-      setCreateLoading(true)
-      const createRes = await apiCreatePaymentLinkWithMeta(Number(projectId), { kind, amount: amt })
-      const token = createRes?.token
-
-      await refreshProjectLinks({ project: { id: Number(projectId) } })
+      setCreateLoading(true);
+      const createRes = await apiCreatePaymentLinkWithMeta(Number(projectId), { kind, amount: amt });
+      const token = createRes?.token;
 
       if (token && expires_at) {
-        const linksRes = await apiListPaymentLinks(Number(projectId))
-        const found = (linksRes.links || []).find((l) => l.token === token)
+        const linksRes = await apiListPaymentLinks(Number(projectId));
+        const found = (linksRes.links || []).find((l) => l.token === token);
         if (found) {
-          await apiUpdatePaymentLinkMeta(found.id, { expires_at: new Date(expires_at).toISOString() })
+          await apiUpdatePaymentLinkMeta(found.id, { expires_at: new Date(expires_at).toISOString() });
         }
       }
 
-      await refreshProjectLinks({ project: { id: Number(projectId) } })
-      setCreateOpen(false)
-      setCreateForm({ clientId: "", projectId: "", kind: "project", amount: "", expires_at: "" })
-      setCreateProjects([])
-      setCreateProjectMeta(null)
-      showToast("Payment link created", "success")
+      await refreshProjectLinks({ project: { id: Number(projectId) } });
+      setCreateOpen(false);
+      setCreateForm({ clientId: "", projectId: "", kind: "project", amount: "", expires_at: "" });
+      setCreateProjects([]);
+      setCreateProjectMeta(null);
+      showToast("Payment link created", "success");
     } catch (e) {
-      showToast(e.message, "error")
+      showToast(e.message, "error");
     } finally {
-      setCreateLoading(false)
+      setCreateLoading(false);
     }
   }
 
-  if (loading) return <div className="loader_container">
-    <p className="loader_spinner"></p>
-    <p>Loading Payments…</p>
-  </div>
-  if (error) return <div className="center error">{error}</div>
-
-  if (!rows.length) {
+  if (loading) {
     return (
-      <div>
-        <Topbar title="Payments">
-          {isAdmin && (
-            <button className="primary" onClick={() => setCreateOpen(true)}>New payment link</button>
-          )}
-        </Topbar>
-        <div className="card">
-          <div className="center muted">No payment links you can view. (Either you don’t have access or no links exist yet.)</div>
+      <div className="pay-page">
+        <div className="loader_container">
+          <p className="loader_spinner"></p>
+          <p>Loading Payments…</p>
         </div>
-
-        {createOpen && (
-          <CreateLinkModal
-            open
-            onClose={() => setCreateOpen(false)}
-            clients={clients}
-            projects={createProjects}
-            form={createForm}
-            onChange={onChangeCreate}
-            projectMeta={createProjectMeta}
-            submitting={createLoading}
-            onSubmit={submitCreate}
-          />
-        )}
       </div>
-    )
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="pay-page">
+        <div className="pay-empty-card">
+          <p className="pay-error-text">{error}</p>
+          <button type="button" className="pay-btn-primary" onClick={() => fetchAllPaymentsData(true)}>
+            <RefreshIcon size={14} />
+            <span>Retry</span>
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <Topbar title="Payments">
-        {isAdmin && (
-          <button className="primary" onClick={() => setCreateOpen(true)}>New payment link</button>
-        )}
-      </Topbar>
-
-      {grouped.map(({ client, projects }) => (
-        <div className="card" key={client.id} style={{ marginBottom: 16 }}>
-          <div className="table-wrap-cand">
-            <div className="table-title">
-              <strong>Client:</strong> {client.name} <span className="muted small">({client.email})</span>
-            </div>
-
-            <table className="table-cand">
-              <thead>
-                <tr>
-                  <th>Project</th>
-                  <th>Code</th>
-                  <th>Type</th>
-                  <th>Links</th>
-                  <th className="right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((row) => (
-                  <tr key={row.project.id}>
-                    <td>{row.project.name}</td>
-                    <td className="small muted">{row.project.code}</td>
-                    <td>
-                      {row.project.type}
-                      {row.project.type === "other" && row.project.other_type ? ` / ${row.project.other_type}` : ""}
-                    </td>
-                    <td>
-                      <div className="small">
-                        <strong>Project:</strong> {row.linksByKind.project.length}&nbsp;|&nbsp;
-                        <strong>Registration:</strong> {row.linksByKind.registration.length}
-                      </div>
-                    </td>
-                    <td className="row-actions">
-                      <button
-                        className="buttoneye"
-                        title="View links"
-                        aria-label="View links"
-                        onClick={() => setView(row)}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 5c-7.633 0-11 7-11 7s3.367 7 11 7 11-7 11-7-3.367-7-11-7zm0 12a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z" />
-                        </svg>
-                      </button>
-                      <button
-                        className="button ghost"
-                        title="Refresh links"
-                        onClick={() => refreshProjectLinks(row)}
-                        disabled={linksLoadingId === row.project.id}
-                      >
-                        {linksLoadingId === row.project.id ? (
-                          <svg
-                            className="rotate"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="23 4 23 10 17 10"></polyline>
-                            <polyline points="1 20 1 14 7 14"></polyline>
-                            <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 5.36A9 9 0 0020.49 15"></path>
-                          </svg>
-                        ) : (
-                          <svg
-                            className=""
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="23 4 23 10 17 10"></polyline>
-                            <polyline points="1 20 1 14 7 14"></polyline>
-                            <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 5.36A9 9 0 0020.49 15"></path>
-                          </svg>
-                        )}
-
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
+    <div className="pay-page">
+      {/* Editorial Header */}
+      <div className="pay-header">
+        <div>
+          <div className="pay-breadcrumb">
+            <span>Financial Operations</span>
+            <span className="pay-bc-sep">/</span>
+            <span className="pay-bc-current">Payments</span>
           </div>
+          <h1 className="pay-title">Payments &amp; Links</h1>
+          <p className="pay-subtitle">
+            Manage project and registration payment links, expiry windows, and verified receipts.
+          </p>
         </div>
-      ))}
 
-      {/* Project's Links Modal */}
-      {view && (
-        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)" }} tabIndex={-1}>
-          <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">{view.client.name} — {view.project.name}</h5>
-                <button type="button" className="btn-close" onClick={() => setView(null)} aria-label="Close" />
-              </div>
+        <div className="pay-header-actions">
+          <button
+            type="button"
+            className="pay-btn-subtle"
+            onClick={() => fetchAllPaymentsData(false)}
+            disabled={refreshingAll}
+            title="Refresh all payment links"
+          >
+            <RefreshIcon size={14} className={refreshingAll ? "rotate" : ""} />
+            <span>{refreshingAll ? "Refreshing…" : "Refresh"}</span>
+          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              className="pay-btn-primary"
+              onClick={() => setCreateOpen(true)}
+            >
+              <PlusIcon size={14} />
+              <span>New Payment Link</span>
+            </button>
+          )}
+        </div>
+      </div>
 
-              <div className="modal-body">
-                {(isAdmin || view.project?.my_perms?.can_manage_payments) ? (
-                  <>
-                    <div className="payment_row">
-                      <div className="payment_buttons" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <button className="primary" onClick={() => createLink(view.project, "project")}>Create Project Link</button>
-                        <button className="primary" onClick={() => createLink(view.project, "registration")}>Create Registration Link</button>
-                        <button className="secondary" onClick={() => apiTogglePaymentLink(view.project.id, true).then(() => refreshProjectLinks(view))}>Enable all</button>
-                        <button className="secondary" onClick={() => apiTogglePaymentLink(view.project.id, false).then(() => refreshProjectLinks(view))}>Disable all</button>
+      {/* KPI Summary Strip */}
+      <div className="pay-kpi-strip">
+        <button
+          type="button"
+          className={`pay-kpi-card ${filterKind === "all" ? "active" : ""}`}
+          onClick={() => setFilterKind("all")}
+        >
+          <div className="pay-kpi-top">
+            <span className="pay-kpi-label">Managed Projects</span>
+            <span className="pay-kpi-icon">
+              <FolderIcon size={14} />
+            </span>
+          </div>
+          <strong className="pay-kpi-val tabular-nums">{kpiStats.totalProjects}</strong>
+          <span className="pay-kpi-hint">Across {grouped.length || clients.length} clients</span>
+        </button>
+
+        <button
+          type="button"
+          className={`pay-kpi-card ${filterKind === "active" ? "active" : ""}`}
+          onClick={() => setFilterKind((v) => (v === "active" ? "all" : "active"))}
+        >
+          <div className="pay-kpi-top">
+            <span className="pay-kpi-label">Active Links</span>
+            <span className="pay-kpi-icon pos">
+              <CheckIcon size={14} />
+            </span>
+          </div>
+          <strong className="pay-kpi-val pay-val-pos tabular-nums">{kpiStats.activeLinks}</strong>
+          <span className="pay-kpi-hint">Open &amp; not expired</span>
+        </button>
+
+        <button
+          type="button"
+          className={`pay-kpi-card ${filterKind === "project_links" ? "active" : ""}`}
+          onClick={() => setFilterKind((v) => (v === "project_links" ? "all" : "project_links"))}
+        >
+          <div className="pay-kpi-top">
+            <span className="pay-kpi-label">Project Links</span>
+            <span className="pay-kpi-icon accent">
+              <DollarIcon size={14} />
+            </span>
+          </div>
+          <strong className="pay-kpi-val pay-val-accent tabular-nums">{kpiStats.projectLinks}</strong>
+          <span className="pay-kpi-hint">Milestone &amp; fee URLs</span>
+        </button>
+
+        <button
+          type="button"
+          className={`pay-kpi-card ${filterKind === "registration_links" ? "active" : ""}`}
+          onClick={() => setFilterKind((v) => (v === "registration_links" ? "all" : "registration_links"))}
+        >
+          <div className="pay-kpi-top">
+            <span className="pay-kpi-label">Registration Links</span>
+            <span className="pay-kpi-icon warn">
+              <LinkIcon size={14} />
+            </span>
+          </div>
+          <strong className="pay-kpi-val pay-val-warn tabular-nums">{kpiStats.registrationLinks}</strong>
+          <span className="pay-kpi-hint">Onboarding &amp; token URLs</span>
+        </button>
+      </div>
+
+      {/* Filter & Search Bar */}
+      <div className="pay-filter-surface">
+        <div className="pay-search-wrap">
+          <SearchIcon size={15} className="pay-search-icon" />
+          <input
+            type="text"
+            className="pay-search-input"
+            placeholder="Search client name, email, project, code, or link ID..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              className="pay-search-clear"
+              onClick={() => setSearchQuery("")}
+              aria-label="Clear search"
+            >
+              <XIcon size={13} />
+            </button>
+          )}
+        </div>
+
+        <div className="pay-filter-pills">
+          {[
+            { id: "all", label: "All Projects" },
+            { id: "active", label: "Active Links" },
+            { id: "project_links", label: "Project" },
+            { id: "registration_links", label: "Registration" },
+          ].map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className={`pay-pill-filter ${filterKind === f.id ? "active" : ""}`}
+              onClick={() => setFilterKind(f.id)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Grouped Client Portfolio Payment Cards */}
+      {grouped.length === 0 ? (
+        <div className="pay-empty-card">
+          <div className="pay-empty-icon">
+            <DollarIcon size={22} />
+          </div>
+          <h3>No matching payment records</h3>
+          <p>
+            {rows.length === 0
+              ? "No payment links are accessible with your current permissions yet."
+              : "Try clearing your search or selecting another filter."}
+          </p>
+          {(searchQuery || filterKind !== "all") && (
+            <button
+              type="button"
+              className="pay-btn-subtle"
+              onClick={() => {
+                setSearchQuery("");
+                setFilterKind("all");
+              }}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="pay-groups-stack">
+          {grouped.map(({ client, projects }) => {
+            const clientActiveCount = projects.reduce((sum, r) => {
+              const all = [...r.linksByKind.project, ...r.linksByKind.registration];
+              return sum + all.filter(isLinkActiveNow).length;
+            }, 0);
+
+            return (
+              <section className="pay-client-card" key={client.id}>
+                <div className="pay-client-card-head">
+                  <div className="pay-client-identity">
+                    <div className="pay-client-avatar">{getInitials(client.name)}</div>
+                    <div className="pay-client-meta">
+                      <div className="pay-client-title-row">
+                        <strong>{client.name}</strong>
+                        {client.company && <span className="pay-company-tag">{client.company}</span>}
                       </div>
+                      <span className="pay-client-email">{client.email}</span>
                     </div>
-                    <div className="muted small" style={{ marginTop: 6 }}>
-                      Set <b>Amount</b> & <b>Expiry</b> per link. Use <b>Regenerate</b> to reactivate an expired/disabled link.
-                    </div>
-                  </>
-                ) : (
-                  <div className="muted">You don’t have permission to modify links for this project.</div>
-                )}
-
-                <hr />
-
-                {/* Two columns: project & registration links */}
-                <div className="links-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                  {/* Project Links */}
-                  <div>
-                    <h5 style={{ margin: "0 0 8px" }}>Project Links</h5>
-                    <LinkList
-                      kindLabel="project"
-                      items={view.linksByKind.project}
-                      canEdit={isAdmin || view.project?.my_perms?.can_manage_payments}
-                      onCopy={(url) => { navigator.clipboard.writeText(url); showToast("Link copied") }}
-                      onDelete={async (id) => {
-                        if (!window.confirm("Delete this link?")) return
-                        try { await apiDeletePaymentLink(id); await refreshProjectLinks(view); showToast("Link deleted") }
-                        catch (e) { showToast(e.message, "error") }
-                      }}
-                      onToggle={toggleOneLink}
-                      onSaveMeta={saveMeta}
-                      onRegenerate={regenerate}
-                      onOpenDetails={openLinkDetails}
-                    />
                   </div>
-
-                  {/* Registration Links */}
-                  <div>
-                    <h5 style={{ margin: "0 0 8px" }}>Registration Links</h5>
-                    <LinkList
-                      kindLabel="registration"
-                      items={view.linksByKind.registration}
-                      canEdit={isAdmin || view.project?.my_perms?.can_manage_payments}
-                      onCopy={(url) => { navigator.clipboard.writeText(url); showToast("Link copied") }}
-                      onDelete={async (id) => {
-                        if (!window.confirm("Delete this link?")) return
-                        try { await apiDeletePaymentLink(id); await refreshProjectLinks(view); showToast("Link deleted") }
-                        catch (e) { showToast(e.message, "error") }
-                      }}
-                      onToggle={toggleOneLink}
-                      onSaveMeta={saveMeta}
-                      onRegenerate={regenerate}
-                      onOpenDetails={openLinkDetails}
-                    />
+                  <div className="pay-client-head-badges">
+                    <span className="pay-count-pill tabular-nums">
+                      {projects.length} {projects.length === 1 ? "project" : "projects"}
+                    </span>
+                    <span className={`pay-count-pill tabular-nums ${clientActiveCount > 0 ? "pos" : ""}`}>
+                      {clientActiveCount} active {clientActiveCount === 1 ? "link" : "links"}
+                    </span>
                   </div>
                 </div>
-              </div>
 
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setView(null)}>Close</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                <div className="pay-table-wrap">
+                  <table className="pay-table">
+                    <thead>
+                      <tr>
+                        <th>Project</th>
+                        <th>Code</th>
+                        <th>Type</th>
+                        <th>Payment Links</th>
+                        <th className="right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {projects.map((row) => {
+                        const pLen = row.linksByKind.project.length;
+                        const rLen = row.linksByKind.registration.length;
+                        const activeCount = [...row.linksByKind.project, ...row.linksByKind.registration].filter(isLinkActiveNow).length;
+                        const isSelected = view?.project?.id === row.project.id;
 
-      {/* Link Details (submissions) */}
-      {linkDetails && (
-        <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)" }} tabIndex={-1}>
-          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Link Details & Submissions</h5>
-                <button type="button" className="btn-close" onClick={() => setLinkDetails(null)} aria-label="Close" />
-              </div>
-              <div className="modal-body">
-                <div className="small muted" style={{ marginBottom: 8 }}>
-                  <b>URL:</b> {maskUrl(linkDetails.link.url)} &nbsp;|&nbsp;
-                  <b>Status:</b>{" "}
-                  {!linkDetails.link.active ? "Disabled" :
-                    (linkDetails.link.expires_at && new Date(linkDetails.link.expires_at) < new Date()) ? "Expired" : "Active"}
-                </div>
-
-                {linkDetails.loading ? (
-                  <div className="loader_container">
-                    <p className="loader_spinner"></p>
-                    <p>Loading Submissions…</p>
-                  </div>
-                ) : !linkDetails.submissions.length ? (
-                  <div className="muted">No submissions yet.</div>
-                ) : (
-                  <div className="table-wrap-cand">
-                    <table className="table-cand">
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>Amount</th>
-                          <th>Status</th>
-                          <th>Files</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {linkDetails.submissions.map((s) => {
-                          const files = s.files || s.receipts || (s.receipt_url ? [s.receipt_url] : [])
-                          return (
-                            <tr key={s.id || s._id}>
-                              <td>{new Date(s.created_at || s.createdAt).toLocaleString()}</td>
-                              <td>Rs. {Number(s.amount || 0).toLocaleString()}</td>
-                              <td>
-                                <span className={`badge ${String(s.status || "pending").toLowerCase()}`}>
-                                  {String(s.status || "pending")}
+                        return (
+                          <tr
+                            key={row.project.id}
+                            className={`pay-row-clickable ${isSelected ? "is-selected" : ""}`}
+                            onClick={() => setView(row)}
+                          >
+                            <td>
+                              <div className="pay-proj-cell">
+                                <span className="pay-proj-name">{row.project.name}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <code className="pay-code-pill tabular-nums">{row.project.code}</code>
+                            </td>
+                            <td>
+                              <span className="pay-type-pill">
+                                {row.project.type}
+                                {row.project.type === "other" && row.project.other_type ? ` / ${row.project.other_type}` : ""}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="pay-links-summary">
+                                <span className="pay-mini-badge tabular-nums">
+                                  Project: <strong>{pLen}</strong>
                                 </span>
-                              </td>
-                              <td>
-                                {!files?.length ? (
-                                  <span className="small muted">—</span>
-                                ) : (
-                                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                    {/* Keep public link(s) to open/preview if you like */}
-                                    {files.map((url, idx) => (
-                                      <a
-                                        key={idx}
-                                        href={url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        download
-                                        className="button ghost"
-                                        title="Open file"
-                                      >
-                                        Open {idx + 1}
-                                      </a>
-                                    ))}
-
-                                    {/* Secure, admin-only download (streams via /api/admin/payment-registrations/:id/receipt) */}
-                                    {isAdmin && (
-                                      <button
-                                        className="button ghost"
-                                        onClick={() => handleDownloadReceipt(s.id)}
-                                        title="Admin download"
-                                      >
-                                        Admin download
-                                      </button>
-                                    )}
-                                  </div>
+                                <span className="pay-mini-badge tabular-nums">
+                                  Registration: <strong>{rLen}</strong>
+                                </span>
+                                {activeCount > 0 && (
+                                  <span className="pay-mini-badge active tabular-nums">
+                                    {activeCount} active
+                                  </span>
                                 )}
-                              </td>
-
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setLinkDetails(null)}>Close</button>
-              </div>
-            </div>
-          </div>
+                              </div>
+                            </td>
+                            <td onClick={(e) => e.stopPropagation()}>
+                              <div className="pay-row-actions">
+                                <button
+                                  type="button"
+                                  className="pay-btn-inspect"
+                                  onClick={() => setView(row)}
+                                >
+                                  <span>Manage Links</span>
+                                  <ChevronRightIcon size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="pay-icon-btn"
+                                  title="Refresh links"
+                                  aria-label="Refresh links"
+                                  onClick={() => refreshProjectLinks(row)}
+                                  disabled={linksLoadingId === row.project.id}
+                                >
+                                  <RefreshIcon size={14} className={linksLoadingId === row.project.id ? "rotate" : ""} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
 
-      {/* Create-link modal */}
+      {/* ====================================================================
+          RIGHT-SIDE SLIDE-OVER DRAWER 1: Project Payment Links Inspector
+         ==================================================================== */}
+      {view && (
+        <div className="pay-drawer-backdrop" onClick={() => setView(null)}>
+          <aside
+            className="pay-drawer-panel"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Manage Payment Links"
+          >
+            <header className="pay-drawer-header">
+              <div className="pay-drawer-header-top">
+                <div className="pay-drawer-identity">
+                  <div className="pay-drawer-icon">
+                    <DollarIcon size={18} />
+                  </div>
+                  <div>
+                    <div className="pay-drawer-title-line">
+                      <h3>{view.project.name}</h3>
+                      <code className="pay-code-pill tabular-nums">{view.project.code}</code>
+                    </div>
+                    <div className="pay-drawer-subtitle">
+                      <span><BuildingIcon size={12} /> {view.client.name}</span>
+                      <span>&bull;</span>
+                      <span>{view.client.email}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="pay-drawer-close"
+                  onClick={() => setView(null)}
+                  aria-label="Close drawer"
+                >
+                  <XIcon size={18} />
+                </button>
+              </div>
+
+              <div className="pay-drawer-metrics-strip">
+                <div className="pay-metric-cell">
+                  <span>Total Links</span>
+                  <strong className="tabular-nums">
+                    {view.linksByKind.project.length + view.linksByKind.registration.length}
+                  </strong>
+                </div>
+                <div className="pay-metric-cell">
+                  <span>Active Now</span>
+                  <strong className="pay-val-pos tabular-nums">
+                    {[...view.linksByKind.project, ...view.linksByKind.registration].filter(isLinkActiveNow).length}
+                  </strong>
+                </div>
+                <div className="pay-metric-cell">
+                  <span>Project Links</span>
+                  <strong className="tabular-nums">{view.linksByKind.project.length}</strong>
+                </div>
+                <div className="pay-metric-cell">
+                  <span>Registration</span>
+                  <strong className="tabular-nums">{view.linksByKind.registration.length}</strong>
+                </div>
+              </div>
+
+              {(isAdmin || view.project?.my_perms?.can_manage_payments) ? (
+                <div className="pay-drawer-toolbar">
+                  <button
+                    type="button"
+                    className="pay-btn-primary pay-btn-sm"
+                    onClick={() => createLink(view.project, "project")}
+                  >
+                    <PlusIcon size={13} />
+                    <span>Project Link</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="pay-btn-primary pay-btn-sm"
+                    onClick={() => createLink(view.project, "registration")}
+                  >
+                    <PlusIcon size={13} />
+                    <span>Registration Link</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="pay-btn-subtle pay-btn-sm"
+                    onClick={() =>
+                      apiTogglePaymentLink(view.project.id, true).then(() => {
+                        showToast("All links enabled");
+                        refreshProjectLinks(view);
+                      })
+                    }
+                  >
+                    Enable All
+                  </button>
+                  <button
+                    type="button"
+                    className="pay-btn-subtle pay-btn-sm"
+                    onClick={() =>
+                      apiTogglePaymentLink(view.project.id, false).then(() => {
+                        showToast("All links disabled");
+                        refreshProjectLinks(view);
+                      })
+                    }
+                  >
+                    Disable All
+                  </button>
+                </div>
+              ) : (
+                <div className="pay-drawer-readonly-note">
+                  View-only mode: you do not have permission to modify payment links for this project.
+                </div>
+              )}
+            </header>
+
+            <div className="pay-drawer-body pay-drawer-body-split">
+              <div className="pay-drawer-col">
+                <div className="pay-col-heading">
+                  <span>Project Links</span>
+                  <span className="pay-count-pill tabular-nums">{view.linksByKind.project.length}</span>
+                </div>
+                <LinkList
+                  kindLabel="project"
+                  items={view.linksByKind.project}
+                  canEdit={isAdmin || view.project?.my_perms?.can_manage_payments}
+                  onCopy={(url) => {
+                    navigator.clipboard.writeText(url);
+                    showToast("Payment URL copied");
+                  }}
+                  onDelete={async (id) => {
+                    if (!window.confirm("Delete this payment link?")) return;
+                    try {
+                      await apiDeletePaymentLink(id);
+                      await refreshProjectLinks(view);
+                      showToast("Link deleted");
+                    } catch (e) {
+                      showToast(e.message, "error");
+                    }
+                  }}
+                  onToggle={toggleOneLink}
+                  onSaveMeta={saveMeta}
+                  onRegenerate={regenerate}
+                  onOpenDetails={openLinkDetails}
+                />
+              </div>
+
+              <div className="pay-drawer-col">
+                <div className="pay-col-heading">
+                  <span>Registration Links</span>
+                  <span className="pay-count-pill tabular-nums">{view.linksByKind.registration.length}</span>
+                </div>
+                <LinkList
+                  kindLabel="registration"
+                  items={view.linksByKind.registration}
+                  canEdit={isAdmin || view.project?.my_perms?.can_manage_payments}
+                  onCopy={(url) => {
+                    navigator.clipboard.writeText(url);
+                    showToast("Registration URL copied");
+                  }}
+                  onDelete={async (id) => {
+                    if (!window.confirm("Delete this registration link?")) return;
+                    try {
+                      await apiDeletePaymentLink(id);
+                      await refreshProjectLinks(view);
+                      showToast("Link deleted");
+                    } catch (e) {
+                      showToast(e.message, "error");
+                    }
+                  }}
+                  onToggle={toggleOneLink}
+                  onSaveMeta={saveMeta}
+                  onRegenerate={regenerate}
+                  onOpenDetails={openLinkDetails}
+                />
+              </div>
+            </div>
+
+            <footer className="pay-drawer-footer">
+              <span className="pay-footer-hint">
+                Set amount and expiry per link, or click the eye icon to inspect receipts.
+              </span>
+              <div className="pay-footer-btns">
+                <button
+                  type="button"
+                  className="pay-btn-subtle"
+                  onClick={() => refreshProjectLinks(view)}
+                  disabled={linksLoadingId === view.project.id}
+                >
+                  <RefreshIcon size={13} className={linksLoadingId === view.project.id ? "rotate" : ""} />
+                  <span>Refresh</span>
+                </button>
+                <button type="button" className="pay-btn-primary" onClick={() => setView(null)}>
+                  Done
+                </button>
+              </div>
+            </footer>
+          </aside>
+        </div>
+      )}
+
+      {/* ====================================================================
+          RIGHT-SIDE SLIDE-OVER DRAWER 2: Link Submissions & Receipts
+         ==================================================================== */}
+      {linkDetails && (
+        <div className="pay-drawer-backdrop pay-drawer-backdrop-top" onClick={() => setLinkDetails(null)}>
+          <aside
+            className="pay-drawer-panel pay-drawer-panel-md"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Link Submissions & Receipts"
+          >
+            <header className="pay-drawer-header">
+              <div className="pay-drawer-header-top">
+                <div className="pay-drawer-identity">
+                  <div className="pay-drawer-icon">
+                    <EyeIcon size={18} />
+                  </div>
+                  <div>
+                    <div className="pay-drawer-title-line">
+                      <h3>Link #{linkDetails.link.id} Submissions</h3>
+                      <span className={`pay-status-badge ${getLinkStatus(linkDetails.link).toLowerCase()}`}>
+                        {getLinkStatus(linkDetails.link)}
+                      </span>
+                    </div>
+                    <div className="pay-drawer-subtitle">
+                      <code className="pay-code-pill">{maskUrl(linkDetails.link.url)}</code>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="pay-drawer-close"
+                  onClick={() => setLinkDetails(null)}
+                  aria-label="Close submissions drawer"
+                >
+                  <XIcon size={18} />
+                </button>
+              </div>
+            </header>
+
+            <div className="pay-drawer-body pay-drawer-body-single">
+              {linkDetails.loading ? (
+                <div className="loader_container">
+                  <p className="loader_spinner"></p>
+                  <p>Loading Submissions…</p>
+                </div>
+              ) : !linkDetails.submissions.length ? (
+                <div className="pay-empty-card">
+                  <div className="pay-empty-icon">
+                    <ClockIcon size={20} />
+                  </div>
+                  <h3>No submissions yet</h3>
+                  <p>Client payment receipts submitted through this link will appear here.</p>
+                </div>
+              ) : (
+                <div className="pay-submissions-list">
+                  {linkDetails.submissions.map((s) => {
+                    const files = s.files || s.receipts || (s.receipt_url ? [s.receipt_url] : []);
+                    const statusKey = String(s.status || "pending").toLowerCase();
+                    return (
+                      <div key={s.id || s._id} className="pay-submission-card">
+                        <div className="pay-submission-top">
+                          <div>
+                            <div className="pay-submission-amt tabular-nums">
+                              &#8377;{Number(s.amount || 0).toLocaleString()}
+                            </div>
+                            <div className="pay-submission-date">
+                              {new Date(s.created_at || s.createdAt).toLocaleString()}
+                            </div>
+                          </div>
+                          <span className={`pay-status-badge ${statusKey}`}>{statusKey}</span>
+                        </div>
+
+                        <div className="pay-submission-files">
+                          {!files?.length ? (
+                            <span className="pay-muted-sm">No receipt files attached</span>
+                          ) : (
+                            <>
+                              {files.map((url, idx) => (
+                                <a
+                                  key={idx}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="pay-btn-subtle pay-btn-xs"
+                                >
+                                  <EyeIcon size={12} />
+                                  <span>View File {idx + 1}</span>
+                                </a>
+                              ))}
+                              {isAdmin && (
+                                <button
+                                  type="button"
+                                  className="pay-btn-primary pay-btn-xs"
+                                  onClick={() => handleDownloadReceipt(s.id)}
+                                >
+                                  <DownloadIcon size={12} />
+                                  <span>Admin Download</span>
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <footer className="pay-drawer-footer">
+              <span className="pay-footer-hint tabular-nums">
+                {linkDetails.submissions.length} {linkDetails.submissions.length === 1 ? "submission" : "submissions"}
+              </span>
+              <button type="button" className="pay-btn-primary" onClick={() => setLinkDetails(null)}>
+                Close
+              </button>
+            </footer>
+          </aside>
+        </div>
+      )}
+
+      {/* ====================================================================
+          RIGHT-SIDE SLIDE-OVER DRAWER 3: Create New Payment Link
+         ==================================================================== */}
       {createOpen && (
-        <CreateLinkModal
+        <CreateLinkDrawer
           open
           onClose={() => setCreateOpen(false)}
           clients={clients}
@@ -671,29 +1106,33 @@ export default function Payments() {
         />
       )}
 
-      <div className={`toastx ${toast.type} ${toast.open ? 'show' : ''}`} role="status" aria-live="polite">
+      {/* Floating Toast */}
+      <div className={`toastx ${toast.type} ${toast.open ? "show" : ""}`} role="status" aria-live="polite">
         <div className="toastx-icon">
-          {toast.type === 'success' ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
+          {toast.type === "success" ? (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
           ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
           )}
         </div>
         <div className="toastx-body">
-          <div className="toastx-title">{toast.type === 'success' ? 'Success' : 'Error'}</div>
+          <div className="toastx-title">{toast.type === "success" ? "Success" : "Error"}</div>
           <div className="toastx-msg">{toast.message}</div>
         </div>
-        <button className="toastx-close" onClick={() => setToast((t) => ({ ...t, open: false }))} aria-label="Close">×</button>
+        <button className="toastx-close" onClick={() => setToast((t) => ({ ...t, open: false }))} aria-label="Close">
+          &times;
+        </button>
       </div>
-
-      {/* Toast */}
-
     </div>
-  )
+  );
 }
 
-/** Create-link modal component */
-function CreateLinkModal({
+/** Right-side slide-over drawer to create a new payment link */
+function CreateLinkDrawer({
   open,
   onClose,
   clients,
@@ -704,126 +1143,143 @@ function CreateLinkModal({
   submitting,
   onSubmit,
 }) {
-  if (!open) return null
+  if (!open) return null;
   return (
-    <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)" }} tabIndex={-1}>
-      <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">Create Payment Link</h5>
-            <button type="button" className="btn-close" onClick={onClose} aria-label="Close" />
+    <div className="pay-drawer-backdrop" onClick={onClose}>
+      <aside
+        className="pay-drawer-panel pay-drawer-panel-sm"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label="Create Payment Link"
+      >
+        <header className="pay-drawer-header">
+          <div className="pay-drawer-header-top">
+            <div className="pay-drawer-identity">
+              <div className="pay-drawer-icon">
+                <PlusIcon size={18} />
+              </div>
+              <div>
+                <div className="pay-drawer-title-line">
+                  <h3>Create Payment Link</h3>
+                </div>
+                <div className="pay-drawer-subtitle">
+                  <span>Generate a tracked URL with amount and expiry</span>
+                </div>
+              </div>
+            </div>
+            <button type="button" className="pay-drawer-close" onClick={onClose} aria-label="Close">
+              <XIcon size={18} />
+            </button>
           </div>
-          <div className="modal-body">
-            <div className="row g-3">
-              <div className="col-12 col-md-6">
-                <label className="form-label">
-                  Client <span className="text-danger">*</span>
-                </label>
-                <select
-                  className="form-select"
-                  value={form.clientId}
-                  onChange={(e) => onChange("clientId", e.target.value)}
-                >
-                  <option value="">Select client…</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
-                  ))}
-                </select>
-              </div>
+        </header>
 
-              <div className="col-12 col-md-6">
-                <label className="form-label">
-                  Project <span className="text-danger">*</span>
-                </label>
-                <select
-                  className="form-select"
-                  value={form.projectId}
-                  onChange={(e) => onChange("projectId", e.target.value)}
-                  disabled={!form.clientId}
-                >
-                  <option value="">Select project…</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name} — {p.code}</option>
-                  ))}
-                </select>
-              </div>
+        <div className="pay-drawer-body pay-drawer-body-single">
+          <div className="pay-form-stack">
+            <label className="pay-field">
+              <span>Client *</span>
+              <select
+                value={form.clientId}
+                onChange={(e) => onChange("clientId", e.target.value)}
+              >
+                <option value="">Select client…</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.email})
+                  </option>
+                ))}
+              </select>
+            </label>
 
-              <div className="col-12 col-md-4">
-                <label className="form-label">
-                  Payment Kind <span className="text-danger">*</span>
-                </label>
-                <select
-                  className="form-select"
-                  value={form.kind}
-                  onChange={(e) => onChange("kind", e.target.value)}
-                >
-                  <option value="project">Project</option>
-                  <option value="registration">Registration</option>
-                </select>
-              </div>
+            <label className="pay-field">
+              <span>Project *</span>
+              <select
+                value={form.projectId}
+                onChange={(e) => onChange("projectId", e.target.value)}
+                disabled={!form.clientId}
+              >
+                <option value="">Select project…</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — {p.code}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-              <div className="col-12 col-md-4">
-                <label className="form-label">
-                  Amount (₹)
-                </label>
+            <div className="pay-field">
+              <span>Payment Kind *</span>
+              <div className="pay-kind-switch">
+                <button
+                  type="button"
+                  className={`pay-kind-btn ${form.kind === "project" ? "active" : ""}`}
+                  onClick={() => onChange("kind", "project")}
+                >
+                  Project Fee
+                </button>
+                <button
+                  type="button"
+                  className={`pay-kind-btn ${form.kind === "registration" ? "active" : ""}`}
+                  onClick={() => onChange("kind", "registration")}
+                >
+                  Registration
+                </button>
+              </div>
+            </div>
+
+            <div className="pay-form-grid-2">
+              <label className="pay-field">
+                <span>Amount (&#8377;) *</span>
                 <input
-                  className="form-control"
                   type="number"
-                  min="0"
+                  min="1"
                   value={form.amount}
                   onChange={(e) => onChange("amount", e.target.value)}
                   placeholder="e.g. 5000"
                 />
-              </div>
+              </label>
 
-              <div className="col-12 col-md-4">
-                <label className="form-label">
-                  Expiry Date & Time
-                </label>
+              <label className="pay-field">
+                <span>Expiry Date &amp; Time *</span>
                 <input
-                  className="form-control"
                   type="datetime-local"
                   value={form.expires_at}
                   onChange={(e) => onChange("expires_at", e.target.value)}
                 />
-              </div>
+              </label>
             </div>
 
-            {/* Project summary */}
             {projectMeta && (
-              <div className="card mt-3 border bg-light-subtle rounded-3 overflow-hidden">
-                <div className="card-body p-3">
-                  <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="small fw-bold text-uppercase text-secondary" style={{ letterSpacing: "0.04em" }}>Selected Project Summary</span>
-                    <span className="badge bg-primary-subtle text-primary fw-semibold">{projectMeta.projectType}</span>
-                  </div>
-                  <div className="row g-2 small">
-                    <div className="col-12 col-md-6"><strong>Project:</strong> {projectMeta.projectName}</div>
-                    <div className="col-12 col-md-6"><strong>Code:</strong> <code className="bg-white px-2 py-1 rounded border">{projectMeta.projectCode}</code></div>
-                  </div>
+              <div className="pay-selected-summary">
+                <div className="pay-summary-head">
+                  <span>Selected Project</span>
+                  <span className="pay-type-pill">{projectMeta.projectType}</span>
+                </div>
+                <div className="pay-summary-body">
+                  <strong>{projectMeta.projectName}</strong>
+                  <code className="pay-code-pill tabular-nums">{projectMeta.projectCode}</code>
                 </div>
               </div>
             )}
-
-            <div className="text-muted small mt-3 d-flex align-items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span>The link will be created for the selected project. Amount and expiry are stored per-link.</span>
-            </div>
           </div>
-          <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
-            <button type="button" className="btn btn-primary" onClick={onSubmit} disabled={submitting}>
+        </div>
+
+        <footer className="pay-drawer-footer">
+          <span className="pay-footer-hint">Amount and expiry are stored per link.</span>
+          <div className="pay-footer-btns">
+            <button type="button" className="pay-btn-subtle" onClick={onClose} disabled={submitting}>
+              Cancel
+            </button>
+            <button type="button" className="pay-btn-primary" onClick={onSubmit} disabled={submitting}>
               {submitting ? "Creating…" : "Create Link"}
             </button>
           </div>
-        </div>
-      </div>
+        </footer>
+      </aside>
     </div>
-  )
+  );
 }
 
-/** Small subcomponent to render & edit a list of links of one kind */
-/** Small subcomponent to render & edit a list of links of one kind (Link ID only + separator line) */
+/** Subcomponent to render & edit payment links inside the inspector drawer */
 function LinkList({
   kindLabel,
   items,
@@ -835,119 +1291,119 @@ function LinkList({
   onRegenerate,
   onOpenDetails,
 }) {
-  const [drafts, setDrafts] = useState({}) // { [linkId]: { amount, expires_at } }
+  const [drafts, setDrafts] = useState({}); // { [linkId]: { amount, expires_at } }
+
+  if (!items.length) {
+    return (
+      <div className="pay-links-empty">
+        No {kindLabel} links created yet.
+      </div>
+    );
+  }
 
   return (
-    <div className="link-list">
-      {!items.length ? (
-        <div className="muted">No {kindLabel} links.</div>
-      ) : (
-        items.map((l) => {
-          const draft = drafts[l.id] || {
-            amount: l.amount ?? "",
-            expires_at: toInputDateTime(l.expires_at),
-          }
-          const expired = l.expires_at && new Date(l.expires_at) < new Date()
-          const status = !l.active ? "Disabled" : expired ? "Expired" : "Active"
+    <div className="pay-link-list">
+      {items.map((l) => {
+        const draft = drafts[l.id] || {
+          amount: l.amount ?? "",
+          expires_at: toInputDateTime(l.expires_at),
+        };
+        const status = getLinkStatus(l);
 
-          return (
-            <div key={l.id} style={{ marginBottom: 10 }}>
-              {/* Top row: Link ID + status + actions */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 8,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <div><strong>Link ID:</strong> {l.id}</div>
-                  <span className={`badge ${status.toLowerCase()}`}>{status}</span>
-                </div>
-
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button className="secondary" title="Copy full URL" onClick={() => onCopy(l.url)}>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      viewBox="0 0 24 24"
-                    >
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-
-
-                  </button>
-
-                  <button className="buttoneye" title="View submissions" onClick={() => onOpenDetails(l)}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 5c-7.633 0-11 7-11 7s3.367 7 11 7 11-7 11-7-3.367-7-11-7zm0 12a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z" />
-                    </svg>
-                  </button>
-
-                  {canEdit && (
-                    <>
-                      <button className="button ghost" onClick={() => onToggle(l, !l.active)}>
-                        {l.active ? "Disable" : "Enable"}
-                      </button>
-                      <button className="button ghost" onClick={() => onRegenerate(l)}>Regenerate</button>
-                      <button className="buttondanger" onClick={() => onDelete(l.id)}><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M9 3v1H4v2h16V4h-5V3H9zm-2 6v11a1 1 0 001 1h8a1 1 0 001-1V9H7zm2 2h2v9H9v-9zm4 0h2v9h-2v-9z" />
-                      </svg></button>
-                    </>
-                  )}
-                </div>
+        return (
+          <div key={l.id} className="pay-link-card">
+            <div className="pay-link-card-head">
+              <div className="pay-link-card-id">
+                <strong>Link #{l.id}</strong>
+                <span className={`pay-status-badge ${status.toLowerCase()}`}>{status}</span>
               </div>
 
-              {/* Editor (unchanged) */}
-              {canEdit && (
-                <div style={{ display: "grid", gridTemplateColumns: "160px 220px auto", gap: 8, marginTop: 6 }}>
-                  <div className="small">
-                    <div className="muted">Amount (Rs.)</div>
-                    <input
-                      className="input"
-                      type="number"
-                      min="0"
-                      value={draft.amount}
-                      onChange={(e) =>
-                        setDrafts((d) => ({ ...d, [l.id]: { ...draft, amount: e.target.value } }))
-                      }
-                    />
-                  </div>
-
-                  <div className="small">
-                    <div className="muted">Expiry</div>
-                    <input
-                      className="input"
-                      type="datetime-local"
-                      value={draft.expires_at}
-                      onChange={(e) =>
-                        setDrafts((d) => ({ ...d, [l.id]: { ...draft, expires_at: e.target.value } }))
-                      }
-                    />
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "end", gap: 8 }}>
-                    <button className="primary" onClick={() => onSaveMeta(l, drafts[l.id] || {})}>Save</button>
-                  </div>
-                </div>
-              )}
-
-              {/* separator line after each link */}
-              <div style={{ height: 1, background: "var(--border, #eee)", marginTop: 10 }} />
+              <div className="pay-link-card-actions">
+                <button
+                  type="button"
+                  className="pay-icon-btn"
+                  title="Copy payment URL"
+                  aria-label="Copy URL"
+                  onClick={() => onCopy(l.url)}
+                >
+                  <CopyIcon size={13} />
+                </button>
+                <button
+                  type="button"
+                  className="pay-icon-btn"
+                  title="View submissions & receipts"
+                  aria-label="View submissions"
+                  onClick={() => onOpenDetails(l)}
+                >
+                  <EyeIcon size={14} />
+                </button>
+                {canEdit && (
+                  <>
+                    <button
+                      type="button"
+                      className="pay-btn-subtle pay-btn-xs"
+                      onClick={() => onToggle(l, !l.active)}
+                    >
+                      {l.active ? "Disable" : "Enable"}
+                    </button>
+                    <button
+                      type="button"
+                      className="pay-btn-subtle pay-btn-xs"
+                      onClick={() => onRegenerate(l)}
+                    >
+                      Regenerate
+                    </button>
+                    <button
+                      type="button"
+                      className="pay-icon-btn danger"
+                      title="Delete link"
+                      aria-label="Delete link"
+                      onClick={() => onDelete(l.id)}
+                    >
+                      <TrashIcon size={13} />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-          )
-        })
-      )}
-    </div>
-  )
-}
 
+            {canEdit && (
+              <div className="pay-link-edit-grid">
+                <label className="pay-link-mini-field">
+                  <span>Amount (&#8377;)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={draft.amount}
+                    onChange={(e) =>
+                      setDrafts((d) => ({ ...d, [l.id]: { ...draft, amount: e.target.value } }))
+                    }
+                  />
+                </label>
+
+                <label className="pay-link-mini-field">
+                  <span>Expiry</span>
+                  <input
+                    type="datetime-local"
+                    value={draft.expires_at}
+                    onChange={(e) =>
+                      setDrafts((d) => ({ ...d, [l.id]: { ...draft, expires_at: e.target.value } }))
+                    }
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  className="pay-btn-primary pay-btn-sm"
+                  onClick={() => onSaveMeta(l, drafts[l.id] || {})}
+                >
+                  Save
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

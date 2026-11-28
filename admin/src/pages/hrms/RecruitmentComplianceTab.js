@@ -17,6 +17,7 @@ import {
 import AiInsightBox from '../../components/AiInsightBox';
 import RichTextEditor from '../../components/RichTextEditor';
 import { renderSafeHtml } from '../../utils/safeHtml';
+import { showToast } from '../../utils/toast';
 import {
   LeadsIcon,
   SearchIcon,
@@ -198,17 +199,17 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
     try {
       if (editingJobId) {
         await apiUpdateJob(editingJobId, jobForm);
-        alert('Job opening updated successfully');
+        showToast('Job opening updated successfully', 'success');
       } else {
         await apiCreateJob(jobForm);
-        alert('Job opening published successfully');
+        showToast('Job opening published successfully', 'success');
       }
       setShowJobModal(false);
       setEditingJobId(null);
       setJobForm(defaultJobForm);
       fetchJobs();
     } catch (err) {
-      alert(err.message || 'Failed to save job');
+      showToast(err.message || 'Failed to save job', 'error');
     } finally {
       setSavingJob(false);
     }
@@ -220,7 +221,7 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
       await apiUpdateJob(job.id, { status: nextStatus });
       fetchJobs();
     } catch (err) {
-      alert(err.message || 'Failed to update job status');
+      showToast(err.message || 'Failed to update job status', 'error');
     }
   };
 
@@ -236,7 +237,7 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert(err.message || 'Resume download failed');
+      showToast(err.message || 'Resume download failed', 'error');
     }
   };
 
@@ -246,7 +247,7 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
       await apiDeleteJob(id);
       fetchJobs();
     } catch (err) {
-      alert(err.message || 'Failed to delete job');
+      showToast(err.message || 'Failed to delete job', 'error');
     }
   };
 
@@ -267,11 +268,11 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
     setUpdatingCandidate(true);
     try {
       await apiUpdateCandidateStage(selectedCandidate.id, interviewForm);
-      alert('Candidate details updated');
+      showToast('Candidate details updated', 'success');
       setSelectedCandidate(null);
       fetchPipeline();
     } catch (err) {
-      alert(err.message || 'Failed to update candidate');
+      showToast(err.message || 'Failed to update candidate', 'error');
     } finally {
       setUpdatingCandidate(false);
     }
@@ -282,7 +283,7 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
       await apiUpdateCandidateStage(candId, { stage: newStage });
       fetchPipeline();
     } catch (err) {
-      alert(err.message || 'Failed to move stage');
+      showToast(err.message || 'Failed to move stage', 'error');
     }
   };
 
@@ -291,10 +292,10 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
     setHiringId(candId);
     try {
       const res = await apiHireCandidate(candId);
-      alert(res.message || 'Candidate converted to employee successfully!');
+      showToast(res.message || 'Candidate converted to employee successfully!', 'success');
       fetchPipeline();
     } catch (err) {
-      alert(err.message || 'Hiring action failed');
+      showToast(err.message || 'Hiring action failed', 'error');
     } finally {
       setHiringId(null);
     }
@@ -306,7 +307,7 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
       await apiUpdateCompliance(recId, { status: nextStatus });
       fetchCompliance();
     } catch (err) {
-      alert(err.message || 'Failed to update compliance');
+      showToast(err.message || 'Failed to update compliance', 'error');
     }
   };
 
@@ -335,7 +336,10 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
 
   const handleSaveCompliance = async (e) => {
     e.preventDefault();
-    if (!compForm.title.trim()) return alert('Compliance requirement title is required');
+    if (!compForm.title.trim()) {
+      showToast('Compliance requirement title is required', 'error');
+      return;
+    }
     setSavingComp(true);
     try {
       if (editingCompId) {
@@ -346,7 +350,7 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
       setShowCompModal(false);
       fetchCompliance();
     } catch (err) {
-      alert(err.message || 'Failed to save compliance record');
+      showToast(err.message || 'Failed to save compliance record', 'error');
     } finally {
       setSavingComp(false);
     }
@@ -358,7 +362,7 @@ export default function RecruitmentComplianceTab({ isAdmin, user }) {
       await apiDeleteCompliance(rec.id);
       fetchCompliance();
     } catch (err) {
-      alert(err.message || 'Failed to delete compliance record');
+      showToast(err.message || 'Failed to delete compliance record', 'error');
     }
   };
 

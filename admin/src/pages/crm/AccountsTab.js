@@ -3,6 +3,7 @@ import { apiListAccounts, apiGetAccount360, apiCreateAccount, apiCreateCrmContac
 import AiInsightBox from '../../components/AiInsightBox';
 import RichTextEditor from '../../components/RichTextEditor';
 import { stripHtmlText } from '../../utils/safeHtml';
+import { showToast } from '../../utils/toast';
 import SendEmailModal from './SendEmailModal';
 import {
   GlobeIcon,
@@ -115,7 +116,7 @@ export default function AccountsTab() {
       const res = await apiGetAccount360(id);
       setAccount360(res);
     } catch (err) {
-      alert(err.message || 'Failed to load 360 account details');
+      showToast(err.message || 'Failed to load 360 account details', 'error');
     } finally {
       setLoading360(false);
     }
@@ -123,11 +124,14 @@ export default function AccountsTab() {
 
   const handleCreateAccount = async (e) => {
     e.preventDefault();
-    if (!accountForm.company && !accountForm.name) return alert('Company name is required');
+    if (!accountForm.company && !accountForm.name) {
+      showToast('Company name is required', 'error');
+      return;
+    }
     setSavingAccount(true);
     try {
       await apiCreateAccount(accountForm);
-      alert('Account added successfully!');
+      showToast('Account added successfully!', 'success');
       setShowCreateModal(false);
       setAccountForm({
         name: '',
@@ -143,7 +147,7 @@ export default function AccountsTab() {
       });
       fetchAccounts();
     } catch (err) {
-      alert(err.message || 'Failed to create account');
+      showToast(err.message || 'Failed to create account', 'error');
     } finally {
       setSavingAccount(false);
     }
@@ -151,14 +155,17 @@ export default function AccountsTab() {
 
   const handleAddContact = async (e) => {
     e.preventDefault();
-    if (!contactForm.name) return alert('Contact name is required');
+    if (!contactForm.name) {
+      showToast('Contact name is required', 'error');
+      return;
+    }
     setSavingContact(true);
     try {
       await apiCreateCrmContact({
         ...contactForm,
         client_id: selectedAccountId
       });
-      alert('Contact linked to account!');
+      showToast('Contact linked to account!', 'success');
       setShowAddContact(false);
       setContactForm({
         name: '',
@@ -172,7 +179,7 @@ export default function AccountsTab() {
       openAccount360(selectedAccountId);
       fetchAccounts();
     } catch (err) {
-      alert(err.message || 'Failed to add contact');
+      showToast(err.message || 'Failed to add contact', 'error');
     } finally {
       setSavingContact(false);
     }

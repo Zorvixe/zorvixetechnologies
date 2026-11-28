@@ -20,6 +20,7 @@ import {
 } from '../../components/CrmHrmsIcons';
 import RichTextEditor from '../../components/RichTextEditor';
 import { stripHtmlText } from '../../utils/safeHtml';
+import { showToast } from '../../utils/toast';
 import './AutomationTab.css';
 
 export default function AutomationTab() {
@@ -92,7 +93,7 @@ export default function AutomationTab() {
   const handleSaveTemplate = async (e) => {
     e.preventDefault();
     if (!templateForm.name.trim() || !templateForm.subject.trim() || !stripHtmlText(templateForm.body)) {
-      alert('Template Name, Subject, and Body are required.');
+      showToast('Template Name, Subject, and Body are required.', 'error');
       return;
     }
 
@@ -100,15 +101,15 @@ export default function AutomationTab() {
     try {
       if (editingTemplate) {
         await apiUpdateEmailTemplate(editingTemplate.id, templateForm);
-        alert('Email template updated successfully!');
+        showToast('Email template updated successfully!', 'success');
       } else {
         await apiCreateEmailTemplate(templateForm);
-        alert('Email template created successfully!');
+        showToast('Email template created successfully!', 'success');
       }
       setShowModal(false);
       fetchTemplates();
     } catch (err) {
-      alert(err.message || 'Failed to save email template.');
+      showToast(err.message || 'Failed to save email template.', 'error');
     } finally {
       setSavingTemplate(false);
     }
@@ -116,7 +117,7 @@ export default function AutomationTab() {
 
   const handleDeleteTemplate = async (tmpl) => {
     if (tmpl.is_system) {
-      alert('Default system templates cannot be deleted.');
+      showToast('Default system templates cannot be deleted.', 'error');
       return;
     }
     if (!window.confirm(`Delete template "${tmpl.name}"?`)) return;
@@ -125,7 +126,7 @@ export default function AutomationTab() {
       await apiDeleteEmailTemplate(tmpl.id);
       fetchTemplates();
     } catch (err) {
-      alert(err.message || 'Failed to delete template');
+      showToast(err.message || 'Failed to delete template', 'error');
     }
   };
 

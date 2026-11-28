@@ -822,17 +822,21 @@ export default function Topbar({
               </svg>
             </button>
 
-            {/* ZORVI AI ASSISTANT BUTTON (Desktop & Tablet) */}
+            {/* ZORVI AI ASSISTANT BUTTON (All devices) */}
             <button
               type="button"
-              className="icon-btn"
+              className="icon-btn tb-ai-btn"
               aria-label="ZORVI AI Assistant"
-              title="ZORVI — AI Assistant"
-              onClick={() => window.dispatchEvent(new CustomEvent("zorvixe:open-ai-assistant"))}
+              title="ZORVI — AI Assistant (Ctrl+J)"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent("zorvixe:open-ai-assistant"));
+                if (onClose) onClose();
+              }}
             >
               <img
                 src={ZorviAiLogo}
-                width="30"
+                width="28"
+                height="28"
                 alt="ZORVI AI"
               />
             </button>
@@ -890,24 +894,6 @@ export default function Topbar({
                 onNewActivities={(count) => setTicketCount(count)}
               />
             )}
-
-            {/* AI ICON MOBILE */}
-            <a
-              href="#ai-assistant"
-              className="topbar-ai-icon-mobile"
-              onClick={(e) => {
-                e.preventDefault();
-                window.dispatchEvent(new CustomEvent('zorvixe:open-ai-assistant'));
-                if (onClose) onClose();
-              }}
-              title="ZORVI AI Assistant"
-            >
-              <img
-                src={ZorviAiLogo}
-                width="30"
-                alt="ZORVI AI"
-              />
-            </a>
 
             {/* Avatar + profile dropdown (Images 1 & 2) */}
             <div className="profile-anchor">

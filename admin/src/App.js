@@ -24,6 +24,8 @@ import UserTicket from './pages/UserTicket';
 import LinkedInChatWidget from './components/LinkedInChatWidget';
 import MobileBottomNav from './components/MobileBottomNav';
 import AiAssistantDrawer from './components/AiAssistantDrawer';
+import AppErrorBoundary from './components/AppErrorBoundary';
+import GlobalToast from './components/GlobalToast';
 
 import LeaveManagement from "./pages/LeaveManagement/LeaveManagement"
 import HRMS from './pages/HRMS';
@@ -39,8 +41,22 @@ function Shell() {
   const { user, loading } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(() => window.innerWidth <= 768);
   const [aiDrawerOpen, setAiDrawerOpen] = React.useState(false);
+  const [isOffline, setIsOffline] = React.useState(() =>
+    typeof navigator !== 'undefined' ? !navigator.onLine : false
+  );
   const location = useLocation();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const onOffline = () => setIsOffline(true);
+    const onOnline = () => setIsOffline(false);
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+    return () => {
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
+    };
+  }, []);
 
   React.useEffect(() => {
     const onOpenAi = () => setAiDrawerOpen(true);
@@ -143,7 +159,14 @@ function Shell() {
           onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
         />
 
-        <Routes>
+        {isOffline && (
+          <div className="zx-offline-banner" role="status" aria-live="polite">
+            You appear to be offline. Live updates and saves will resume when connection returns.
+          </div>
+        )}
+
+        <AppErrorBoundary key={location.pathname} onGoHome={() => navigate('/stats')}>
+          <Routes>
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="/users" element={role === 'admin' ? <Users /> : <Navigate to="/stats" />} />
@@ -194,6 +217,7 @@ function Shell() {
 
           <Route path="*" element={<Navigate to="/stats" />} />
         </Routes>
+        </AppErrorBoundary>
       </main>
 
       {/* LinkedIn-style floating messaging widget docked at bottom-right */}
@@ -210,6 +234,9 @@ function Shell() {
         isOpen={aiDrawerOpen}
         onClose={() => setAiDrawerOpen(false)}
       />
+
+      {/* Global Toast Notification Host */}
+      <GlobalToast />
     </div>
   );
 }

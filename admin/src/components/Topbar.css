@@ -804,8 +804,20 @@
 
 }
 
-.topbar-ai-icon-mobile {
-  display: none;
+.tb-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 4px;
+}
+
+.tb-ai-btn img {
+  display: block;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 6px;
 }
 
 /* Notification badge is pinned to its button now */
@@ -842,27 +854,26 @@
   }
 }
 
-/* Medium & small screens (<= 900px): Hide Topbar action buttons on space-constrained devices */
+/* Medium & small screens (<= 900px): Hide non-essential Topbar action buttons on space-constrained devices */
 @media (max-width: 900px) {
 
   .tb-desktop-only,
   .tb-quick-create-wrap,
-  .tb-right>.icon-btn:not(.avatar-btn),
+  .tb-right>.icon-btn:not(.avatar-btn):not(.tb-ai-btn),
   .tb-right>.profile-anchor:not(:last-child) {
     display: none !important;
   }
 }
 
-/* Small / mobile screens (<= 768px): Hide Topbar search bar & all right action items completely */
+/* Small / mobile screens (<= 768px): Hide Topbar search bar & secondary right action items while keeping AI & profile */
 @media (max-width: 768px) {
   .tb-center {
     display: none !important;
   }
 
-  /* Completely hide all right action buttons in Topbar on mobile & small devices */
   .tb-desktop-only,
   .tb-quick-create-wrap,
-  .tb-right>.icon-btn:not(.avatar-btn),
+  .tb-right>.icon-btn:not(.avatar-btn):not(.tb-ai-btn),
   .tb-right>.profile-anchor:not(:last-child) {
     display: none !important;
   }
@@ -922,11 +933,6 @@
   .tb-title {
     font-size: 0.88rem;
     max-width: 38vw;
-  }
-
-  .topbar-ai-icon-mobile {
-    display: flex;
-    margin-right: 10px;
   }
 }
 

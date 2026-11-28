@@ -14,6 +14,7 @@ import AiInsightBox from '../../components/AiInsightBox';
 import RichTextEditor from '../../components/RichTextEditor';
 import SendEmailModal from './SendEmailModal';
 import { renderSafeHtml, stripHtmlText } from '../../utils/safeHtml';
+import { showToast } from '../../utils/toast';
 import {
   GlobeIcon,
   TrashIcon,
@@ -224,7 +225,7 @@ export default function LeadsTab({ onLeadConverted, onNavigatePipeline }) {
       setNoteSavedMsg('Saved');
       setTimeout(() => setNoteSavedMsg(''), 2500);
     } catch (err) {
-      alert(err.message || 'Failed to save note');
+      showToast(err.message || 'Failed to save note', 'error');
     } finally {
       setSavingNote(false);
     }
@@ -237,7 +238,7 @@ export default function LeadsTab({ onLeadConverted, onNavigatePipeline }) {
       setSelectedLead((prev) => (prev?.id === lead.id ? payload : prev));
       setLeads((prev) => prev.map((l) => (l.id === lead.id ? payload : l)));
     } catch (err) {
-      alert(err.message || 'Failed to update status');
+      showToast(err.message || 'Failed to update status', 'error');
     }
   };
 
@@ -259,7 +260,7 @@ export default function LeadsTab({ onLeadConverted, onNavigatePipeline }) {
       setShowLogActivity(false);
       loadLeadTimeline(selectedLead);
     } catch (err) {
-      alert(err.message || 'Failed to log interaction');
+      showToast(err.message || 'Failed to log interaction', 'error');
     } finally {
       setSavingQuickAct(false);
     }
@@ -267,7 +268,10 @@ export default function LeadsTab({ onLeadConverted, onNavigatePipeline }) {
 
   const handleCreateLead = async (e) => {
     e.preventDefault();
-    if (!leadForm.first_name) return alert('First name is required');
+    if (!leadForm.first_name) {
+      showToast('First name is required', 'error');
+      return;
+    }
     setSavingLead(true);
     try {
       await apiCreateLead(leadForm);
@@ -287,7 +291,7 @@ export default function LeadsTab({ onLeadConverted, onNavigatePipeline }) {
       });
       fetchLeads();
     } catch (err) {
-      alert(err.message || 'Failed to create lead');
+      showToast(err.message || 'Failed to create lead', 'error');
     } finally {
       setSavingLead(false);
     }
@@ -306,7 +310,7 @@ export default function LeadsTab({ onLeadConverted, onNavigatePipeline }) {
       setEditingLead(null);
       fetchLeads();
     } catch (err) {
-      alert(err.message || 'Failed to update lead');
+      showToast(err.message || 'Failed to update lead', 'error');
     } finally {
       setUpdating(false);
     }
@@ -319,7 +323,7 @@ export default function LeadsTab({ onLeadConverted, onNavigatePipeline }) {
       if (selectedLead?.id === id) closeLeadDrawer();
       fetchLeads();
     } catch (err) {
-      alert(err.message || 'Failed to delete lead');
+      showToast(err.message || 'Failed to delete lead', 'error');
     }
   };
 
@@ -353,10 +357,10 @@ export default function LeadsTab({ onLeadConverted, onNavigatePipeline }) {
       if (createdDeal && onNavigatePipeline && window.confirm(`${res.message || 'Lead converted successfully into Account, Contact, and Deal!'}\n\nOpen Deals Pipeline now to view this deal?`)) {
         onNavigatePipeline();
       } else if (!createdDeal || !onNavigatePipeline) {
-        alert(res.message || 'Lead converted successfully into Account, Contact, and Deal!');
+        showToast(res.message || 'Lead converted successfully into Account, Contact, and Deal!', 'success');
       }
     } catch (err) {
-      alert(err.message || 'Failed to convert lead');
+      showToast(err.message || 'Failed to convert lead', 'error');
     } finally {
       setConverting(false);
     }

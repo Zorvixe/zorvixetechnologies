@@ -162,7 +162,7 @@ export default function SendEmailModal({
       if (res?.body) setBody(res.body);
       setAiDraftMeta({
         auditId: res?.auditId || null,
-        uncertainty: res?.uncertainty || 'Review and verify details before sending.'
+        uncertainty: 'ZORVI can make mistakes. Check important info.'
       });
     } catch (err) {
       setErrorMsg(err.message || 'AI draft generation failed.');
@@ -314,7 +314,7 @@ export default function SendEmailModal({
 
             {aiDraftMeta && (
               <div className="email-ai-notice">
-                <strong>ZORVI Draft Ready for Review:</strong> {aiDraftMeta.uncertainty}
+                ZORVI can make mistakes. Check important info.
               </div>
             )}
 

@@ -5,8 +5,6 @@ import { useAuth } from '../auth';
 import {
   apiStatsNotifications,
   apiResetNotificationCount,
-  apiStatsTickets,
-  apiMarkTicketActivityRead,
 } from '../api';
 import MeetIcon from '../assets/meeting_icon.png';
 import './MobileBottomNav.css';
@@ -16,14 +14,11 @@ export default function MobileBottomNav({ onToggleSidebar, sidebarOpen }) {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  /* ---------------- NOTIFICATIONS & TICKETS LIVE COUNTS ---------------- */
+  /* ---------------- NOTIFICATIONS LIVE COUNT ---------------- */
   const [notificationCount, setNotificationCount] = useState(0);
-  const [ticketCount, setTicketCount] = useState(0);
   const latestNotifAtRef = React.useRef(null);
-  const latestTicketAtRef = React.useRef(null);
 
   const notifStorageKey = (uid) => `lastChecked_notif_${uid || 'anon'}`;
-  const ticketStorageKey = (uid) => `lastChecked_ticket_${uid || 'anon'}`;
 
   const fetchNotificationCount = useCallback(async () => {
     if (!user) return;
@@ -46,42 +41,16 @@ export default function MobileBottomNav({ onToggleSidebar, sidebarOpen }) {
     }
   }, [user]);
 
-  const fetchTicketCount = useCallback(async () => {
-    if (!user) return;
-    try {
-      const data = await apiStatsTickets();
-      const feed = Array.isArray(data?.activityFeed) ? data.activityFeed : [];
-      if (feed[0]?.at) latestTicketAtRef.current = feed[0].at;
-
-      if (typeof data?.unreadCount === 'number') {
-        setTicketCount(data.unreadCount);
-      } else {
-        const sTicket = localStorage.getItem(ticketStorageKey(user?.id || user?.email));
-        const newActivities = sTicket
-          ? feed.filter((a) => new Date(a.at) > new Date(sTicket))
-          : feed;
-        setTicketCount(newActivities.length);
-      }
-    } catch {
-      setTicketCount(0);
-    }
-  }, [user]);
-
   useEffect(() => {
     fetchNotificationCount();
-    fetchTicketCount();
     const interval = setInterval(() => {
       fetchNotificationCount();
-      fetchTicketCount();
     }, 30000);
 
     const onBadgeSync = (e) => {
       const detail = e?.detail || {};
       if (detail.type === 'notifications' && typeof detail.unreadCount === 'number') {
         setNotificationCount(detail.unreadCount);
-      }
-      if (detail.type === 'tickets' && typeof detail.unreadCount === 'number') {
-        setTicketCount(detail.unreadCount);
       }
     };
     window.addEventListener('zorvixe:badge-sync', onBadgeSync);
@@ -90,7 +59,7 @@ export default function MobileBottomNav({ onToggleSidebar, sidebarOpen }) {
       clearInterval(interval);
       window.removeEventListener('zorvixe:badge-sync', onBadgeSync);
     };
-  }, [fetchNotificationCount, fetchTicketCount]);
+  }, [fetchNotificationCount]);
 
   const handleNotificationClick = async () => {
     const now = new Date().toISOString();
@@ -104,21 +73,6 @@ export default function MobileBottomNav({ onToggleSidebar, sidebarOpen }) {
     navigate('/notifications');
     try {
       await apiResetNotificationCount({ markAll: true, latestAt: effectiveReadAt });
-    } catch { }
-  };
-
-  const handleTicketClick = async () => {
-    const now = new Date().toISOString();
-    const effectiveReadAt =
-      latestTicketAtRef.current && new Date(latestTicketAtRef.current) > new Date(now)
-        ? latestTicketAtRef.current
-        : now;
-    setTicketCount(0);
-    localStorage.setItem(ticketStorageKey(user?.id || user?.email), effectiveReadAt);
-    window.dispatchEvent(new CustomEvent('zorvixe:badge-sync', { detail: { type: 'tickets', unreadCount: 0 } }));
-    navigate('/user-tickets');
-    try {
-      await apiMarkTicketActivityRead({ markAll: true, latestAt: effectiveReadAt });
     } catch { }
   };
 
@@ -138,7 +92,6 @@ export default function MobileBottomNav({ onToggleSidebar, sidebarOpen }) {
   const isHomeActive = location.pathname === '/stats' || location.pathname === '/' || location.pathname === '/crm-home';
   const isCalendarActive = location.pathname === '/calendar' || location.hash === '#activities';
   const isNotifActive = location.pathname === '/notifications';
-  const isTicketsActive = location.pathname === '/user-tickets';
 
   return (
     <>

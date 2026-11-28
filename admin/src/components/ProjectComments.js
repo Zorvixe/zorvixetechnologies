@@ -7,7 +7,10 @@ import {
   apiDeleteComment,
 } from "../api";
 
-import RichTextEditor from './RichTextEditor'
+import RichTextEditor from './RichTextEditor';
+import { stripHtmlText } from '../utils/safeHtml';
+import { SendIcon } from './CrmHrmsIcons';
+import { showToast } from '../utils/toast';
 
 import DOMPurify from "dompurify";
 import linkifyHtml from "linkify-html";
@@ -152,7 +155,7 @@ export default function ProjectComments({ projectId, isAdmin, currentUser }) {
 
   const submitComment = async (e) => {
     e?.preventDefault?.();
-    if (!newComment.trim()) return;
+    if (!stripHtmlText(newComment)) return;
     try {
       setAuthError("");
       const data = await apiPostProjectComment(projectId, newComment);
@@ -242,19 +245,29 @@ export default function ProjectComments({ projectId, isAdmin, currentUser }) {
       )}
 
       {/* New comment form */}
-      <form onSubmit={submitComment} className="" onKeyDown={(e) => e.stopPropagation()}>
-        <div className="form-group">
-          <RichTextEditor
-            value={newComment}
-            onChange={(content) => setNewComment(content)}
-            placeholder="Add a comment"
-            rows="3"
-            className=""
-          />
-        </div>
-        <div className="form-actions">
-          <button type="submit" className="btn btn-primary">Post Comment</button>
-        </div>
+      <form onSubmit={submitComment} className="pc-comment-form" onKeyDown={(e) => e.stopPropagation()}>
+        <RichTextEditor
+          compact
+          className="pc-comment-editor"
+          value={newComment}
+          onChange={(content) => setNewComment(content)}
+          placeholder="Add a comment to the project discussion"
+          minHeight="76px"
+          maxHeight="180px"
+          aiFieldLabel="Project Discussion Comment"
+          footerContent={
+            <div className="pc-editor-footer">
+              <button
+                type="submit"
+                className={`pc-submit-btn ${stripHtmlText(newComment) ? "active" : ""}`}
+                disabled={!stripHtmlText(newComment)}
+              >
+                <SendIcon size={13} />
+                <span>Post Comment</span>
+              </button>
+            </div>
+          }
+        />
       </form>
 
       {/* Comments list */}
@@ -299,9 +312,6 @@ function CommentItem({
   cancelReply,
   refreshComments,
 }) {
-  const isAuthor = currentUser?.id != null && comment.user_id === currentUser.id;
-  const canEdit = isAuthor || isAdmin;
-  const canDelete = isAuthor || isAdmin;
   const isReplying = replyingTo === comment.id;
 
   const [isEditing, setIsEditing] = useState(false);
@@ -324,7 +334,7 @@ function CommentItem({
       }
     } catch (err) {
       console.error("Error updating comment:", err);
-      alert("Failed to update comment. Please try again.");
+      showToast("Failed to update comment. Please try again.", "error");
     }
   };
 
@@ -389,26 +399,33 @@ function CommentItem({
         {isEditing ? (
           <div className="edit-form" onKeyDown={stop}>
             <RichTextEditor
+              compact
+              className="pc-comment-editor"
               value={editText}
               onChange={(content) => setEditText(content)}
-              rows="3"
-              className="comment-input"
+              minHeight="68px"
+              maxHeight="160px"
+              aiFieldLabel="Edit Project Comment"
+              footerContent={
+                <div className="pc-editor-footer">
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    className="pc-cancel-btn"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleEdit}
+                    className={`pc-submit-btn ${stripHtmlText(editText) ? "active" : ""}`}
+                    disabled={!stripHtmlText(editText)}
+                  >
+                    Save
+                  </button>
+                </div>
+              }
             />
-            <div className="edit-actions form-actions">
-              <button
-                onClick={handleEdit}
-                className="btn btn-primary btn-sm"
-                disabled={!editText.trim()}
-              >
-                Save
-              </button>
-              <button
-                onClick={cancelEdit}
-                className="btn btn-secondary btn-sm"
-              >
-                Cancel
-              </button>
-            </div>
           </div>
         ) : (
           <div style={{ whiteSpace: "pre-wrap" }}
@@ -429,31 +446,37 @@ function CommentItem({
 
       {/* Reply form */}
       {isReplying && (
-        <div className="mt-5" onClick={stop}>
-          <div className="form-group">
-            <RichTextEditor
-              value={replyText}
-              onChange={(content) => setReplyText(content)}
-              placeholder="Write a reply..."
-              rows="2"
-              className=""
-            />
-          </div>
-          <div className="form-actions">
-            <button
-              onClick={(e) => { stop(e); submitReply(comment.id); }}
-              className="btn btn-primary btn-sm"
-              disabled={!replyText.trim()}
-            >
-              Post Reply
-            </button>
-            <button
-              onClick={(e) => { stop(e); cancelReply(e); }}
-              className="btn btn-secondary btn-sm"
-            >
-              Cancel
-            </button>
-          </div>
+        <div className="pc-reply-wrap" onClick={stop} onKeyDown={stop}>
+          <RichTextEditor
+            compact
+            className="pc-comment-editor"
+            value={replyText}
+            onChange={(content) => setReplyText(content)}
+            placeholder="Write a reply..."
+            minHeight="64px"
+            maxHeight="150px"
+            aiFieldLabel="Reply Comment"
+            footerContent={
+              <div className="pc-editor-footer">
+                <button
+                  type="button"
+                  onClick={(e) => { stop(e); cancelReply(e); }}
+                  className="pc-cancel-btn"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { stop(e); submitReply(comment.id); }}
+                  className={`pc-submit-btn ${stripHtmlText(replyText) ? "active" : ""}`}
+                  disabled={!stripHtmlText(replyText)}
+                >
+                  <SendIcon size={12} />
+                  <span>Post Reply</span>
+                </button>
+              </div>
+            }
+          />
         </div>
       )}
 

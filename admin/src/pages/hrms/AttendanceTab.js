@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiAttendanceToday, apiAttendancePunch, apiMyAttendance, apiListAttendance, apiSaveManualAttendance, apiAiAttendanceSummary } from '../../api';
 import AiInsightBox from '../../components/AiInsightBox';
 import { UsersIcon, CheckIcon, ClockIcon, CalendarIcon, FileTextIcon, SparklesIcon } from '../../components/CrmHrmsIcons';
+import { showToast } from '../../utils/toast';
 import './AttendanceTab.css';
 
 export default function AttendanceTab({ isAdmin, user }) {
@@ -120,14 +121,14 @@ export default function AttendanceTab({ isAdmin, user }) {
     setPunching(true);
     try {
       const res = await apiAttendancePunch({ action, note: punchNote });
-      alert(res.message || 'Attendance recorded successfully!');
+      showToast(res.message || 'Attendance recorded successfully!', 'success');
       setPunchNote('');
       setShowNoteInput(false);
       await fetchToday();
       await fetchMyHistory();
       if (isAdmin) await fetchAdminAttendance();
     } catch (err) {
-      alert(err.message || 'Punch action failed');
+      showToast(err.message || 'Punch action failed', 'error');
     } finally {
       setPunching(false);
     }
@@ -135,7 +136,10 @@ export default function AttendanceTab({ isAdmin, user }) {
 
   const handleManualSubmit = async (e) => {
     e.preventDefault();
-    if (!manualForm.employee_id) return alert('Please enter or select employee ID');
+    if (!manualForm.employee_id) {
+      showToast('Please enter or select employee ID', 'error');
+      return;
+    }
     setManualSaving(true);
     try {
       const fullPunchIn = `${manualForm.date}T${manualForm.punch_in}:00`;
@@ -145,11 +149,11 @@ export default function AttendanceTab({ isAdmin, user }) {
         punch_in: fullPunchIn,
         punch_out: fullPunchOut
       });
-      alert('Attendance saved successfully');
+      showToast('Attendance saved successfully', 'success');
       setShowManualModal(false);
       fetchAdminAttendance();
     } catch (err) {
-      alert(err.message || 'Failed to save manual record');
+      showToast(err.message || 'Failed to save manual record', 'error');
     } finally {
       setManualSaving(false);
     }

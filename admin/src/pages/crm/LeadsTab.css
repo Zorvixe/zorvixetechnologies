@@ -1007,8 +1007,7 @@
 }
 
 .ld-notes-editor-footer {
-  width: 100%;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-2);

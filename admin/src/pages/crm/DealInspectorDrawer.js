@@ -7,6 +7,7 @@ import {
 } from '../../api';
 import RichTextEditor from '../../components/RichTextEditor';
 import { renderSafeHtml } from '../../utils/safeHtml';
+import { showToast } from '../../utils/toast';
 import {
   BriefcaseIcon,
   SparklesIcon,
@@ -130,7 +131,7 @@ export default function DealInspectorDrawer({
       setNoteSavedMsg('Saved');
       setTimeout(() => setNoteSavedMsg(''), 2500);
     } catch (err) {
-      alert(err.message || 'Failed to save deal note');
+      showToast(err.message || 'Failed to save deal note', 'error');
     } finally {
       setSavingNote(false);
     }
@@ -154,7 +155,7 @@ export default function DealInspectorDrawer({
       await loadTimeline(deal.id);
       if (onActivityCreated) onActivityCreated();
     } catch (err) {
-      alert(err.message || 'Failed to log deal interaction');
+      showToast(err.message || 'Failed to log deal interaction', 'error');
     } finally {
       setSavingQuickAct(false);
     }
@@ -162,7 +163,10 @@ export default function DealInspectorDrawer({
 
   const handleSaveEdit = async (e) => {
     e.preventDefault();
-    if (!editingDeal?.title?.trim()) return alert('Deal title is required');
+    if (!editingDeal?.title?.trim()) {
+      showToast('Deal title is required', 'error');
+      return;
+    }
     setSavingEdit(true);
     try {
       const res = await apiUpdateDeal(deal.id, {
@@ -177,7 +181,7 @@ export default function DealInspectorDrawer({
       if (onDealUpdated) onDealUpdated(updated);
       setEditingDeal(null);
     } catch (err) {
-      alert(err.message || 'Failed to update deal');
+      showToast(err.message || 'Failed to update deal', 'error');
     } finally {
       setSavingEdit(false);
     }

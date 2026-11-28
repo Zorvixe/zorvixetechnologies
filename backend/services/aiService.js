@@ -12,6 +12,8 @@
  * 6. Every suggestion and human confirmation can be recorded in ai_audit_logs.
  */
 
+const https = require('https');
+
 const DEFAULT_TIMEOUT_MS = Math.max(3000, Number(process.env.AI_TIMEOUT_MS || 18000));
 
 function sanitizeTextForPrompt(input, maxLen = 1500) {
@@ -64,7 +66,7 @@ function getEnvProviderConfig() {
 
   if (provider === 'gemini') {
     apiKey = geminiKey;
-    defaultModel = 'gemini-3.8-flash';
+    defaultModel = 'gemini-3-flash-preview';
   } else if (provider === 'openai') {
     apiKey = openaiKey;
     defaultModel = 'gpt-4o-mini';
@@ -75,7 +77,7 @@ function getEnvProviderConfig() {
     provider = 'fallback';
   }
   const providerConfigured = Boolean(apiKey) && provider !== 'fallback';
-  const model = (process.env.AI_MODEL).trim();
+  const model = (process.env.AI_MODEL || defaultModel).trim();
   const baseUrl = (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
 
   return {
@@ -194,54 +196,95 @@ async function callOpenAIProvider(cfg, systemPrompt, userPrompt) {
   }
 }
 
+function postJsonIpv4(url, payload, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(payload);
+    const req = https.request(
+      url,
+      {
+        method: 'POST',
+        family: 4,
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      },
+      (res) => {
+        let raw = '';
+        res.on('data', (chunk) => {
+          raw += chunk;
+        });
+        res.on('end', () => {
+          resolve({ status: res.statusCode || 500, body: raw });
+        });
+      }
+    );
+
+    const timer = setTimeout(() => {
+      const timeoutErr = new Error('AI provider request timed out.');
+      timeoutErr.code = 'AI_TIMEOUT';
+      req.destroy(timeoutErr);
+    }, timeoutMs);
+
+    req.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    req.on('close', () => {
+      clearTimeout(timer);
+    });
+
+    req.write(body);
+    req.end();
+  });
+}
+
 // In callGeminiProvider() inside aiService.js:
 async function callGeminiProvider(cfg, systemPrompt, userPrompt) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), cfg.timeoutMs);
-  try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model)}:generateContent`;
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': cfg.apiKey,
-      },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: 'application/json',
-        },
-      }),
-      signal: controller.signal,
-    });
+  const payload = {
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+    generationConfig: {
+      temperature: 0.2,
+      responseMimeType: 'application/json',
+    },
+  };
+
+  const candidates = [cfg.model];
+  if (cfg.model !== 'gemini-flash-lite-latest') {
+    candidates.push('gemini-flash-lite-latest');
+  }
+
+  let lastErr = null;
+  for (let i = 0; i < candidates.length; i += 1) {
+    const modelName = candidates[i];
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
+    const res = await postJsonIpv4(endpoint, payload, cfg.timeoutMs);
 
     if (res.status === 429) {
       const err = new Error('AI provider rate limit exceeded.');
       err.code = 'AI_RATE_LIMIT';
       throw err;
     }
-    if (!res.ok) {
+
+    if ((res.status === 503 || res.status === 404) && i < candidates.length - 1) {
+      lastErr = new Error(`Gemini provider returned HTTP ${res.status}`);
+      continue;
+    }
+
+    if (res.status < 200 || res.status >= 300) {
       const err = new Error(`Gemini provider returned HTTP ${res.status}`);
       err.code = res.status === 401 || res.status === 403 ? 'AI_AUTH_ERROR' : 'AI_UPSTREAM_ERROR';
       throw err;
     }
 
-    const data = await res.json();
+    const data = JSON.parse(res.body || '{}');
     const parts = Array.isArray(data?.candidates?.[0]?.content?.parts) ? data.candidates[0].content.parts : [];
     const content = parts.filter((p) => !p?.thought).map((p) => p?.text || '').join('');
-    return { rawText: content, usage: data?.usageMetadata || null };
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      const timeoutErr = new Error('AI provider request timed out.');
-      timeoutErr.code = 'AI_TIMEOUT';
-      throw timeoutErr;
-    }
-    throw err;
-  } finally {
-    clearTimeout(timer);
+    return { rawText: content, usage: data?.usageMetadata || null, modelUsed: modelName };
   }
+
+  throw lastErr || new Error('Gemini provider request failed.');
 }
 
 async function callAnthropicProvider(cfg, systemPrompt, userPrompt) {
@@ -350,7 +393,7 @@ async function invokeConfiguredProviderJson({ pool, systemPrompt, userPrompt }) 
       parsed,
       meta: {
         provider: envCfg.provider,
-        model: envCfg.model,
+        model: providerRes.modelUsed || envCfg.model,
         fallbackUsed: false,
         providerConfigured: true,
         usage: providerRes.usage || null,

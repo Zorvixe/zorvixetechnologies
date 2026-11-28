@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiListEmployees, apiGetEmployee, apiUpdateEmployee } from '../../api';
 import { UserIcon, BuildingIcon, BankIcon, EditIcon } from '../../components/CrmHrmsIcons';
+import { showToast } from '../../utils/toast';
 import './EmployeesTab.css';
 
 export default function EmployeesTab({ isAdmin, user }) {
@@ -47,7 +48,7 @@ export default function EmployeesTab({ isAdmin, user }) {
       setSelectedDetails(res.employee);
       setEditForm(res.employee || {});
     } catch (err) {
-      alert(err.message || 'Failed to load employee profile');
+      showToast(err.message || 'Failed to load employee profile', 'error');
     } finally {
       setDetailsLoading(false);
     }
@@ -59,13 +60,13 @@ export default function EmployeesTab({ isAdmin, user }) {
     setSaving(true);
     try {
       await apiUpdateEmployee(selectedEmpId, editForm);
-      alert('Employee records updated successfully');
+      showToast('Employee records updated successfully', 'success');
       setIsEditing(false);
       const res = await apiGetEmployee(selectedEmpId);
       setSelectedDetails(res.employee);
       fetchEmployees();
     } catch (err) {
-      alert(err.message || 'Failed to save changes');
+      showToast(err.message || 'Failed to save changes', 'error');
     } finally {
       setSaving(false);
     }

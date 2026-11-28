@@ -57,6 +57,21 @@ async function getOrCreateSession({ pool, userId, sessionId = null }) {
   return { session: created.rows[0], messages: [] };
 }
 
+async function listSessions({ pool, userId, limit = 25 }) {
+  const safeLimit = Math.min(Math.max(Number(limit) || 25, 1), 50);
+  const q = await pool.query(
+    `SELECT s.id, s.title, s.updated_at, s.created_at,
+            (SELECT m.content FROM ai_copilot_messages m WHERE m.session_id = s.id AND m.role = 'user' ORDER BY m.created_at ASC LIMIT 1) AS first_prompt,
+            (SELECT COUNT(*)::int FROM ai_copilot_messages m WHERE m.session_id = s.id) AS message_count
+     FROM ai_copilot_sessions s
+     WHERE s.user_id = $1
+     ORDER BY s.updated_at DESC
+     LIMIT $2`,
+    [userId, safeLimit]
+  );
+  return { sessions: q.rows };
+}
+
 async function resetSession({ pool, userId }) {
   const created = await pool.query(
     `INSERT INTO ai_copilot_sessions (user_id, title) VALUES ($1, 'Zorvi Workspace Copilot') RETURNING *`,
@@ -65,13 +80,38 @@ async function resetSession({ pool, userId }) {
   return { session: created.rows[0], messages: [] };
 }
 
+async function deleteSession({ pool, userId, sessionId }) {
+  const sid = Number(sessionId);
+  if (!Number.isFinite(sid)) throw Object.assign(new Error('Valid session id required.'), { status: 400 });
+  const own = await pool.query(`SELECT id FROM ai_copilot_sessions WHERE id = $1 AND user_id = $2 LIMIT 1`, [sid, userId]);
+  if (!own.rows.length) throw Object.assign(new Error('Copilot session not found.'), { status: 404 });
+  await pool.query(`DELETE FROM ai_copilot_messages WHERE session_id = $1 AND user_id = $2`, [sid, userId]);
+  await pool.query(`DELETE FROM ai_copilot_sessions WHERE id = $1 AND user_id = $2`, [sid, userId]);
+  return { deletedId: sid };
+}
+
 async function saveMessage({ pool, sessionId, userId, role, content, payload = {} }) {
+  const textContent = String(content || '');
   const q = await pool.query(
     `INSERT INTO ai_copilot_messages (session_id, user_id, role, content, payload)
      VALUES ($1, $2, $3, $4, $5::jsonb) RETURNING id, role, content, payload, created_at`,
-    [sessionId, userId, role, String(content || ''), JSON.stringify(payload || {})]
+    [sessionId, userId, role, textContent, JSON.stringify(payload || {})]
   );
-  await pool.query(`UPDATE ai_copilot_sessions SET updated_at = NOW() WHERE id = $1`, [sessionId]);
+  if (role === 'user' && textContent.trim()) {
+    const autoTitle = textContent.trim().replace(/\s+/g, ' ').slice(0, 64);
+    await pool.query(
+      `UPDATE ai_copilot_sessions
+       SET title = CASE
+             WHEN title IS NULL OR title = '' OR title = 'Zorvi Workspace Copilot' THEN $2
+             ELSE title
+           END,
+           updated_at = NOW()
+       WHERE id = $1`,
+      [sessionId, autoTitle]
+    );
+  } else {
+    await pool.query(`UPDATE ai_copilot_sessions SET updated_at = NOW() WHERE id = $1`, [sessionId]);
+  }
   return q.rows[0];
 }
 
@@ -729,7 +769,9 @@ async function cancelCopilotConfirmation({ pool, user, sessionId }) {
 
 module.exports = {
   getOrCreateSession,
+  listSessions,
   resetSession,
+  deleteSession,
   runCopilotTurn,
   confirmCopilotAction,
   cancelCopilotConfirmation,

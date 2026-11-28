@@ -169,6 +169,15 @@
   flex-wrap: wrap;
 }
 
+
+.editor-footer-custom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .editor-toolbar {

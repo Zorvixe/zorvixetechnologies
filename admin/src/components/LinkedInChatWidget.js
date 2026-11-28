@@ -14,7 +14,8 @@ import {
 import { playNotificationSound } from "../utils/notificationSound";
 import RichTextEditor from "./RichTextEditor";
 import { renderSafeHtml, stripHtmlText } from "../utils/safeHtml";
-import { MessageSquareIcon, CheckIcon, CheckCheckIcon } from "./CrmHrmsIcons";
+import { MessageSquareIcon, CheckIcon, CheckCheckIcon, UserIcon } from "./CrmHrmsIcons";
+import { showToast } from "../utils/toast";
 import "./LinkedInChatWidget.css";
 
 // Helper: generate consistent avatar color from string
@@ -380,7 +381,7 @@ export default function LinkedInChatWidget() {
       fetchChatUsers();
     } catch (err) {
       console.error("Failed to delete message:", err);
-      alert("Failed to delete message.");
+      showToast("Failed to delete message.", "error");
       if (activeColleague) {
         fetchActiveMessages(activeColleague.id, true);
       }
@@ -425,7 +426,7 @@ export default function LinkedInChatWidget() {
         fetchChatUsers();
       } catch (err) {
         console.error("Failed to edit message:", err);
-        alert("Failed to edit message.");
+        showToast("Failed to edit message.", "error");
         fetchActiveMessages(activeColleague.id, true);
       } finally {
         setSending(false);
@@ -473,7 +474,7 @@ export default function LinkedInChatWidget() {
       console.error("Failed to send message:", err);
       // Mark optimistic message as failed or alert user
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      alert("Failed to send message. Please try again.");
+      showToast("Failed to send message. Please try again.", "error");
       setInputMessage(text);
     } finally {
       setSending(false);
@@ -715,6 +716,18 @@ export default function LinkedInChatWidget() {
                             )}
                           </div>
                         </div>
+                        {isMe && (
+                          <div
+                            className="chat-bubble-avatar chat-bubble-avatar-self"
+                            style={{
+                              backgroundColor: currentUserColor.bg,
+                              color: currentUserColor.text,
+                            }}
+                            title={user?.name || user?.email || "You"}
+                          >
+                            {currentUserInitials !== "?" ? currentUserInitials : <UserIcon size={13} />}
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -749,6 +762,7 @@ export default function LinkedInChatWidget() {
                 <form className="chat-composer" onSubmit={handleSendMessage}>
                   <RichTextEditor
                     compact
+                    className="chat-composer-editor"
                     inputRef={chatInputRef}
                     minHeight="40px"
                     maxHeight="96px"
@@ -758,26 +772,36 @@ export default function LinkedInChatWidget() {
                     value={inputMessage}
                     onChange={(content) => setInputMessage(content)}
                     onKeyDown={handleKeyDown}
-                    style={{ flex: 1, minWidth: 0 }}
+                    style={{ width: "100%", minWidth: 0 }}
+                    footerContent={
+                      <div className="chat-editor-footer">
+                        <button
+                          type="submit"
+                          className={`chat-send-btn ${stripHtmlText(inputMessage) ? "active" : ""}`}
+                          disabled={!stripHtmlText(inputMessage) || sending}
+                          title={editingMessage ? "Save edit (Enter)" : "Send (Enter)"}
+                          aria-label={editingMessage ? "Save edit" : "Send message"}
+                        >
+                          {editingMessage ? (
+                            <>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                              <span>Save</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13" />
+                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                              </svg>
+                              <span>Send</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    }
                   />
-                  <button
-                    type="submit"
-                    className={`chat-send-btn ${stripHtmlText(inputMessage) ? "active" : ""}`}
-                    disabled={!stripHtmlText(inputMessage) || sending}
-                    title={editingMessage ? "Save edit (Enter)" : "Send (Enter)"}
-                    aria-label={editingMessage ? "Save edit" : "Send message"}
-                  >
-                    {editingMessage ? (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13" />
-                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                      </svg>
-                    )}
-                  </button>
                 </form>
               </div>
             </>

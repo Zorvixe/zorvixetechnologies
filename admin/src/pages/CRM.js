@@ -14,6 +14,7 @@ import {
 import AiInsightBox from '../components/AiInsightBox';
 import RichTextEditor from '../components/RichTextEditor';
 import { renderSafeHtml } from '../utils/safeHtml';
+import { showToast } from '../utils/toast';
 
 import LeadsTab from './crm/LeadsTab';
 import AccountsTab from './crm/AccountsTab';
@@ -238,11 +239,14 @@ export default function CRM({ defaultTab }) {
 
   const handleCreateDeal = async (e) => {
     e.preventDefault();
-    if (!dealForm.title) return alert('Please enter deal title');
+    if (!dealForm.title) {
+      showToast('Please enter deal title', 'error');
+      return;
+    }
     setSavingDeal(true);
     try {
       await apiCreateDeal(dealForm);
-      alert('Deal added to pipeline!');
+      showToast('Deal added to pipeline!', 'success');
       setShowDealModal(false);
       setDealForm({
         title: '',
@@ -256,7 +260,7 @@ export default function CRM({ defaultTab }) {
       fetchDeals();
       fetchStats();
     } catch (err) {
-      alert(err.message || 'Failed to create deal');
+      showToast(err.message || 'Failed to create deal', 'error');
     } finally {
       setSavingDeal(false);
     }
@@ -277,7 +281,7 @@ export default function CRM({ defaultTab }) {
       fetchDeals();
       fetchStats();
     } catch (err) {
-      alert(err.message || 'Failed to move deal');
+      showToast(err.message || 'Failed to move deal', 'error');
     }
   };
 
@@ -294,7 +298,7 @@ export default function CRM({ defaultTab }) {
       fetchDeals();
       fetchStats();
     } catch (err) {
-      alert(err.message || 'Failed to update deal');
+      showToast(err.message || 'Failed to update deal', 'error');
     }
   };
 
@@ -306,17 +310,20 @@ export default function CRM({ defaultTab }) {
       fetchDeals();
       fetchStats();
     } catch (err) {
-      alert(err.message || 'Failed to delete deal');
+      showToast(err.message || 'Failed to delete deal', 'error');
     }
   };
 
   const handleCreateActivity = async (e) => {
     e.preventDefault();
-    if (!activityForm.title) return alert('Please enter activity title');
+    if (!activityForm.title) {
+      showToast('Please enter activity title', 'error');
+      return;
+    }
     setSavingActivity(true);
     try {
       await apiCreateCrmActivity(activityForm);
-      alert('Activity logged successfully');
+      showToast('Activity logged successfully', 'success');
       setShowActivityModal(false);
       setActivityForm({
         deal_id: '',
@@ -328,7 +335,7 @@ export default function CRM({ defaultTab }) {
       });
       fetchActivities();
     } catch (err) {
-      alert(err.message || 'Failed to log activity');
+      showToast(err.message || 'Failed to log activity', 'error');
     } finally {
       setSavingActivity(false);
     }

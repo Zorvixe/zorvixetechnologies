@@ -11,6 +11,7 @@ import {
 } from '../../api';
 import AiInsightBox from '../../components/AiInsightBox';
 import PayslipModal from './PayslipModal';
+import { showToast } from '../../utils/toast';
 import {
   DollarIcon,
   SettingsIcon,
@@ -147,10 +148,10 @@ export default function PayrollTab({ isAdmin, user }) {
     setGenerating(true);
     try {
       const res = await apiGeneratePayroll({ month: selectedMonth, year: selectedYear });
-      alert(res.message || 'Payroll generated successfully!');
+      showToast(res.message || 'Payroll generated successfully!', 'success');
       fetchPayrollRuns();
     } catch (err) {
-      alert(err.message || 'Payroll generation failed');
+      showToast(err.message || 'Payroll generation failed', 'error');
     } finally {
       setGenerating(false);
     }
@@ -162,7 +163,7 @@ export default function PayrollTab({ isAdmin, user }) {
       const res = await apiGetPayslip(payrollId);
       setSelectedPayslipData(res.payslip);
     } catch (err) {
-      alert(err.message || 'Failed to load payslip preview');
+      showToast(err.message || 'Failed to load payslip preview', 'error');
     } finally {
       setPayslipLoading(false);
     }
@@ -177,7 +178,7 @@ export default function PayrollTab({ isAdmin, user }) {
       });
       fetchPayrollRuns();
     } catch (err) {
-      alert(err.message || 'Failed to update status');
+      showToast(err.message || 'Failed to update status', 'error');
     }
   };
 
@@ -250,7 +251,7 @@ export default function PayrollTab({ isAdmin, user }) {
       setEditingStructure(null);
       fetchStructures();
     } catch (err) {
-      alert(err.message || 'Failed to save salary structure');
+      showToast(err.message || 'Failed to save salary structure', 'error');
     } finally {
       setSavingStructure(false);
     }
@@ -272,11 +273,11 @@ export default function PayrollTab({ isAdmin, user }) {
     if (!editingPayroll) return;
     try {
       await apiUpdatePayroll(editingPayroll.id, adjustForm);
-      alert('Payroll record updated');
+      showToast('Payroll record updated', 'success');
       setEditingPayroll(null);
       fetchPayrollRuns();
     } catch (err) {
-      alert(err.message || 'Failed to update record');
+      showToast(err.message || 'Failed to update record', 'error');
     }
   };
 

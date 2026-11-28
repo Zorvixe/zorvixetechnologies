@@ -143,6 +143,19 @@ function createAiRouter({
   });
 
   // 2. Role-Aware Multi-Turn Copilot (Global Assistant & Actions)
+  router.get('/copilot/sessions', requireAuth, async (req, res) => {
+    try {
+      const data = await zorviCopilot.listSessions({
+        pool,
+        userId: Number(req.user.sub),
+        limit: req.query?.limit,
+      });
+      return res.json({ success: true, ...data });
+    } catch (err) {
+      return sendAiError(res, err, 'Failed to load Copilot sessions');
+    }
+  });
+
   router.get('/copilot/session', requireAuth, async (req, res) => {
     try {
       const data = await zorviCopilot.getOrCreateSession({
@@ -165,6 +178,19 @@ function createAiRouter({
       return res.json({ success: true, ...data });
     } catch (err) {
       return sendAiError(res, err, 'Failed to reset Copilot session');
+    }
+  });
+
+  router.delete('/copilot/sessions/:id', requireAuth, async (req, res) => {
+    try {
+      const data = await zorviCopilot.deleteSession({
+        pool,
+        userId: Number(req.user.sub),
+        sessionId: req.params.id,
+      });
+      return res.json({ success: true, ...data });
+    } catch (err) {
+      return sendAiError(res, err, 'Failed to delete Copilot session');
     }
   });
 
